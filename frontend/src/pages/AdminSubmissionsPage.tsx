@@ -4,6 +4,7 @@ import AdminLayout from '../components/layout/AdminLayout';
 import { Table, THead, TBody, TR, TH, TD } from '../components/ui/Complex';
 import { Database, Search, FileJson, Calendar, Building2, User } from 'lucide-react';
 import { Button, Input, Select, Label } from '../components/ui/Base';
+import { cn } from '../lib/utils';
 
 export default function AdminSubmissionsPage() {
   const { submissions, forms, companies, users, fetchSubmissions, fetchCompanies, fetchUsers, retrySubmission, isLoading } = useStore();
