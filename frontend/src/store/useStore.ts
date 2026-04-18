@@ -158,12 +158,47 @@ const mapFrontendStructure = (tabs: Tab[]) => ({
   }))
 });
 
+const generateTemplateFromCatalogue = (id: string, name: string, description: string, type: TransactionType) => {
+  const catalogue = CATALOGUES[type];
+  const tabs: Tab[] = catalogue.tabs.map(tabName => {
+    return {
+      id: `tab_${tabName.replace(/\s+/g, '_').toLowerCase()}`,
+      name: tabName,
+      fieldGroups: catalogue.fieldGroups.map(groupName => {
+        const fields = catalogue.fields.filter(f => f.tab === tabName && f.fieldGroup === groupName);
+        if (fields.length === 0) return null;
+        return {
+          id: `group_${groupName.replace(/\s+/g, '_').toLowerCase()}`,
+          name: groupName,
+          fields: fields
+        };
+      }).filter(Boolean) as any
+    };
+  }).filter(tab => tab.fieldGroups.length > 0);
+
+  return {
+    id,
+    name,
+    description,
+    transactionType: type,
+    tags: ['Comprehensive', type.replace('_', ' ')],
+    tabs
+  };
+};
+
+const DEFAULT_TEMPLATES: any[] = [
+  generateTemplateFromCatalogue('tpl_po_full', 'Comprehensive Purchase Order', 'Standard PO with all fields mapped for general procurement.', 'purchase_order'),
+  generateTemplateFromCatalogue('tpl_so_full', 'Comprehensive Sales Order', 'Sales order with complete classification, billing, and shipping details.', 'sales_order'),
+  generateTemplateFromCatalogue('tpl_ap_full', 'Comprehensive Accounts Payable', 'A/P template with full accounting and approval structure.', 'accounts_payable'),
+  generateTemplateFromCatalogue('tpl_ar_full', 'Comprehensive Accounts Receivable', 'A/R template including full items and journal controls.', 'accounts_receivable'),
+];
+
 export const useStore = create<AppState>((set, get) => ({
   user: JSON.parse(localStorage.getItem('user') || 'null'),
   users: [],
   forms: [],
   companies: [],
-  templates: [],
+  templates: DEFAULT_TEMPLATES,
   submissions: [],
   currentForm: null,
   transactionType: 'purchase_order',
