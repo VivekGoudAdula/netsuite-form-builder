@@ -6,6 +6,7 @@ import BuilderPage from './pages/BuilderPage';
 import PreviewPage from './pages/PreviewPage';
 import CompaniesPage from './pages/CompaniesPage';
 import CompanyDetailsPage from './pages/CompanyDetailsPage';
+import TemplatesPage from './pages/TemplatesPage';
 import CustomerDashboardPage from './pages/CustomerDashboardPage';
 import FormFillPage from './pages/FormFillPage';
 import AdminSubmissionsPage from './pages/AdminSubmissionsPage';
@@ -55,6 +56,14 @@ export default function App() {
           element={
             <ProtectedRoute role="admin">
               <CompanyDetailsPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/templates" 
+          element={
+            <ProtectedRoute role="admin">
+              <TemplatesPage />
             </ProtectedRoute>
           } 
         />
