@@ -18,14 +18,21 @@ import { cn } from '../lib/utils';
 export default function FormFillPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { forms, user, addSubmission, submissions } = useStore();
+  const { user, fetchMyFormDetails, submitForm, isLoading } = useStore();
   
-  const form = forms.find(f => f.id === id);
-  const existingSubmission = submissions.find(s => s.formId === id && s.userId === user?.id);
-
+  const [form, setForm] = React.useState<CustomForm | null>(null);
   const [formValues, setFormValues] = React.useState<Record<string, any>>({});
   const [activeTab, setActiveTab] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (id) {
+       fetchMyFormDetails(id).then(data => {
+         if (data) setForm(data);
+       });
+    }
+  }, [id, fetchMyFormDetails]);
 
   React.useEffect(() => {
     if (form && form.tabs.length > 0) {
@@ -44,8 +51,17 @@ export default function FormFillPage() {
     }
   }, [form]);
 
-  if (!form) return <div>Form not found</div>;
-  if (existingSubmission?.status === 'submitted') {
+  if (!form && isLoading) return (
+     <CustomerLayout>
+       <div className="flex items-center justify-center py-20">
+         <div className="h-8 w-8 border-4 border-ns-blue/30 border-t-ns-blue rounded-full animate-spin" />
+       </div>
+     </CustomerLayout>
+  );
+  
+  if (!form) return <div>Form not found or access denied.</div>;
+
+  if (form.status === 'Submitted') {
     return (
       <CustomerLayout>
         <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -53,7 +69,7 @@ export default function FormFillPage() {
             <ShieldCheck size={32} />
           </div>
           <h2 className="text-2xl font-bold text-ns-navy">Submission Finalized</h2>
-          <p className="text-ns-text-muted mt-2 max-w-md">The '{form.name}' has been successfully submitted to your administrator and is currently in read-only protection mode.</p>
+          <p className="text-ns-text-muted mt-2 max-w-md">The '{form.name}' has been successfully submitted to the server and is currently in read-only protection mode.</p>
           <Button onClick={() => navigate('/customer-dashboard')} className="mt-8 gap-2">
             <ArrowLeft size={16} /> Return to Assignments
           </Button>
@@ -66,7 +82,7 @@ export default function FormFillPage() {
     setFormValues(prev => ({ ...prev, [fieldId]: value }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Basic validation
     let missingFields = false;
     form.tabs.forEach(tab => {
@@ -85,20 +101,16 @@ export default function FormFillPage() {
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
     
-    // Simulate API delay
-    setTimeout(() => {
-      addSubmission({
-        formId: form.id,
-        userId: user?.id || '',
-        companyId: user?.companyId || '',
-        values: formValues,
-        status: 'submitted',
-        submittedAt: new Date().toISOString()
-      });
+    try {
+      await submitForm(form.id, formValues);
       setIsSubmitting(false);
       navigate('/customer-dashboard');
-    }, 1500);
+    } catch (err: any) {
+      setIsSubmitting(false);
+      setSubmitError(err.response?.data?.detail || 'Failed to submit form. Please check NetSuite connectivity.');
+    }
   };
 
   return (
@@ -119,7 +131,7 @@ export default function FormFillPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-ns-navy">{form.name}</h1>
-                <p className="text-xs text-ns-text-muted font-medium mt-0.5 uppercase tracking-wider">Transaction ID: {form.id.substring(0, 8)} • Source: {form.source.toUpperCase()}</p>
+                <p className="text-xs text-ns-text-muted font-medium mt-0.5 uppercase tracking-wider">Transaction ID: {form.id.substring(0, 8)} • Source: {(form.source || 'scratch').toUpperCase()}</p>
               </div>
             </div>
           </div>
@@ -137,6 +149,13 @@ export default function FormFillPage() {
              </Button>
           </div>
         </div>
+
+        {submitError && (
+          <div className="bg-red-50 p-4 rounded-sm border border-red-200 flex gap-4 items-center">
+            <AlertCircle className="text-red-600 shrink-0" size={20} />
+            <p className="text-xs text-red-900 font-bold">{submitError}</p>
+          </div>
+        )}
 
         {/* Global Banner */}
         <div className="bg-ns-navy p-4 rounded-sm border border-ns-border flex items-center justify-between">

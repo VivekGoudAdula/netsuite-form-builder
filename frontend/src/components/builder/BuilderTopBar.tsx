@@ -8,15 +8,18 @@ import { Save, Eye, ChevronLeft, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function BuilderTopBar() {
-  const { currentForm, updateCurrentForm, addForm, forms, catalogues, companies } = useStore();
+  const { currentForm, updateForm, isLoading, catalogues, companies } = useStore();
   const navigate = useNavigate();
   const [showSavedToast, setShowSavedToast] = React.useState(false);
   const [showTypeConfirm, setShowTypeConfirm] = React.useState<TransactionType | null>(null);
   const [isModified, setIsModified] = React.useState(false);
+  const updateCurrentForm = useStore((state) => (state as any).updateCurrentForm); // For local UI updates before save
 
   if (!currentForm) return null;
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!currentForm) return;
+
     // Validation: At least one field group
     const hasFieldGroup = currentForm.tabs.some(t => t.fieldGroups.length > 0);
     if (!hasFieldGroup) {
@@ -41,16 +44,17 @@ export default function BuilderTopBar() {
       return;
     }
 
-    const exists = forms.some(f => f.id === currentForm.id);
-    if (!exists) {
-      addForm({ ...currentForm, updatedAt: new Date().toISOString().split('T')[0] });
-    } else {
-      const updatedForms = forms.map(f => f.id === currentForm.id ? { ...currentForm, updatedAt: new Date().toISOString().split('T')[0] } : f);
-      useStore.getState().setForms(updatedForms);
+    try {
+      await updateForm(currentForm.id, {
+        name: currentForm.name,
+        tabs: currentForm.tabs
+      });
+      setShowSavedToast(true);
+      setIsModified(false);
+      setTimeout(() => setShowSavedToast(false), 3000);
+    } catch (err: any) {
+      alert(`Save failed: ${err.message}`);
     }
-    setShowSavedToast(true);
-    setIsModified(false);
-    setTimeout(() => setShowSavedToast(false), 3000);
   };
 
   const handleTypeChange = (newType: TransactionType) => {

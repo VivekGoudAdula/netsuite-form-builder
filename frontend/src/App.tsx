@@ -22,6 +22,12 @@ function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: 
 }
 
 export default function App() {
+  const restoreSession = useStore((state) => state.restoreSession);
+
+  React.useEffect(() => {
+    restoreSession();
+  }, [restoreSession]);
+
   return (
     <Router>
       <Routes>

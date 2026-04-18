@@ -10,10 +10,12 @@ import BuilderTopBar from '../components/builder/BuilderTopBar';
 import { Field, Tab, FieldGroup } from '../types';
 
 export default function BuilderPage() {
-  const { currentForm, updateCurrentForm, catalogues } = useStore();
+  const { 
+    currentForm, updateCurrentForm, catalogues, 
+    activeTabId, setActiveTabId, 
+    selectedFieldId, setSelectedFieldId 
+  } = useStore();
   const navigate = useNavigate();
-  const [activeTabId, setActiveTabId] = React.useState(currentForm?.tabs[0]?.id || '');
-  const [selectedFieldId, setSelectedFieldId] = React.useState<string | null>(null);
   const [activeDragItem, setActiveDragItem] = React.useState<Field | null>(null);
 
   const sensors = useSensors(
@@ -23,7 +25,10 @@ export default function BuilderPage() {
 
   React.useEffect(() => {
     if (!currentForm) navigate('/dashboard');
-  }, [currentForm, navigate]);
+    else if (!activeTabId && currentForm.tabs.length > 0) {
+      setActiveTabId(currentForm.tabs[0].id);
+    }
+  }, [currentForm, navigate, activeTabId]);
 
   if (!currentForm) return null;
 

@@ -20,33 +20,15 @@ class FieldGroupSchema(BaseModel):
     id: str
     name: str
     order: int = 0
-    fields: List[FieldSchema]
-
-    @validator('fields')
-    def fields_not_empty(cls, v):
-        if not v:
-            raise ValueError('Each field group must have at least 1 field')
-        return v
+    fields: List[FieldSchema] = []
 
 class TabSchema(BaseModel):
     name: str
     visible: bool = True
-    fieldGroups: List[FieldGroupSchema]
-
-    @validator('fieldGroups')
-    def groups_not_empty(cls, v):
-        if not v:
-            raise ValueError('Each tab must have at least 1 field group')
-        return v
+    fieldGroups: List[FieldGroupSchema] = []
 
 class FormStructure(BaseModel):
-    tabs: List[TabSchema]
-
-    @validator('tabs')
-    def tabs_not_empty(cls, v):
-        if not v:
-            raise ValueError('Structure must contain at least 1 tab')
-        return v
+    tabs: List[TabSchema] = []
 
 class FormBase(BaseModel):
     name: str
@@ -74,6 +56,7 @@ class MyFormResponse(BaseModel):
     name: str
     transactionType: str
     status: str = "Not Started"
+    updatedAt: Optional[str] = None
 
 class FormSubmissionRequest(BaseModel):
     values: Dict[str, Any]

@@ -16,16 +16,17 @@ import {
 import { cn } from '../lib/utils';
 
 export default function CustomerDashboardPage() {
-  const { user, forms, catalogues, submissions } = useStore();
+  const { user, forms, catalogues, fetchMyForms, isLoading } = useStore();
   const navigate = useNavigate();
 
-  // Get forms assigned to this employee
-  const assignedForms = forms.filter(f => f.assignedTo?.includes(user?.id || ''));
+  React.useEffect(() => {
+    fetchMyForms();
+  }, [fetchMyForms]);
 
-  const getSubmissionStatus = (formId: string) => {
-    const sub = submissions.find(s => s.formId === formId && s.userId === user?.id);
-    if (!sub) return 'pending';
-    return sub.status;
+  const assignedForms = forms;
+
+  const getSubmissionStatus = (form: any) => {
+    return form.status?.toLowerCase() || 'pending';
   };
 
   const getStatusBadge = (status: string) => {
@@ -57,7 +58,12 @@ export default function CustomerDashboardPage() {
         <div className="flex justify-between items-end">
           <div>
             <h1 className="text-3xl font-bold text-ns-navy tracking-tight">Assignment Ledger</h1>
-            <p className="text-sm text-ns-text-muted mt-1">Authorized transaction layouts pending your validation and submission.</p>
+            <div className="flex items-center gap-2 mt-1">
+               <p className="text-sm text-ns-text-muted">Authorized transaction layouts pending your validation and submission.</p>
+               <span className="text-[10px] bg-ns-blue/10 text-ns-blue px-2 py-0.5 rounded-full font-bold uppercase tracking-widest border border-ns-blue/20">
+                  Authorized Entity: {user?.companyName || 'Corporate Participant'}
+               </span>
+            </div>
           </div>
         </div>
 
@@ -66,7 +72,7 @@ export default function CustomerDashboardPage() {
           <div className="bg-white p-6 rounded-sm border border-ns-border shadow-sm flex items-center justify-between group hover:border-ns-blue transition-colors">
             <div className="space-y-1">
               <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">Pending Forms</p>
-              <p className="text-3xl font-bold text-ns-navy">{assignedForms.filter(f => getSubmissionStatus(f.id) !== 'submitted').length}</p>
+              <p className="text-3xl font-bold text-ns-navy">{assignedForms.filter(f => getSubmissionStatus(f) !== 'submitted').length}</p>
             </div>
             <div className="w-12 h-12 bg-ns-blue/5 rounded-full flex items-center justify-center text-ns-blue group-hover:scale-110 transition-transform">
               <FileSearch size={22} />
@@ -75,7 +81,7 @@ export default function CustomerDashboardPage() {
           <div className="bg-white p-6 rounded-sm border border-ns-border shadow-sm flex items-center justify-between group hover:border-green-500 transition-colors">
             <div className="space-y-1">
               <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">Completed Tasks</p>
-              <p className="text-3xl font-bold text-ns-navy">{assignedForms.filter(f => getSubmissionStatus(f.id) === 'submitted').length}</p>
+              <p className="text-3xl font-bold text-ns-navy">{assignedForms.filter(f => getSubmissionStatus(f) === 'submitted').length}</p>
             </div>
             <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform">
               <CheckCircle2 size={22} />
@@ -83,7 +89,7 @@ export default function CustomerDashboardPage() {
           </div>
           <div className="bg-white p-6 rounded-sm border border-ns-blue/20 shadow-md flex items-center justify-between bg-ns-navy">
             <div className="space-y-1">
-              <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">Protocol Class</p>
+              <p className="text-[10px] font-bold white/40 uppercase tracking-[0.2em]">Protocol Class</p>
               <p className="text-3xl font-bold text-white uppercase italic">Standard</p>
             </div>
             <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-ns-blue">
@@ -112,7 +118,7 @@ export default function CustomerDashboardPage() {
             </THead>
             <TBody>
               {assignedForms.map((form) => {
-                const status = getSubmissionStatus(form.id);
+                const status = getSubmissionStatus(form);
                 const isSubmitted = status === 'submitted';
                 
                 return (

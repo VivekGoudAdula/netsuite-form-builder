@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { AppState, CustomForm, Field, User, TransactionType, CatalogueData, DisplayType, CheckBoxDefault, FormTemplate, Tab, FormSource, Company, Submission } from '../types';
+import api from '../api/client';
+import { AppState, CustomForm, Field, User, TransactionType, CatalogueData, Tab, Company, Submission } from '../types';
 
 /**
  * Utility to map "raw" NetSuite field data to our UI-ready model.
@@ -105,251 +106,323 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
   }
 };
 
-const MOCK_COMPANIES: Company[] = [
-  { id: 'comp_1', name: 'HDFC Bank', createdAt: '2024-01-01' },
-  { id: 'comp_2', name: 'TCS', createdAt: '2024-01-05' },
-  { id: 'comp_3', name: 'Infosys', createdAt: '2024-01-10' },
-  { id: 'comp_4', name: 'Wipro', createdAt: '2024-01-15' },
-  { id: 'comp_5', name: 'Reliance', createdAt: '2024-01-20' }
-];
+// Map backend form to frontend CustomForm
+const mapBackendForm = (form: any): CustomForm => ({
+  id: form.id,
+  name: form.name,
+  customerId: form.companyId,
+  transactionType: form.transactionType,
+  createdBy: form.createdBy,
+  createdAt: form.createdAt,
+  updatedAt: form.updatedAt,
+  source: form.source || 'scratch',
+  assignedTo: form.assignedTo || [],
+  tabs: form.structure?.tabs?.map((t: any) => ({
+    id: t.id || Math.random().toString(36).substr(2, 5),
+    name: t.name,
+    fieldGroups: t.fieldGroups?.map((g: any) => ({
+      id: g.id,
+      name: g.name,
+      fields: g.fields?.map((f: any) => ({
+        id: f.fieldId,
+        label: f.label,
+        visible: f.visible,
+        mandatory: f.mandatory,
+        type: f.type || 'string',
+        displayType: f.displayType || 'normal',
+        checkBoxDefault: f.checkBoxDefault || 'default',
+        layout: f.layout || { columnBreak: false, spaceBefore: false }
+      }))
+    }))
+  })) || []
+});
 
-const MOCK_USERS: User[] = [
-  { id: 'admin_1', name: 'Super Admin', email: 'admin@example.com', role: 'admin', password: 'password123' },
-  { id: 'emp_1', name: 'Amit Kumar', email: 'hdfc_emp@example.com', role: 'customer', companyId: 'comp_1', password: 'password123', jobTitle: 'Procurement Officer', employeeId: 'HDFC001' },
-  { id: 'emp_2', name: 'Suresh Raina', email: 'tcs_emp@example.com', role: 'customer', companyId: 'comp_2', password: 'password123', jobTitle: 'Operations Manager', employeeId: 'TCS778' }
-];
-
-const TEMPLATES: FormTemplate[] = [
-  {
-    id: 'template_po_standard',
-    name: 'Standard Purchase Order',
-    transactionType: 'purchase_order',
-    description: 'Comprehensive blueprint including approval workflows, primary vendor data, and cross-subsidiary classification.',
-    tags: ['Best Practice', 'Common'],
-    tabs: [
-      {
-        id: `tab_po_std_1`,
-        name: 'Main',
-        fieldGroups: [
-          {
-            id: `gp_po_std_1`,
-            name: 'Primary Information',
-            fields: CATALOGUES.purchase_order.fields.filter(f => ['approvalStatus', 'entity', 'tranDate', 'tranId'].includes(f.id))
-          },
-          {
-            id: `gp_po_std_2`,
-            name: 'Classification',
-            fields: CATALOGUES.purchase_order.fields.filter(f => ['subsidiary', 'department', 'class', 'location'].includes(f.id))
-          }
-        ]
-      },
-      {
-        id: `tab_po_std_2`,
-        name: 'System Information',
-        fieldGroups: [
-          {
-            id: `gp_po_std_3`,
-            name: 'System Information',
-            fields: CATALOGUES.purchase_order.fields.filter(f => ['status', 'createdDate'].includes(f.id))
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'template_po_minimal',
-    name: 'Minimal PO',
-    transactionType: 'purchase_order',
-    description: 'Optimized for high-velocity entry. Contains only mandatory NetSuite fields and core identification.',
-    tags: ['Minimal'],
-    tabs: [
-      {
-        id: `tab_po_min_1`,
-        name: 'Main',
-        fieldGroups: [
-          {
-            id: `gp_po_min_1`,
-            name: 'Key Identification',
-            fields: CATALOGUES.purchase_order.fields.filter(f => ['entity', 'tranDate', 'subsidiary'].includes(f.id))
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'template_so_standard',
-    name: 'Standard Sales Order',
-    transactionType: 'sales_order',
-    description: 'Standard Sales Order with customer defaults and status tracking.',
-    tags: ['Best Practice'],
-    tabs: [
-      {
-        id: `tab_so_std_1`,
-        name: 'Main',
-        fieldGroups: [
-          {
-            id: `gp_so_std_1`,
-            name: 'Primary Information',
-            fields: CATALOGUES.sales_order.fields.filter(f => ['entity', 'tranDate', 'tranId', 'status'].includes(f.id))
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'template_ap_standard',
-    name: 'Vendor Bill Template',
-    transactionType: 'accounts_payable',
-    description: 'Accounts Payable layout focused on bill dates, due dates, and amount verification.',
-    tags: ['Advanced'],
-    tabs: [
-      {
-        id: `tab_ap_std_1`,
-        name: 'Main',
-        fieldGroups: [
-          {
-            id: `gp_ap_std_1`,
-            name: 'Primary Information',
-            fields: CATALOGUES.accounts_payable.fields.filter(f => ['entity', 'tranDate', 'dueDate', 'amount'].includes(f.id))
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'template_ar_standard',
-    name: 'Invoice Template',
-    transactionType: 'accounts_receivable',
-    description: 'Accounts Receivable layout for efficient invoicing and payment tracking.',
-    tags: ['Common'],
-    tabs: [
-      {
-        id: `tab_ar_std_1`,
-        name: 'Main',
-        fieldGroups: [
-          {
-            id: `gp_ar_std_1`,
-            name: 'Invoicing Details',
-            fields: CATALOGUES.accounts_receivable.fields.filter(f => ['entity', 'tranDate', 'status', 'amount'].includes(f.id))
-          }
-        ]
-      }
-    ]
-  }
-];
-
-const INITIAL_FORMS: CustomForm[] = [
-  {
-    id: 'form_1',
-    name: 'HDFC Enterprise PO Form',
-    customerId: 'comp_1',
-    transactionType: 'purchase_order',
-    createdBy: 'Super Admin',
-    createdAt: '2024-03-10',
-    updatedAt: '2024-03-15',
-    source: 'custom',
-    assignedTo: ['emp_1'],
-    tabs: [
-      {
-        id: 't1',
-        name: 'Main',
-        fieldGroups: [
-          {
-            id: 'g1',
-            name: 'Primary Information',
-            fields: CATALOGUES.purchase_order.fields.slice(0, 5)
-          }
-        ]
-      }
-    ]
-  }
-];
+// Map frontend structure to backend
+const mapFrontendStructure = (tabs: Tab[]) => ({
+  tabs: tabs.map(t => ({
+    name: t.name,
+    visible: true,
+    fieldGroups: t.fieldGroups.map(g => ({
+      id: g.id,
+      name: g.name,
+      fields: g.fields.map(f => ({
+        fieldId: f.id,
+        label: f.label,
+        visible: f.visible,
+        mandatory: f.mandatory,
+        displayType: f.displayType,
+        checkBoxDefault: f.checkBoxDefault,
+        layout: f.layout
+      }))
+    }))
+  }))
+});
 
 export const useStore = create<AppState>((set, get) => ({
-  user: null,
-  users: MOCK_USERS,
-  forms: INITIAL_FORMS,
-  companies: MOCK_COMPANIES,
-  templates: TEMPLATES,
+  user: JSON.parse(localStorage.getItem('user') || 'null'),
+  users: [],
+  forms: [],
+  companies: [],
+  templates: [],
   submissions: [],
   currentForm: null,
   transactionType: 'purchase_order',
   catalogues: CATALOGUES,
+  isLoading: false,
+  error: null,
 
-  login: (email: string, password?: string) => {
-    const user = get().users.find(u => u.email === email && (!password || u.password === password));
-    if (user) {
-      set({ user });
-      return true;
-    }
-    return false;
-  },
-  logout: () => set({ user: null }),
-  setForms: (forms: CustomForm[]) => set({ forms }),
-  setCurrentForm: (form: CustomForm | null) => set({ currentForm: form }),
-  setTransactionType: (type: TransactionType) => set({ transactionType: type }),
-  updateCurrentForm: (updates: Partial<CustomForm>) => set((state) => ({
-    currentForm: state.currentForm ? { ...state.currentForm, ...updates } : null
-  })),
-  createForm: (name: string, customerId: string, transactionType: TransactionType, tabs?: Tab[], source: FormSource = 'custom', templateId?: string) => {
-    const newForm: CustomForm = {
-      id: `form_${Math.random().toString(36).substr(2, 9)}`,
-      name,
-      customerId,
-      transactionType,
-      source,
-      templateId,
-      assignedTo: [],
-      tabs: tabs || [
-        {
-          id: `tab_${Math.random().toString(36).substr(2, 5)}`,
-          name: 'Main',
-          fieldGroups: [
-            {
-              id: `group_${Math.random().toString(36).substr(2, 5)}`,
-              name: 'Primary Information',
-              fields: []
-            }
-          ]
+  login: async (email: string, password?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const params = new URLSearchParams();
+      params.append('username', email);
+      if (password) params.append('password', password);
+      
+      const response = await api.post('auth/login', params, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
         }
-      ],
-      createdBy: get().user?.name || 'Admin',
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0],
-    };
-    set((state) => ({ forms: [...state.forms, newForm], currentForm: newForm }));
+      });
+      const { access_token, user, role } = response.data;
+      localStorage.setItem('token', access_token);
+      localStorage.setItem('user', JSON.stringify({ ...user, role }));
+      set({ user: { ...user, role }, isLoading: false });
+      return true;
+    } catch (err: any) {
+      set({ error: err.response?.data?.detail || 'Login failed', isLoading: false });
+      return false;
+    }
   },
-  addForm: (form: CustomForm) => set((state) => ({ forms: [...state.forms, form] })),
-  deleteForm: (id: string) => set((state) => ({ forms: state.forms.filter(f => f.id !== id) })),
-  cloneForm: (id: string, customerId?: string) => set((state) => {
-    const formToClone = state.forms.find(f => f.id === id);
-    if (!formToClone) return state;
-    const clonedForm: CustomForm = {
-      ...formToClone,
-      id: `form_${Math.random().toString(36).substr(2, 9)}`,
-      name: `${formToClone.name} (Copy)`,
-      customerId: customerId || formToClone.customerId,
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0],
-    };
-    return { forms: [...state.forms, clonedForm] };
+
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    set({ user: null, forms: [], companies: [], users: [], submissions: [] });
+    window.location.href = '/login';
+  },
+
+  restoreSession: async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const response = await api.get('auth/me');
+      set({ user: response.data });
+      localStorage.setItem('user', JSON.stringify(response.data));
+    } catch (err) {
+      get().logout();
+    }
+  },
+
+  fetchCompanies: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get('companies');
+      set({ companies: response.data, isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  fetchUsers: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get('users');
+      set({ users: response.data, isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  fetchForms: async (companyId?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const params = companyId ? { companyId } : {};
+      const response = await api.get('forms', { params });
+      set({ forms: response.data.map(mapBackendForm), isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  fetchMyForms: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get('forms/my');
+      console.log('Fetched My Forms:', response.data);
+      set({ forms: response.data, isLoading: false });
+    } catch (err: any) {
+      console.error('Fetch My Forms Error:', err);
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  fetchMyFormDetails: async (formId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get(`forms/${formId}/my`);
+      const form = mapBackendForm(response.data);
+      set({ isLoading: false });
+      return form;
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+      return null;
+    }
+  },
+
+  fetchSubmissions: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get('submissions');
+      set({ submissions: response.data, isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  createForm: async (name, companyId, transactionType, tabs) => {
+    set({ isLoading: true, error: null });
+    try {
+      let formTabs = tabs || [];
+      if (formTabs.length === 0) {
+        formTabs = [{
+          id: 'tab_general',
+          name: 'General',
+          fieldGroups: [{
+            id: 'group_main',
+            name: 'Primary Information',
+            fields: []
+          }]
+        }];
+      }
+      const structure = mapFrontendStructure(formTabs);
+      const response = await api.post('forms', {
+        name,
+        companyId,
+        transactionType,
+        structure,
+        assignedTo: []
+      });
+      const newForm = mapBackendForm(response.data);
+      set((state) => ({ 
+        forms: [...state.forms, newForm], 
+        currentForm: newForm, 
+        activeTabId: newForm.tabs[0]?.id || '',
+        selectedFieldId: null,
+        isLoading: false 
+      }));
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  updateForm: async (id, updates) => {
+    set({ isLoading: true, error: null });
+    try {
+      const payload: any = {};
+      if (updates.name) payload.name = updates.name;
+      if (updates.tabs) payload.structure = mapFrontendStructure(updates.tabs);
+      
+      const response = await api.put(`forms/${id}`, payload);
+      const updatedForm = mapBackendForm(response.data);
+      set((state) => ({
+        forms: state.forms.map(f => f.id === id ? updatedForm : f),
+        currentForm: state.currentForm?.id === id ? updatedForm : state.currentForm,
+        isLoading: false
+      }));
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  deleteForm: async (id) => {
+    try {
+      await api.delete(`forms/${id}`);
+      set((state) => ({ forms: state.forms.filter(f => f.id !== id) }));
+    } catch (err: any) {
+      set({ error: err.message });
+    }
+  },
+
+  cloneForm: async (id, targetCompanyId, newName) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.post(`forms/${id}/clone`, { 
+        targetCompanyId, 
+        newName: newName || 'Cloned Form' 
+      });
+      const clonedForm = mapBackendForm(response.data);
+      set((state) => ({ forms: [...state.forms, clonedForm], isLoading: false }));
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  assignUsers: async (formId, userIds) => {
+    set({ isLoading: true, error: null });
+    try {
+      await api.put(`forms/${formId}/assign`, { userIds });
+      console.log(`Successfully assigned ${userIds.length} users to form ${formId}`);
+      set((state) => ({
+        forms: state.forms.map(f => f.id === formId ? { ...f, assignedTo: userIds } : f),
+        isLoading: false
+      }));
+    } catch (err: any) {
+      console.error('Assign Users Error:', err);
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  submitForm: async (formId, values) => {
+    set({ isLoading: true, error: null });
+    try {
+      await api.post(`forms/${formId}/submit`, { values });
+      set({ isLoading: false });
+      // Clear forms to trigger refetch of status
+      get().fetchMyForms();
+    } catch (err: any) {
+      set({ error: err.response?.data?.detail || 'Submission failed', isLoading: false });
+      throw err;
+    }
+  },
+
+  retrySubmission: async (submissionId) => {
+    set({ isLoading: true, error: null });
+    try {
+      await api.post(`submissions/${submissionId}/retry`);
+      get().fetchSubmissions();
+      set({ isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  setActiveTabId: (id: string) => set({ activeTabId: id }),
+  setSelectedFieldId: (id: string | null) => set({ selectedFieldId: id }),
+
+  setCurrentForm: (form) => set({ 
+    currentForm: form, 
+    activeTabId: form?.tabs[0]?.id || '',
+    selectedFieldId: null 
   }),
+  setTransactionType: (type) => set({ transactionType: type, currentForm: null }),
+  updateCurrentForm: (updates) => {
+    const { currentForm } = get();
+    if (currentForm) {
+      set({ currentForm: { ...currentForm, ...updates } });
+    }
+  },
 
-  updateFormAssignment: (formId: string, employeeIds: string[]) => set((state) => ({
-    forms: state.forms.map(f => f.id === formId ? { ...f, assignedTo: employeeIds } : f)
-  })),
+  toggleField: (field: Field) => {
+    const { currentForm, activeTabId } = get();
+    if (!currentForm) return;
 
-  toggleField: (field: Field) => set((state) => {
-    if (!state.currentForm) return state;
-
-    const isAlreadyAdded = state.currentForm.tabs.some(t => 
+    const isAlreadyAdded = currentForm.tabs.some(t => 
       t.fieldGroups.some(g => g.fields.some(f => f.id === field.id))
     );
 
-    let newTabs = [...state.currentForm.tabs];
+    let newTabs = [...currentForm.tabs];
 
     if (isAlreadyAdded) {
-      // Remove field from all groups
       newTabs = newTabs.map(tab => ({
         ...tab,
         fieldGroups: tab.fieldGroups.map(group => ({
@@ -358,65 +431,70 @@ export const useStore = create<AppState>((set, get) => ({
         }))
       }));
     } else {
-      // Add field to the target field group or first available group in the field's tab
-      let fieldTab = newTabs.find(t => t.name === field.tab);
+      // Find the active tab, or the first one, or the one matching field meta
+      let targetTab = newTabs.find(t => t.id === activeTabId) || 
+                      newTabs.find(t => t.name === field.tab) ||
+                      newTabs[0];
       
-      // If the tab doesn't exist in the form yet, add it
-      if (!fieldTab) {
-        fieldTab = {
+      if (!targetTab) {
+        targetTab = {
           id: `tab_${Math.random().toString(36).substr(2, 5)}`,
-          name: field.tab,
+          name: field.tab || 'General',
           fieldGroups: []
         };
-        newTabs.push(fieldTab);
+        newTabs.push(targetTab);
       }
 
-      let targetGroup = fieldTab.fieldGroups.find(g => g.name === field.fieldGroup);
-
-      // If the field group doesn't exist in the tab yet, add it
+      // Find the first group in the tab, or create one
+      let targetGroup = targetTab.fieldGroups[0];
       if (!targetGroup) {
         targetGroup = {
           id: `group_${Math.random().toString(36).substr(2, 5)}`,
-          name: field.fieldGroup,
+          name: field.fieldGroup || 'Primary Information',
           fields: []
         };
-        fieldTab.fieldGroups.push(targetGroup);
+        targetTab.fieldGroups.push(targetGroup);
       }
 
-      // Add the field
       targetGroup.fields.push({ ...field });
     }
 
-    return {
-      currentForm: {
-        ...state.currentForm,
-        tabs: newTabs
-      }
-    };
-  }),
+    set({ currentForm: { ...currentForm, tabs: newTabs } });
+  },
 
-  addCompany: (name: string) => set((state) => ({
-    companies: [...state.companies, { id: `comp_${Math.random().toString(36).substr(2, 5)}`, name, createdAt: new Date().toISOString().split('T')[0] }]
-  })),
-  updateCompany: (id: string, updates: Partial<Company>) => set((state) => ({
-    companies: state.companies.map(c => c.id === id ? { ...c, ...updates } : c)
-  })),
-  deleteCompany: (id: string) => set((state) => ({
-    companies: state.companies.filter(c => c.id !== id),
-    users: state.users.filter(u => u.companyId !== id)
-  })),
+  addCompany: async (name) => {
+    try {
+      await api.post('companies', { name });
+      get().fetchCompanies();
+    } catch (err: any) {
+      set({ error: err.message });
+    }
+  },
 
-  addUser: (userData: Omit<User, 'id'>) => set((state) => ({
-    users: [...state.users, { ...userData, id: `user_${Math.random().toString(36).substr(2, 5)}` }]
-  })),
-  updateUser: (id: string, updates: Partial<User>) => set((state) => ({
-    users: state.users.map(u => u.id === id ? { ...u, ...updates } : u)
-  })),
-  deleteUser: (id: string) => set((state) => ({
-    users: state.users.filter(u => u.id !== id)
-  })),
+  deleteCompany: async (id) => {
+    try {
+      await api.delete(`companies/${id}`);
+      get().fetchCompanies();
+    } catch (err: any) {
+      set({ error: err.message });
+    }
+  },
 
-  addSubmission: (submission: Omit<Submission, 'id'>) => set((state) => ({
-    submissions: [...state.submissions, { ...submission, id: `sub_${Math.random().toString(36).substr(2, 5)}` }]
-  })),
+  addUser: async (userData) => {
+    try {
+      await api.post('users', userData);
+      get().fetchUsers();
+    } catch (err: any) {
+      set({ error: err.message });
+    }
+  },
+
+  deleteUser: async (id) => {
+    try {
+      await api.delete(`users/${id}`);
+      get().fetchUsers();
+    } catch (err: any) {
+      set({ error: err.message });
+    }
+  },
 }));

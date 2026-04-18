@@ -9,8 +9,13 @@ import { Users, Plus, Mail, IdCard, Briefcase, Trash2, ArrowLeft, Shield } from 
 export default function CompanyDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { companies, users, addUser, deleteUser } = useStore();
+  const { companies, users, addUser, deleteUser, fetchCompanies, fetchUsers, isLoading } = useStore();
   
+  React.useEffect(() => {
+    fetchCompanies();
+    fetchUsers();
+  }, [fetchCompanies, fetchUsers]);
+
   const company = companies.find(c => c.id === id);
   const companyEmployees = users.filter(u => u.companyId === id);
 
@@ -34,11 +39,11 @@ export default function CompanyDetailsPage() {
     );
   }
 
-  const handleAddEmployee = (e: React.FormEvent) => {
+  const handleAddEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEmployee.name || !newEmployee.email) return;
 
-    addUser({
+    await addUser({
       name: newEmployee.name,
       email: newEmployee.email,
       employeeId: newEmployee.employeeId,

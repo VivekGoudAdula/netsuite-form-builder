@@ -13,13 +13,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    # 1. Check Fixed Admin
-    if form_data.username == settings.ADMIN_EMAIL and form_data.password == settings.ADMIN_PASSWORD:
-        access_token = create_access_token(data={"userId": "admin", "role": "admin"})
-        await log_activity("admin", "LOGIN", metadata={"email": settings.ADMIN_EMAIL})
-        return {"access_token": access_token, "token_type": "bearer", "role": "admin"}
-    
-    # 2. Check DB users
+    # 1. Check DB users
     db = get_database()
     user = await db.users.find_one({"email": form_data.username})
     
@@ -48,15 +42,47 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     
     await log_activity(user_id_str, "LOGIN", metadata={"email": user["email"]})
     
-    return {"access_token": access_token, "token_type": "bearer", "role": user["role"]}
+    company_id = user.get("companyId")
+    company_name = None
+    if company_id:
+        company = await db.companies.find_one({"_id": ObjectId(company_id)})
+        if company:
+            company_name = company.get("name")
+
+    user_info = {
+        "id": user_id_str,
+        "name": user["name"],
+        "email": user["email"],
+        "role": user["role"],
+        "companyId": company_id,
+        "companyName": company_name,
+        "jobTitle": user.get("jobTitle")
+    }
+    
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer", 
+        "role": user["role"],
+        "user": user_info
+    }
 
 @router.get("/me", response_model=UserInfo)
 async def get_me(current_user: dict = Depends(get_current_user)):
+    db = get_database()
+    company_id = current_user.get("companyId")
+    company_name = current_user.get("companyName")
+    
+    if company_id and not company_name:
+        company = await db.companies.find_one({"_id": ObjectId(company_id)})
+        if company:
+            company_name = company.get("name")
+
     return {
         "id": str(current_user.get("_id", current_user.get("id"))),
         "name": current_user["name"],
         "email": current_user["email"],
         "role": current_user["role"],
-        "companyId": current_user.get("companyId"),
+        "companyId": company_id,
+        "companyName": company_name,
         "jobTitle": current_user.get("jobTitle")
     }

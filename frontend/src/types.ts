@@ -65,10 +65,13 @@ export interface Submission {
   id: string;
   formId: string;
   userId: string;
+  userName?: string;
+  formName?: string;
   companyId: string;
-  values: Record<string, any>;
-  status: 'not_started' | 'in_progress' | 'submitted';
+  status: 'Not Started' | 'Submitted' | 'failed' | 'submitted';
   submittedAt?: string;
+  netsuiteId?: string;
+  errorMessage?: string;
 }
 
 export interface CustomForm {
@@ -103,39 +106,52 @@ export interface FormTemplate {
 
 export interface AppState {
   user: User | null;
-  users: User[]; // All users (admins + employees)
+  users: User[]; 
   forms: CustomForm[];
   companies: Company[];
   templates: FormTemplate[];
   submissions: Submission[];
   currentForm: CustomForm | null;
+  activeTabId: string;
+  selectedFieldId: string | null;
   transactionType: TransactionType;
   catalogues: Record<TransactionType, CatalogueData>;
+  isLoading: boolean;
+  error: string | null;
   
-  // Actions
-  login: (email: string, password?: string) => boolean;
+  // Auth Actions
+  login: (email: string, password?: string) => Promise<boolean>;
   logout: () => void;
-  setForms: (forms: CustomForm[]) => void;
+  restoreSession: () => Promise<void>;
+  
+  // Data Fetching
+  fetchCompanies: () => Promise<void>;
+  fetchUsers: () => Promise<void>;
+  fetchForms: (companyId?: string) => Promise<void>;
+  fetchMyForms: () => Promise<void>;
+  fetchMyFormDetails: (formId: string) => Promise<CustomForm | null>;
+  fetchSubmissions: () => Promise<void>;
+  
+  // Form Management
+  createForm: (name: string, companyId: string, transactionType: TransactionType, tabs?: Tab[]) => Promise<void>;
+  updateForm: (id: string, updates: Partial<CustomForm>) => Promise<void>;
+  deleteForm: (id: string) => Promise<void>;
+  cloneForm: (id: string, targetCompanyId?: string, newName?: string) => Promise<void>;
+  assignUsers: (formId: string, userIds: string[]) => Promise<void>;
+  submitForm: (formId: string, values: Record<string, any>) => Promise<void>;
+  retrySubmission: (submissionId: string) => Promise<void>;
+  
+  // UI Actions
+  setActiveTabId: (id: string) => void;
+  setSelectedFieldId: (id: string | null) => void;
   setCurrentForm: (form: CustomForm | null) => void;
   setTransactionType: (type: TransactionType) => void;
   updateCurrentForm: (updates: Partial<CustomForm>) => void;
-  
-  // Form Management
-  createForm: (name: string, customerId: string, transactionType: TransactionType, tabs?: Tab[], source?: FormSource, templateId?: string) => void;
-  addForm: (form: CustomForm) => void;
-  deleteForm: (id: string) => void;
-  cloneForm: (id: string, customerId?: string) => void;
   toggleField: (field: Field) => void;
-  updateFormAssignment: (formId: string, employeeIds: string[]) => void;
-
-  // Company & User Management
-  addCompany: (name: string) => void;
-  updateCompany: (id: string, updates: Partial<Company>) => void;
-  deleteCompany: (id: string) => void;
-  addUser: (user: Omit<User, 'id'>) => void;
-  updateUser: (id: string, updates: Partial<User>) => void;
-  deleteUser: (id: string) => void;
-
-  // Submissions
-  addSubmission: (submission: Omit<Submission, 'id'>) => void;
+  
+  // Company & User Actions
+  addCompany: (name: string) => Promise<void>;
+  deleteCompany: (id: string) => Promise<void>;
+  addUser: (user: Omit<User, 'id'>) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
 }

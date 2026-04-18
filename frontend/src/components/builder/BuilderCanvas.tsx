@@ -7,7 +7,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { cn } from '../../lib/utils';
 import { FieldGroup, Tab } from '../../types';
 
-const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, onUpdateGroup, onDeleteGroup, onMoveGroup }: any) => {
+const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, onUpdateGroup, onDeleteGroup, onMoveGroup, hideHeader }: any) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `group-${group.id}`,
   });
@@ -19,6 +19,64 @@ const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, 
     onUpdateGroup(group.id, { name: editedName });
     setIsEditingName(false);
   };
+
+  if (hideHeader) {
+    return (
+      <div 
+        ref={setNodeRef}
+        className={cn(
+          "bg-white border-2 border-dashed rounded-lg min-h-[400px] transition-all duration-200 p-8",
+          isOver ? "border-ns-blue bg-ns-blue/[0.02] ring-4 ring-ns-blue/5" : "border-ns-border"
+        )}
+      >
+        <div className="grid grid-cols-2 gap-x-12 gap-y-6">
+          {group.fields.map((field: any) => (
+            <div 
+              key={field.id}
+              onClick={(e) => { e.stopPropagation(); onSelectField(field.id); }}
+              className={cn(
+                "flex items-center gap-4 p-3 border rounded-sm group cursor-pointer transition-all relative select-none",
+                selectedFieldId === field.id 
+                  ? "border-ns-blue bg-ns-blue/[0.03] ring-1 ring-ns-blue/30" 
+                  : "border-transparent hover:border-ns-border hover:bg-gray-50/50"
+              )}
+            >
+              <div className="text-gray-300 group-hover:text-ns-blue transition-colors shrink-0">
+                <GripVertical size={14} />
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <label className={cn(
+                  "text-[10px] font-bold uppercase tracking-wider mb-1.5 block transition-colors truncate",
+                  selectedFieldId === field.id ? "text-ns-blue" : "text-ns-text-muted"
+                )}>
+                  {field.label} {field.mandatory && <span className="text-red-500 ml-0.5">*</span>}
+                </label>
+                <div className={cn(
+                  "h-8 border border-ns-border rounded-sm px-3 flex items-center text-[10px] font-medium transition-all shadow-inner truncate",
+                  field.displayType === 'disabled' ? "bg-gray-100 italic text-gray-400" : "bg-white text-gray-400"
+                )}>
+                  {field.type === 'RecordRef' || field.type === 'select' ? 'Select Option...' : 'Text Input...'}
+                </div>
+              </div>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onRemoveField(field.id); }}
+                className="absolute -top-2 -right-2 bg-white border border-ns-border rounded-full p-1 text-gray-400 hover:text-red-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+          {group.fields.length === 0 && (
+            <div className="col-span-2 flex flex-col items-center justify-center py-20 text-gray-300">
+              <Plus size={40} className="mb-4 opacity-20" />
+              <p className="text-xs font-bold uppercase tracking-widest">Initialization Complete</p>
+              <p className="text-[10px] mt-1 italic">Click or drag fields from the catalogue to begin.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -168,7 +226,22 @@ export default function BuilderCanvas({ activeTabId, setActiveTabId, selectedFie
       name: 'New Field Group',
       fields: []
     };
-    const newTabs = currentForm.tabs.map(tab => {
+    
+    let newTabs = [...currentForm.tabs];
+    
+    // If no tabs exist, create a default one first
+    if (newTabs.length === 0) {
+      const newTab: Tab = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: 'General',
+        fieldGroups: [newGroup]
+      };
+      updateCurrentForm({ tabs: [newTab] });
+      setActiveTabId(newTab.id);
+      return;
+    }
+
+    newTabs = newTabs.map(tab => {
       if (tab.id === activeTabId) {
         return { ...tab, fieldGroups: [...tab.fieldGroups, newGroup] };
       }
@@ -218,7 +291,11 @@ export default function BuilderCanvas({ activeTabId, setActiveTabId, selectedFie
     const newTab: Tab = {
       id: Math.random().toString(36).substr(2, 9),
       name,
-      fieldGroups: []
+      fieldGroups: [{
+        id: Math.random().toString(36).substr(2, 9),
+        name: 'Main Section',
+        fields: []
+      }]
     };
     updateCurrentForm({ tabs: [...currentForm.tabs, newTab] });
     setActiveTabId(newTab.id);
@@ -260,36 +337,25 @@ export default function BuilderCanvas({ activeTabId, setActiveTabId, selectedFie
       </div>
 
       <div className="flex-1 overflow-auto pr-2 custom-scrollbar">
-        {activeTab?.fieldGroups.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-32 opacity-30 border-2 border-dashed border-gray-200 rounded-sm mb-6 bg-white">
-            <Plus size={48} className="mb-4 text-ns-blue" />
-            <p className="text-lg font-bold uppercase tracking-widest text-center px-8">Section Isolated: No Groups Defined</p>
-            <p className="text-[10px] mt-1 text-center font-bold uppercase tracking-widest text-ns-blue">Every form must have at least one field group.</p>
-          </div>
-        )}
-
-        {activeTab?.fieldGroups.map(group => (
+        {activeTab?.fieldGroups.slice(0, 1).map(group => (
           <DroppableGroup 
             key={group.id} 
             group={group} 
             onRemoveField={handleRemoveField}
             onSelectField={setSelectedFieldId}
             selectedFieldId={selectedFieldId}
-            onUpdateGroup={handleUpdateGroup}
-            onDeleteGroup={handleDeleteGroup}
-            onMoveGroup={handleMoveGroup}
+            onUpdateGroup={() => {}}
+            onDeleteGroup={() => {}}
+            onMoveGroup={() => {}}
+            hideHeader={true}
           />
         ))}
 
-        <button 
-          className="w-full border-2 border-dashed border-ns-border rounded-sm py-6 hover:bg-white hover:border-ns-blue hover:text-ns-blue transition-all flex flex-col items-center justify-center gap-2 text-ns-text-muted group mt-4 mb-20"
-          onClick={handleAddGroup}
-        >
-          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-ns-blue/10 transition-colors">
-            <Plus size={18} />
+        {!activeTab && (
+          <div className="flex-1 flex flex-col items-center justify-center py-20 opacity-20 border-2 border-dashed border-gray-200 rounded-sm italic">
+            Select or Create a Tab to begin
           </div>
-          <span className="text-[11px] font-bold uppercase tracking-[0.2em]">Add New Field Group</span>
-        </button>
+        )}
       </div>
     </div>
   );

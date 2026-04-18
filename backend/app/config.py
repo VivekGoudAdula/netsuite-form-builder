@@ -6,10 +6,6 @@ class Settings(BaseSettings):
     DB_NAME: str = "netsuite_form_builder"
     JWT_SECRET: str = "supersecretkey"
     JWT_EXPIRE_MINUTES: int = 60
-    
-    # Fixed Admin
-    ADMIN_EMAIL: str = "Admin@Netsuiteform.com"
-    ADMIN_PASSWORD: str = "Admin@123"
 
     class Config:
         env_file = ".env"

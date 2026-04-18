@@ -6,10 +6,10 @@ import { LogIn, ShieldCheck, User } from 'lucide-react';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, user } = useStore();
-  const [email, setEmail] = React.useState('admin@example.com');
-  const [password, setPassword] = React.useState('password123');
-  const [error, setError] = React.useState('');
+  const { login, user, isLoading, error: storeError } = useStore();
+  const [email, setEmail] = React.useState('admin@netsuiteform.com');
+  const [password, setPassword] = React.useState('Admin@123');
+  const [errorSpace, setErrorSpace] = React.useState('');
 
   React.useEffect(() => {
     if (user) {
@@ -18,13 +18,15 @@ export default function LoginPage() {
     }
   }, [user, navigate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = login(email, password);
+    const success = await login(email, password);
     if (!success) {
-      setError('Invalid email or password');
+      setErrorSpace('Authentication failed. Please check your credentials.');
     }
   };
+
+  const currentError = storeError || errorSpace;
 
   return (
     <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center p-4">
@@ -39,9 +41,9 @@ export default function LoginPage() {
         
         <div className="p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
+            {currentError && (
               <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-sm">
-                {error}
+                {currentError}
               </div>
             )}
             
@@ -67,36 +69,18 @@ export default function LoginPage() {
               />
             </div>
             
-            <Button type="submit" className="w-full h-11 text-base font-bold gap-2">
-              <LogIn size={20} />
-              Authenticate
+            <Button type="submit" disabled={isLoading} className="w-full h-11 text-base font-bold gap-2">
+              {isLoading ? (
+                <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <LogIn size={20} />
+                  Authenticate
+                </>
+              )}
             </Button>
           </form>
           
-          <div className="mt-8 pt-6 border-t border-ns-border">
-            <h3 className="text-xs font-bold text-ns-text-muted uppercase tracking-widest mb-4">Sample Credentials</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <button 
-                onClick={() => { setEmail('admin@example.com'); setPassword('password123'); }}
-                className="p-3 bg-ns-gray-bg border border-ns-border rounded-sm hover:border-ns-blue transition-colors text-left"
-              >
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-ns-blue uppercase mb-1">
-                  <ShieldCheck size={12} /> Admin
-                </div>
-                <p className="text-[11px] font-medium truncate">admin@example.com</p>
-              </button>
-              
-              <button 
-                onClick={() => { setEmail('hdfc_emp@example.com'); setPassword('password123'); }}
-                className="p-3 bg-ns-gray-bg border border-ns-border rounded-sm hover:border-ns-blue transition-colors text-left"
-              >
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-green-600 uppercase mb-1">
-                  <User size={12} /> Customer
-                </div>
-                <p className="text-[11px] font-medium truncate">hdfc_emp@example.com</p>
-              </button>
-            </div>
-          </div>
         </div>
         
         <div className="bg-ns-gray-bg px-8 py-4 border-t border-ns-border flex justify-between items-center text-[10px] text-ns-text-muted font-bold uppercase tracking-widest">

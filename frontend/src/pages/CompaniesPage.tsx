@@ -7,11 +7,16 @@ import { Building2, Plus, Users, Search, MoreHorizontal, ArrowRight, Trash2 } fr
 import { useNavigate } from 'react-router-dom';
 
 export default function CompaniesPage() {
-  const { companies, users, addCompany, deleteCompany } = useStore();
+  const { companies, users, addCompany, deleteCompany, fetchCompanies, fetchUsers, isLoading } = useStore();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = React.useState('');
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [newCompanyName, setNewCompanyName] = React.useState('');
+
+  React.useEffect(() => {
+    fetchCompanies();
+    fetchUsers();
+  }, [fetchCompanies, fetchUsers]);
 
   const filteredCompanies = companies.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -21,9 +26,9 @@ export default function CompaniesPage() {
     return users.filter(u => u.companyId === companyId).length;
   };
 
-  const handleAddCompany = () => {
+  const handleAddCompany = async () => {
     if (!newCompanyName.trim()) return;
-    addCompany(newCompanyName);
+    await addCompany(newCompanyName);
     setNewCompanyName('');
     setIsModalOpen(false);
   };

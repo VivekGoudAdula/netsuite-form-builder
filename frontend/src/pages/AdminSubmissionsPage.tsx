@@ -6,17 +6,23 @@ import { Database, Search, FileJson, Calendar, Building2, User } from 'lucide-re
 import { Button, Input, Select, Label } from '../components/ui/Base';
 
 export default function AdminSubmissionsPage() {
-  const { submissions, forms, companies, users } = useStore();
+  const { submissions, forms, companies, users, fetchSubmissions, fetchCompanies, fetchUsers, retrySubmission, isLoading } = useStore();
   const [searchTerm, setSearchTerm] = React.useState('');
 
-  const getFormName = (id: string) => forms.find(f => f.id === id)?.name || 'Deleted Form';
-  const getCompanyName = (id: string) => companies.find(c => c.id === id)?.name || 'Unknown Entity';
-  const getUserName = (id: string) => users.find(u => u.id === id)?.name || 'Unknown User';
+  React.useEffect(() => {
+    fetchSubmissions();
+    fetchCompanies();
+    fetchUsers();
+  }, [fetchSubmissions, fetchCompanies, fetchUsers]);
+
+  const getFormName = (sub: any) => sub.formName || 'Deleted Form';
+  const getCompanyName = (sub: any) => sub.companyName || 'Unknown Entity';
+  const getUserName = (sub: any) => sub.userName || 'Unknown User';
 
   const filteredSubmissions = submissions.filter(s => {
-    const formName = getFormName(s.formId);
-    const companyName = getCompanyName(s.companyId);
-    const userName = getUserName(s.userId);
+    const formName = getFormName(s);
+    const companyName = getCompanyName(s);
+    const userName = getUserName(s);
     
     return formName.toLowerCase().includes(searchTerm.toLowerCase()) || 
            companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -55,10 +61,11 @@ export default function AdminSubmissionsPage() {
           <THead>
             <TR>
               <TH>Submission Protocol</TH>
-              <TH>Source Entity</TH>
-              <TH>Submitted By</TH>
-              <TH>Timestamp</TH>
-              <TH className="text-right px-6">Administrative Actions</TH>
+               <TH>Source Entity</TH>
+               <TH>Submitted By</TH>
+               <TH>NetSuite Status</TH>
+               <TH>Timestamp</TH>
+               <TH className="text-right px-6">Administrative Actions</TH>
             </TR>
           </THead>
           <TBody>
@@ -70,39 +77,66 @@ export default function AdminSubmissionsPage() {
                       <FileJson size={18} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-ns-navy">{getFormName(sub.formId)}</p>
+                      <p className="text-sm font-bold text-ns-navy">{getFormName(sub)}</p>
                       <p className="text-[10px] text-ns-text-muted font-mono tracking-tighter uppercase mt-0.5">SUB-{sub.id.substring(0, 8).toUpperCase()}</p>
                     </div>
                   </div>
                 </TD>
-                <TD>
-                  <div className="flex items-center gap-2 text-xs font-bold text-ns-navy/70">
-                    <Building2 size={12} className="opacity-40" />
-                    {getCompanyName(sub.companyId)}
-                  </div>
-                </TD>
-                <TD>
-                   <div className="flex items-center gap-2 text-xs font-semibold text-ns-text-muted">
-                    <User size={12} className="opacity-40" />
-                    {getUserName(sub.userId)}
-                  </div>
-                </TD>
-                <TD>
-                  <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-ns-text-muted opacity-80">
-                    <Calendar size={12} />
-                    {new Date(sub.submittedAt).toLocaleString()}
-                  </div>
-                </TD>
-                <TD className="px-6 text-right">
-                   <Button variant="ghost" size="sm" className="h-9 px-4 gap-2 text-[10px] font-bold uppercase tracking-widest text-ns-blue hover:bg-ns-blue hover:text-white transition-all">
-                     View Raw Payload <FileJson size={14} />
-                   </Button>
-                </TD>
+                 <TD>
+                   <div className="flex items-center gap-2 text-xs font-bold text-ns-navy/70">
+                     <Building2 size={12} className="opacity-40" />
+                     {getCompanyName(sub)}
+                   </div>
+                 </TD>
+                 <TD>
+                    <div className="flex items-center gap-2 text-xs font-semibold text-ns-text-muted">
+                     <User size={12} className="opacity-40" />
+                     {getUserName(sub)}
+                   </div>
+                 </TD>
+                 <TD>
+                    <div className="flex flex-col gap-1">
+                      <span className={cn(
+                        "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider inline-block w-fit",
+                        sub.status === 'submitted' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                      )}>
+                        {sub.status === 'submitted' ? 'Synchronized' : 'Sync Failed'}
+                      </span>
+                      {sub.netsuiteId && (
+                        <span className="text-[9px] font-mono text-ns-text-muted">ID: {sub.netsuiteId}</span>
+                      )}
+                      {sub.errorMessage && (
+                        <span className="text-[9px] text-red-500 italic truncate max-w-[150px]">{sub.errorMessage}</span>
+                      )}
+                    </div>
+                 </TD>
+                 <TD>
+                   <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-ns-text-muted opacity-80">
+                     <Calendar size={12} />
+                     {sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : 'N/A'}
+                   </div>
+                 </TD>
+                 <TD className="px-6 text-right">
+                    <div className="flex justify-end gap-2">
+                      {sub.status === 'failed' && (
+                        <Button 
+                          onClick={() => retrySubmission(sub.id)}
+                          size="sm" 
+                          className="h-8 px-3 gap-1 text-[10px] font-bold uppercase tracking-widest bg-amber-500 hover:bg-amber-600 border-none"
+                        >
+                          Retry Sync <Database size={12} />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="sm" className="h-8 px-3 gap-2 text-[10px] font-bold uppercase tracking-widest text-ns-blue hover:bg-ns-blue hover:text-white transition-all">
+                        View Payload <FileJson size={12} />
+                      </Button>
+                    </div>
+                 </TD>
               </TR>
             ))}
             {filteredSubmissions.length === 0 && (
               <TR>
-                 <TD colSpan={5} className="py-24 text-center">
+                 <TD colSpan={6} className="py-24 text-center">
                     <div className="opacity-40 flex flex-col items-center">
                        <Database size={48} className="text-ns-navy mb-4" />
                        <h3 className="text-lg font-bold uppercase tracking-[0.2em]">Zero Submissions Detected</h3>

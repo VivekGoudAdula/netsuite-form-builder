@@ -31,8 +31,12 @@ const DraggableField = ({ field, isAdded, onToggle, ...props }: { field: any; is
       </div>
       <Checkbox 
         checked={isAdded} 
-        onChange={onToggle}
-        className="pointer-events-none" 
+        onChange={(e: any) => { 
+          // Stop propagation is handled by our onClick on the container usually, 
+          // but specifically for the checkbox we want to be sure.
+          onToggle();
+        }}
+        onClick={(e: any) => e.stopPropagation()}
       />
       <span className="text-xs truncate flex-1">{field.label}</span>
     </div>

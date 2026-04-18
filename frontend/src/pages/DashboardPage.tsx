@@ -9,12 +9,22 @@ import { cn } from '../lib/utils';
 import AdminLayout from '../components/layout/AdminLayout';
 
 export default function DashboardPage() {
-  const { forms, user, logout, deleteForm, cloneForm, setCurrentForm, catalogues, companies, users, createForm, templates, updateFormAssignment } = useStore();
+  const { 
+    forms, user, logout, deleteForm, cloneForm, setCurrentForm, 
+    catalogues, companies, users, createForm, templates, assignUsers,
+    fetchForms, fetchCompanies, fetchUsers, isLoading 
+  } = useStore();
   const navigate = useNavigate();
   const [search, setSearch] = React.useState('');
   const [typeFilter, setTypeFilter] = React.useState<string>('all');
   const [companyFilter, setCompanyFilter] = React.useState<string>('all');
   
+  React.useEffect(() => {
+    fetchForms();
+    fetchCompanies();
+    fetchUsers();
+  }, [fetchForms, fetchCompanies, fetchUsers]);
+
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [createStep, setCreateStep] = React.useState<1 | 2 | 3>(1);
   const [creationMethod, setCreationMethod] = React.useState<'scratch' | 'template'>('scratch');
@@ -49,19 +59,17 @@ export default function DashboardPage() {
     navigate('/builder');
   };
 
-  const handleCreateSubmit = (template?: FormTemplate) => {
+  const handleCreateSubmit = async (template?: FormTemplate) => {
     if (!newFormDetails.name) {
       alert('Please provide a configuration name.');
       return;
     }
     
-    createForm(
+    await createForm(
       newFormDetails.name, 
       newFormDetails.customerId, 
       newFormDetails.transactionType,
-      template?.tabs,
-      template ? 'template' : 'custom',
-      template?.id
+      template?.tabs
     );
     
     setIsCreateModalOpen(false);
@@ -74,9 +82,9 @@ export default function DashboardPage() {
     setSelectedEmployees(form.assignedTo || []);
   };
 
-  const handleSaveAssignment = () => {
+  const handleSaveAssignment = async () => {
     if (assignModal.formId) {
-      updateFormAssignment(assignModal.formId, selectedEmployees);
+      await assignUsers(assignModal.formId, selectedEmployees);
       setAssignModal({ ...assignModal, isOpen: false });
     }
   };
