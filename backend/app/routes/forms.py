@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
-from ..schemas.form import FormCreate, FormUpdate, FormResponse, CloneFormRequest
+from ..schemas.form import FormCreate, FormUpdate, FormResponse, CloneFormRequest, MyFormResponse, AssignUsersRequest
 from ..services.form_service import FormService
 from ..utils.deps import get_current_user, get_admin_user
 
@@ -64,3 +64,37 @@ async def clone_form(
         current_admin["email"], 
         str(current_admin.get("_id", "admin"))
     )
+
+@router.put("/{formId}/assign")
+async def assign_users_to_form(
+    formId: str,
+    request: AssignUsersRequest,
+    current_admin: dict = Depends(get_admin_user)
+):
+    """Assign specific users to a form configuration (Admin only)."""
+    return await FormService.assign_users_to_form(
+        formId,
+        request.userIds,
+        str(current_admin.get("_id", "admin"))
+    )
+
+@router.get("/my", response_model=List[MyFormResponse])
+async def get_my_forms(current_user: dict = Depends(get_current_user)):
+    """Fetch forms assigned to the current employee/customer."""
+    return await FormService.get_forms_for_user(str(current_user.get("_id")))
+
+@router.get("/{formId}/my", response_model=FormResponse)
+async def get_my_form_details(
+    formId: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Fetch detailed structure of an assigned form."""
+    return await FormService.get_form_for_user(formId, str(current_user.get("_id")))
+
+@router.get("/{formId}/assigned-users", response_model=List[str])
+async def get_assigned_users(
+    formId: str,
+    current_admin: dict = Depends(get_admin_user)
+):
+    """List all users assigned to a specific form (Admin only)."""
+    return await FormService.get_assigned_users(formId)

@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from fastapi import HTTPException, status
 from ..database import get_database
-from ..schemas.form import FormCreate, FormUpdate, CloneFormRequest
+from ..schemas.form import FormCreate, FormUpdate, CloneFormRequest, AssignUsersRequest
 from .activity import log_activity
 
 class FormService:
@@ -144,3 +144,109 @@ class FormService:
         )
         
         return cloned_form
+
+    @staticmethod
+    async def assign_users_to_form(form_id: str, user_ids: List[str], admin_id: str) -> Dict[str, Any]:
+        db = get_database()
+        
+        form = await FormService.get_form_by_id(form_id)
+        company_id = form["companyId"]
+        
+        # Remove duplicates
+        unique_user_ids = list(set(user_ids))
+        
+        # Validate users exist and belong to the same company
+        user_object_ids = [ObjectId(uid) for uid in unique_user_ids]
+        users = await db.users.find({
+            "_id": {"$in": user_object_ids},
+            "companyId": company_id
+        }).to_list(length=len(unique_user_ids))
+        
+        if len(users) != len(unique_user_ids):
+            raise HTTPException(
+                status_code=400, 
+                detail="One or more users are invalid or belong to a different company"
+            )
+            
+        await db.forms.update_one(
+            {"_id": ObjectId(form_id)},
+            {"$set": {"assignedTo": unique_user_ids, "updatedAt": datetime.utcnow()}}
+        )
+        
+        await log_activity(
+            admin_id, 
+            "ASSIGN_FORM", 
+            entity_id=form_id, 
+            entity_type="FORM",
+            metadata={"assignedUserCount": len(unique_user_ids)}
+        )
+        
+        return {"message": f"Successfully assigned {len(unique_user_ids)} users to form"}
+
+    @staticmethod
+    async def get_forms_for_user(user_id: str) -> List[Dict[str, Any]]:
+        db = get_database()
+        
+        # Find forms where assignedTo contains user_id
+        forms = []
+        async for form in db.forms.find({"assignedTo": user_id}):
+            form_id = str(form["_id"])
+            
+            # Check submission status
+            submission = await db.submissions.find_one({"formId": form_id, "userId": user_id})
+            status = "Submitted" if submission else "Not Started"
+            
+            forms.append({
+                "id": form_id,
+                "name": form["name"],
+                "transactionType": form["transactionType"],
+                "status": status
+            })
+            
+        await log_activity(
+            user_id, 
+            "FETCH_MY_FORMS", 
+            entity_type="FORM"
+        )
+            
+        return forms
+
+    @staticmethod
+    async def get_form_for_user(form_id: str, user_id: str) -> Dict[str, Any]:
+        db = get_database()
+        
+        form = await db.forms.find_one({
+            "_id": ObjectId(form_id),
+            "assignedTo": user_id
+        })
+        
+        if not form:
+            raise HTTPException(
+                status_code=403, 
+                detail="Access denied. You are not assigned to this form."
+            )
+            
+        form["id"] = str(form["_id"])
+        
+        await log_activity(
+            user_id, 
+            "VIEW_FORM", 
+            entity_id=form_id, 
+            entity_type="FORM"
+        )
+        
+        return form
+
+    @staticmethod
+    async def get_assigned_users(form_id: str) -> List[str]:
+        form = await FormService.get_form_by_id(form_id)
+        return form.get("assignedTo", [])
+
+    @staticmethod
+    async def check_user_access(form_id: str, user_id: str) -> bool:
+        db = get_database()
+        form = await db.forms.find_one({
+            "_id": ObjectId(form_id),
+            "assignedTo": user_id
+        })
+        return form is not None

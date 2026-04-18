@@ -66,6 +66,15 @@ class CloneFormRequest(BaseModel):
     targetCompanyId: Optional[str] = None
     newName: str
 
+class AssignUsersRequest(BaseModel):
+    userIds: List[str]
+
+class MyFormResponse(BaseModel):
+    id: str
+    name: str
+    transactionType: str
+    status: str = "Not Started"
+
 class FormResponse(FormBase):
     id: str
     createdBy: str
