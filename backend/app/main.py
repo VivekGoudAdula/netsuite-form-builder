@@ -6,9 +6,16 @@ from .routes import auth, users, companies, forms, submissions
 app = FastAPI(title="NetSuite Form Builder API", version="1.0.0")
 
 # CORS Configuration
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "https://net-suite-form-builder.vercel.app",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
