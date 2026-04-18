@@ -1,0 +1,6 @@
+{
+  "name": "NetSuite FormBridge Enterprise",
+  "description": "Multi-tenant transaction layout engine with Role-Based Access Control (RBAC), corporate company management, and field-level configuration for NetSuite ecosystems.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
