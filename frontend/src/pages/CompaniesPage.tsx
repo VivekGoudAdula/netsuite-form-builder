@@ -103,7 +103,7 @@ export default function CompaniesPage() {
                 </TD>
                 <TD className="text-[11px] text-ns-text-muted font-semibold">{company.createdAt}</TD>
                 <TD className="px-6">
-                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex justify-end gap-2">
                     <Button 
                       variant="secondary" 
                       size="sm" 
