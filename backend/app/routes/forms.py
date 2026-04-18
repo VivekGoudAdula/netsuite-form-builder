@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
-from ..schemas.form import FormCreate, FormUpdate, FormResponse, CloneFormRequest, MyFormResponse, AssignUsersRequest
+from ..schemas.form import FormCreate, FormUpdate, FormResponse, CloneFormRequest, MyFormResponse, AssignUsersRequest, FormSubmissionRequest
 from ..services.form_service import FormService
 from ..utils.deps import get_current_user, get_admin_user
 
@@ -98,3 +98,17 @@ async def get_assigned_users(
 ):
     """List all users assigned to a specific form (Admin only)."""
     return await FormService.get_assigned_users(formId)
+
+@router.post("/{formId}/submit")
+async def submit_form(
+    formId: str,
+    submission: FormSubmissionRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Submit form data, validate mandatory fields, and log metadata (No values stored)."""
+    if current_user["role"] == "admin":
+        raise HTTPException(
+            status_code=403, 
+            detail="Admin users cannot submit forms."
+        )
+    return await FormService.submit_form(formId, current_user, submission.values)

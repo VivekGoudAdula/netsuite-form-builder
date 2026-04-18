@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from fastapi import HTTPException, status
 from ..database import get_database
-from ..schemas.form import FormCreate, FormUpdate, CloneFormRequest, AssignUsersRequest
+from ..schemas.form import FormCreate, FormUpdate, CloneFormRequest, AssignUsersRequest, FormSubmissionRequest
 from .activity import log_activity
 
 class FormService:
@@ -250,3 +250,75 @@ class FormService:
             "assignedTo": user_id
         })
         return form is not None
+
+    @staticmethod
+    async def submit_form(form_id: str, user: Dict[str, Any], values: Dict[str, Any]) -> Dict[str, Any]:
+        db = get_database()
+        user_id = user["id"]
+        
+        # 1. Verify form exists and get its details
+        form = await db.forms.find_one({"_id": ObjectId(form_id)})
+        if not form:
+            raise HTTPException(status_code=404, detail="Form not found")
+            
+        # 2. Verify user is assigned to the form
+        if user_id not in form.get("assignedTo", []):
+            raise HTTPException(
+                status_code=403, 
+                detail="Access denied. You are not assigned to this form."
+            )
+            
+        # 3. Prevent duplicate submissions
+        existing = await db.submissions.find_one({"formId": form_id, "userId": user_id})
+        if existing:
+            raise HTTPException(
+                status_code=400, 
+                detail="Form already submitted. Duplicate submissions are not allowed."
+            )
+            
+        # 4. Validate mandatory fields
+        # Iterate through tabs -> fieldGroups -> fields to find mandatory ones
+        mandatory_fields = []
+        for tab in form.get("structure", {}).get("tabs", []):
+            for group in tab.get("fieldGroups", []):
+                for field in group.get("fields", []):
+                    if field.get("mandatory"):
+                        mandatory_fields.append(field["fieldId"])
+                        
+        missing_fields = [fid for fid in mandatory_fields if fid not in values or not values[fid]]
+        if missing_fields:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Mandatory fields missing: {', '.join(missing_fields)}"
+            )
+            
+        # 5. TODO: Future NetSuite Integration
+        # send_to_netsuite(form_id, values, user)
+        # Note: 'values' are NOT stored in our database as per security requirements.
+        
+        # 6. Store submission metadata
+        submission = {
+            "formId": form_id,
+            "userId": user_id,
+            "companyId": user.get("companyId") or form.get("companyId"),
+            "transactionType": form.get("transactionType"),
+            "status": "submitted",
+            "submittedAt": datetime.utcnow()
+        }
+        
+        result = await db.submissions.insert_one(submission)
+        
+        # 7. Log activity
+        await log_activity(
+            user_id, 
+            "SUBMIT_FORM", 
+            entity_id=form_id, 
+            entity_type="FORM",
+            metadata={"transactionType": form.get("transactionType")}
+        )
+        
+        return {
+            "message": "Form submitted successfully",
+            "status": "submitted",
+            "submissionId": str(result.inserted_id)
+        }

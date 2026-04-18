@@ -75,6 +75,9 @@ class MyFormResponse(BaseModel):
     transactionType: str
     status: str = "Not Started"
 
+class FormSubmissionRequest(BaseModel):
+    values: Dict[str, Any]
+
 class FormResponse(FormBase):
     id: str
     createdBy: str
