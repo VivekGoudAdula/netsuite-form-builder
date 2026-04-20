@@ -2,11 +2,14 @@ import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 import os
-
-# Configuration
-import sys
+from dotenv import load_dotenv
 from pathlib import Path
 
+# Current directory is backend/, so .env is in parent
+root_dir = Path(__file__).parent.parent
+load_dotenv(root_dir / ".env")
+
+import sys
 # Add the current directory to sys.path to allow importing from app
 sys.path.append(str(Path(__file__).parent))
 
@@ -219,6 +222,8 @@ CATALOGUES = {
 }
 
 async def seed():
+    print(f"Connecting to MongoDB: {MONGO_URI.split('@')[-1] if '@' in MONGO_URI else MONGO_URI}")
+    print(f"Database: {DB_NAME}")
     client = AsyncIOMotorClient(MONGO_URI)
     db = client[DB_NAME]
     
