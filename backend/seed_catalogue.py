@@ -3,9 +3,17 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 import os
 
-# Configuration (mirrored from backend/app/config.py)
-MONGO_URI = "mongodb://localhost:27017"
-DB_NAME = "netsuite_form_builder"
+# Configuration
+import sys
+from pathlib import Path
+
+# Add the current directory to sys.path to allow importing from app
+sys.path.append(str(Path(__file__).parent))
+
+from app.config import settings
+
+MONGO_URI = settings.MONGO_URI
+DB_NAME = settings.DB_NAME
 
 # Data to seed
 CATALOGUES = {

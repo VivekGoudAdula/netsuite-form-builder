@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from typing import List, Dict
 
-router = APIRouter(prefix="/api/mock", tags=["mock"])
+router = APIRouter(prefix="/mock", tags=["mock"])
 
 @router.get("/customers", response_model=List[Dict[str, str]])
 async def get_mock_customers():

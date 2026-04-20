@@ -37,7 +37,7 @@ app.include_router(companies.router, prefix="/api")
 app.include_router(forms.router, prefix="/api")
 app.include_router(submissions.router, prefix="/api")
 app.include_router(catalogue.router, prefix="/api")
-app.include_router(mock.router)
+app.include_router(mock.router, prefix="/api")
 
 @app.get("/")
 async def root():
