@@ -41,7 +41,7 @@ const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, 
                   : "border-transparent hover:border-ns-border hover:bg-gray-50/50"
               )}
             >
-              <div className="text-gray-300 group-hover:text-ns-blue transition-colors shrink-0">
+              <div className="text-ns-blue/40 transition-colors shrink-0">
                 <GripVertical size={14} />
               </div>
               <div className="flex-1 overflow-hidden">
@@ -60,7 +60,7 @@ const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, 
               </div>
               <button 
                 onClick={(e) => { e.stopPropagation(); onRemoveField(field.id); }}
-                className="absolute -top-2 -right-2 bg-white border border-ns-border rounded-full p-1 text-gray-400 hover:text-red-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                className="absolute -top-2 -right-2 bg-white border border-ns-border rounded-full p-1 text-gray-400 hover:text-red-500 shadow-sm transition-all z-10"
               >
                 <Trash2 size={12} />
               </button>
@@ -155,7 +155,7 @@ const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, 
                 : "border-transparent hover:border-ns-border hover:bg-gray-50/50"
             )}
           >
-            <div className="text-gray-300 group-hover:text-ns-blue transition-colors shrink-0">
+            <div className="text-ns-blue/40 transition-colors shrink-0">
               <GripVertical size={14} />
             </div>
             <div className="flex-1 overflow-hidden">
@@ -181,7 +181,7 @@ const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, 
             </div>
             <button 
               onClick={(e) => { e.stopPropagation(); onRemoveField(field.id); }}
-              className="absolute -top-2 -right-2 bg-white border border-ns-border rounded-full p-1 text-gray-400 hover:text-red-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              className="absolute -top-2 -right-2 bg-white border border-ns-border rounded-full p-1 text-gray-400 hover:text-red-500 shadow-sm transition-all z-10"
               title="Remove Field"
             >
               <Trash2 size={12} />

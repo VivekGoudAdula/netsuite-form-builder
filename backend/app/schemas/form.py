@@ -7,6 +7,21 @@ class FieldLayoutSchema(BaseModel):
     spaceBefore: bool = False
     order: int = 0
 
+class APIConfigSchema(BaseModel):
+    url: str
+    method: str = "GET"
+    labelKey: str = "name"
+    valueKey: str = "id"
+
+class FieldOptionSchema(BaseModel):
+    label: str
+    value: str
+
+class DataSourceSchema(BaseModel):
+    type: str  # "static" or "api"
+    options: Optional[List[FieldOptionSchema]] = None
+    apiConfig: Optional[APIConfigSchema] = None
+
 class FieldSchema(BaseModel):
     fieldId: str
     label: str
@@ -14,7 +29,9 @@ class FieldSchema(BaseModel):
     mandatory: bool = False
     displayType: str = "normal"
     checkBoxDefault: str = "default"
+    type: str = "string"
     layout: FieldLayoutSchema = FieldLayoutSchema()
+    dataSource: Optional[DataSourceSchema] = None
 
 class FieldGroupSchema(BaseModel):
     id: str

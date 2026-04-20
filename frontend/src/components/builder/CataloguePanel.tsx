@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useStore } from '../../store/useStore';
 import { Input, Checkbox } from '../ui/Base';
-import { Search, ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, GripVertical, Check, MoreHorizontal } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { cn } from '../../lib/utils';
 
@@ -21,24 +21,30 @@ const DraggableField = ({ field, isAdded, onToggle, ...props }: { field: any; is
       style={style}
       onClick={onToggle}
       className={cn(
-        "flex items-center gap-2 p-1.5 hover:bg-[#f9f9f9] group border border-transparent rounded cursor-pointer select-none",
-        isDragging && "opacity-50 border-[#607799] bg-[#607799]/5",
-        isAdded && "text-gray-400"
+        "flex items-center gap-2 px-3 py-2 hover:bg-ns-gray-bg group border border-transparent rounded-sm cursor-pointer select-none transition-all",
+        isDragging && "opacity-50 border-ns-blue bg-ns-blue/5 scale-95 shadow-lg",
+        isAdded && "opacity-60 bg-gray-50"
       )}
     >
-      <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity p-0.5">
-        <GripVertical size={14} />
+      <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-ns-blue transition-colors p-0.5">
+        <MoreHorizontal size={14} className="rotate-90" />
       </div>
-      <Checkbox 
-        checked={isAdded} 
-        onChange={(e: any) => { 
-          // Stop propagation is handled by our onClick on the container usually, 
-          // but specifically for the checkbox we want to be sure.
-          onToggle();
-        }}
-        onClick={(e: any) => e.stopPropagation()}
-      />
-      <span className="text-xs truncate flex-1">{field.label}</span>
+      
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold truncate text-ns-navy">{field.label}</span>
+          {field.mandatory && <span className="w-1 h-1 rounded-full bg-red-500 flex-shrink-0" title="Required" />}
+          {isAdded && <div className="ml-auto w-3 h-3 bg-green-500 rounded-full flex items-center justify-center shadow-sm"><Check size={8} className="text-white" strokeWidth={4} /></div>}
+        </div>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-[9px] font-mono text-gray-400 truncate">{field.id}</span>
+          {field.isSystemField ? (
+            <span className="text-[8px] font-bold text-ns-blue bg-ns-blue/5 px-1 rounded-[2px] uppercase">Sys</span>
+          ) : (
+            <span className="text-[8px] font-bold text-amber-600 bg-amber-50 px-1 rounded-[2px] uppercase">Cust</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -46,14 +52,6 @@ const DraggableField = ({ field, isAdded, onToggle, ...props }: { field: any; is
 export default function CataloguePanel() {
   const { catalogues, currentForm, toggleField } = useStore();
   const [search, setSearch] = React.useState('');
-  const [expandedGroups, setExpandedGroups] = React.useState<string[]>(['primary_information']);
-
-  const toggleGroup = (group: string) => {
-    setExpandedGroups(prev => 
-      prev.includes(group) ? prev.filter(g => g !== group) : [...prev, group]
-    );
-  };
-
   if (!currentForm) return null;
 
   const catalogue = catalogues[currentForm.transactionType];
@@ -64,12 +62,6 @@ export default function CataloguePanel() {
   const addedFieldIds = new Set(
     currentForm.tabs.flatMap(t => t.fieldGroups.flatMap(g => g.fields.map(f => f.id))) || []
   );
-
-  const groups = catalogue.fieldGroups.map(groupName => ({
-    id: groupName.toLowerCase().replace(/ /g, '_'),
-    name: groupName,
-    fields: filteredFields.filter(f => f.fieldGroup === groupName)
-  }));
 
   return (
     <div className="flex flex-col h-full bg-white border-r border-ns-border">
@@ -85,38 +77,22 @@ export default function CataloguePanel() {
           />
         </div>
       </div>
-      
-      <div className="flex-1 overflow-auto py-2 grow">
-        {groups.map(group => (
-          <div key={group.id} className="mb-1">
-            <button 
-              onClick={() => toggleGroup(group.id)}
-              className={cn(
-                "w-full flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold text-ns-text uppercase tracking-wider hover:bg-gray-50 transition-colors",
-                expandedGroups.includes(group.id) && "bg-gray-50/50"
-              )}
-            >
-              {expandedGroups.includes(group.id) ? <ChevronDown size={14} className="text-ns-blue" /> : <ChevronRight size={14} className="text-gray-400" />}
-              {group.name}
-            </button>
-            
-            {expandedGroups.includes(group.id) && (
-              <div className="px-2 py-1 space-y-0.5">
-                {group.fields.map(field => (
-                  <DraggableField 
-                    key={field.id} 
-                    field={field} 
-                    isAdded={addedFieldIds.has(field.id)} 
-                    onToggle={() => toggleField(field)}
-                  />
-                ))}
-                {group.fields.length === 0 && (
-                  <div className="px-4 py-2 text-[10px] text-gray-400 italic">No fields match your search</div>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+      <div className="flex-1 overflow-auto py-2 grow custom-scrollbar">
+        <div className="px-2 space-y-0.5">
+          {filteredFields.map(field => (
+            <DraggableField 
+              key={field.id} 
+              field={field} 
+              isAdded={addedFieldIds.has(field.id)} 
+              onToggle={() => toggleField(field)}
+            />
+          ))}
+          {filteredFields.length === 0 && (
+            <div className="px-4 py-8 text-center bg-gray-50/50 border border-dashed rounded-sm border-gray-200 m-2">
+              <span className="text-[10px] text-gray-400 italic font-medium uppercase tracking-widest">No matching fields found</span>
+            </div>
+          )}
+        </div>
       </div>
       
       <div className="p-4 border-t border-ns-border bg-gray-50/30">

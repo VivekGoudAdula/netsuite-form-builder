@@ -12,6 +12,24 @@ export interface FieldLayout {
   spaceBefore: boolean;
 }
 
+export interface FieldOption {
+  label: string;
+  value: string;
+}
+
+export interface APIConfig {
+  url: string;
+  method: string;
+  labelKey: string;
+  valueKey: string;
+}
+
+export interface DataSource {
+  type: 'static' | 'api';
+  options?: FieldOption[];
+  apiConfig?: APIConfig;
+}
+
 export interface Field {
   id: string;                 // internal field name (e.g., "approvalStatus")
   label: string;              // UI label (e.g., "Approval Status")
@@ -26,6 +44,8 @@ export interface Field {
   helpText?: string;          // from NetSuite help
   defaultValue: string;       // Internal prototype value
   layout: FieldLayout;        // Internal prototype layout
+  dataSource?: DataSource;
+  isSystemField?: boolean;
 }
 
 export interface FieldGroup {
@@ -131,6 +151,7 @@ export interface AppState {
   fetchMyForms: () => Promise<void>;
   fetchMyFormDetails: (formId: string) => Promise<CustomForm | null>;
   fetchSubmissions: () => Promise<void>;
+  fetchCatalogue: (type: TransactionType) => Promise<void>;
   
   // Form Management
   createForm: (name: string, companyId: string, transactionType: TransactionType, tabs?: Tab[]) => Promise<void>;

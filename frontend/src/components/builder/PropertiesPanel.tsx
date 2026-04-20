@@ -122,6 +122,92 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
           </div>
         </section>
 
+        {(selectedField.type === 'select' || selectedField.type === 'RecordRef') && (
+          <section className="space-y-4">
+            <h3 className="text-[10px] font-bold text-ns-blue uppercase tracking-[0.2em] border-b border-ns-blue/10 pb-2">Data Source</h3>
+            <div className="space-y-4">
+              <div>
+                <Label>Source Type</Label>
+                <Select 
+                  value={selectedField.dataSource?.type || 'static'}
+                  onChange={(e) => handleUpdate({ 
+                    dataSource: { 
+                      ...(selectedField.dataSource || { type: 'static' }), 
+                      type: e.target.value as 'static' | 'api',
+                      apiConfig: (e.target.value === 'api' && !selectedField.dataSource?.apiConfig) 
+                        ? { url: '/mock/customers', method: 'GET', labelKey: 'name', valueKey: 'id' }
+                        : selectedField.dataSource?.apiConfig
+                    } 
+                  })}
+                  options={[
+                    { label: 'Static', value: 'static' },
+                    { label: 'API (Dynamic)', value: 'api' }
+                  ]} 
+                />
+              </div>
+              
+              {selectedField.dataSource?.type === 'api' && (
+                <div className="space-y-3 p-3 bg-ns-light-blue/30 rounded-sm border border-ns-blue/10">
+                  <div>
+                    <Label>API Configuration</Label>
+                    <div className="text-[10px] text-ns-text-muted mb-2 font-medium bg-white/50 p-2 rounded">
+                      Fetch dynamic options from an external or internal endpoint.
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px]">API Endpoint URL</Label>
+                    <Input 
+                      value={selectedField.dataSource.apiConfig?.url || ''} 
+                      onChange={(e) => handleUpdate({ 
+                        dataSource: { 
+                          ...selectedField.dataSource!, 
+                          apiConfig: { ...(selectedField.dataSource?.apiConfig || { method: 'GET', labelKey: 'name', valueKey: 'id' }), url: e.target.value } 
+                        } 
+                      })}
+                      placeholder="/mock/customers"
+                      className="bg-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-[10px]">Label Key</Label>
+                      <Input 
+                        value={selectedField.dataSource.apiConfig?.labelKey || ''} 
+                        onChange={(e) => handleUpdate({ 
+                          dataSource: { 
+                            ...selectedField.dataSource!, 
+                            apiConfig: { ...(selectedField.dataSource?.apiConfig || { url: '', method: 'GET', valueKey: 'id' }), labelKey: e.target.value } 
+                          } 
+                        })}
+                        placeholder="name"
+                        className="bg-white text-[11px]"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">Value Key</Label>
+                      <Input 
+                        value={selectedField.dataSource.apiConfig?.valueKey || ''} 
+                        onChange={(e) => handleUpdate({ 
+                          dataSource: { 
+                            ...selectedField.dataSource!, 
+                            apiConfig: { ...(selectedField.dataSource?.apiConfig || { url: '', method: 'GET', labelKey: 'name' }), valueKey: e.target.value } 
+                          } 
+                        })}
+                        placeholder="id"
+                        className="bg-white text-[11px]"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-ns-blue animate-pulse" />
+                    <span className="text-[9px] font-bold text-ns-blue uppercase tracking-widest">⚡ Dynamic Mode Active</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
         <section className="space-y-4">
           <h3 className="text-[10px] font-bold text-ns-blue uppercase tracking-[0.2em] border-b border-ns-blue/10 pb-2">Field Ordering</h3>
           <div className="grid grid-cols-4 gap-1">

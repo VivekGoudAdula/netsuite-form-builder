@@ -13,7 +13,8 @@ export default function BuilderPage() {
   const { 
     currentForm, updateCurrentForm, catalogues, 
     activeTabId, setActiveTabId, 
-    selectedFieldId, setSelectedFieldId 
+    selectedFieldId, setSelectedFieldId,
+    fetchCatalogue
   } = useStore();
   const navigate = useNavigate();
   const [activeDragItem, setActiveDragItem] = React.useState<Field | null>(null);
@@ -25,10 +26,13 @@ export default function BuilderPage() {
 
   React.useEffect(() => {
     if (!currentForm) navigate('/dashboard');
-    else if (!activeTabId && currentForm.tabs.length > 0) {
-      setActiveTabId(currentForm.tabs[0].id);
+    else {
+      if (!activeTabId && currentForm.tabs.length > 0) {
+        setActiveTabId(currentForm.tabs[0].id);
+      }
+      fetchCatalogue(currentForm.transactionType);
     }
-  }, [currentForm, navigate, activeTabId]);
+  }, [currentForm, navigate, activeTabId, fetchCatalogue]);
 
   if (!currentForm) return null;
 

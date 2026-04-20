@@ -10,6 +10,7 @@ import TemplatesPage from './pages/TemplatesPage';
 import CustomerDashboardPage from './pages/CustomerDashboardPage';
 import FormFillPage from './pages/FormFillPage';
 import AdminSubmissionsPage from './pages/AdminSubmissionsPage';
+import CataloguePage from './pages/CataloguePage';
 import { useStore } from './store/useStore';
 import { UserRole } from './types';
 
@@ -72,6 +73,14 @@ export default function App() {
           element={
             <ProtectedRoute role="admin">
               <AdminSubmissionsPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/catalogue/:type" 
+          element={
+            <ProtectedRoute role="admin">
+              <CataloguePage />
             </ProtectedRoute>
           } 
         />

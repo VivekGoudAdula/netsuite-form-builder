@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import api from '../api/client';
+import { catalogueApi } from '../api/catalogue';
 import { AppState, CustomForm, Field, User, TransactionType, CatalogueData, Tab, Company, Submission } from '../types';
 
 /**
@@ -35,7 +36,13 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
     fieldGroups: ['Primary Information', 'Classification', 'India Tax Information', 'Shipping', 'Billing', 'Accounting', 'System Information'],
     fields: [
       mapNetSuiteField('approvalStatus', 'Approval Status', 'RecordRef', 'Primary Information', 'Main', false, 'Reflects the state of the transaction in approval workflow'),
-      mapNetSuiteField('entity', 'Vendor', 'RecordRef', 'Primary Information', 'Main', true, 'Select the vendor for this purchase'),
+      {
+        ...mapNetSuiteField('entity', 'Vendor', 'RecordRef', 'Primary Information', 'Main', true, 'Select the vendor for this purchase'),
+        dataSource: {
+          type: 'api',
+          apiConfig: { url: '/mock/vendors', method: 'GET', labelKey: 'name', valueKey: 'id' }
+        }
+      },
       mapNetSuiteField('tranDate', 'Date', 'dateTime', 'Primary Information', 'Main', true, 'The date the purchase order is issued'),
       mapNetSuiteField('tranId', 'PO #', 'string', 'Primary Information', 'Main', false, 'Purchase order identification number'),
       mapNetSuiteField('memo', 'Memo', 'string', 'Primary Information', 'Main', false, 'Internal notes for this transaction'),
@@ -59,7 +66,13 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
     tabs: ['Main', 'Items', 'Shipping', 'Billing', 'Accounting', 'System Information'],
     fieldGroups: ['Primary Information', 'Classification', 'Shipping', 'Billing', 'Accounting', 'System Information'],
     fields: [
-      mapNetSuiteField('entity', 'Customer', 'RecordRef', 'Primary Information', 'Main', true),
+      {
+        ...mapNetSuiteField('entity', 'Customer', 'RecordRef', 'Primary Information', 'Main', true),
+        dataSource: {
+          type: 'api',
+          apiConfig: { url: '/mock/customers', method: 'GET', labelKey: 'name', valueKey: 'id' }
+        }
+      },
       mapNetSuiteField('tranDate', 'Order Date', 'dateTime', 'Primary Information', 'Main', true),
       mapNetSuiteField('tranId', 'SO #', 'string', 'Primary Information', 'Main', false),
       mapNetSuiteField('status', 'Order Status', 'string', 'Primary Information', 'Main', false),
@@ -77,7 +90,13 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
     tabs: ['Main', 'Expenses', 'Journal', 'System Information'],
     fieldGroups: ['Primary Information', 'Classification', 'Accounting', 'System Information'],
     fields: [
-      mapNetSuiteField('entity', 'Vendor', 'RecordRef', 'Primary Information', 'Main', true),
+      {
+        ...mapNetSuiteField('entity', 'Vendor', 'RecordRef', 'Primary Information', 'Main', true),
+        dataSource: {
+          type: 'api',
+          apiConfig: { url: '/mock/vendors', method: 'GET', labelKey: 'name', valueKey: 'id' }
+        }
+      },
       mapNetSuiteField('tranDate', 'Bill Date', 'dateTime', 'Primary Information', 'Main', true),
       mapNetSuiteField('dueDate', 'Due Date', 'dateTime', 'Primary Information', 'Main', true),
       mapNetSuiteField('approvalStatus', 'Approval Status', 'RecordRef', 'Primary Information', 'Main', false),
@@ -93,7 +112,13 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
     tabs: ['Main', 'Items', 'Journal', 'System Information'],
     fieldGroups: ['Primary Information', 'Classification', 'Accounting', 'System Information'],
     fields: [
-      mapNetSuiteField('entity', 'Customer', 'RecordRef', 'Primary Information', 'Main', true),
+      {
+        ...mapNetSuiteField('entity', 'Customer', 'RecordRef', 'Primary Information', 'Main', true),
+        dataSource: {
+          type: 'api',
+          apiConfig: { url: '/mock/customers', method: 'GET', labelKey: 'name', valueKey: 'id' }
+        }
+      },
       mapNetSuiteField('tranDate', 'Invoice Date', 'dateTime', 'Primary Information', 'Main', true),
       mapNetSuiteField('status', 'Payment Status', 'string', 'Primary Information', 'Main', false),
       mapNetSuiteField('amount', 'Amount', 'double', 'Primary Information', 'Main', false),
@@ -131,7 +156,8 @@ const mapBackendForm = (form: any): CustomForm => ({
         type: f.type || 'string',
         displayType: f.displayType || 'normal',
         checkBoxDefault: f.checkBoxDefault || 'default',
-        layout: f.layout || { columnBreak: false, spaceBefore: false }
+        layout: f.layout || { columnBreak: false, spaceBefore: false },
+        dataSource: f.dataSource
       }))
     }))
   })) || []
@@ -150,9 +176,11 @@ const mapFrontendStructure = (tabs: Tab[]) => ({
         label: f.label,
         visible: f.visible,
         mandatory: f.mandatory,
+        type: f.type, // Added this line to fix the dropdown rendering issue
         displayType: f.displayType,
         checkBoxDefault: f.checkBoxDefault,
-        layout: f.layout
+        layout: f.layout,
+        dataSource: f.dataSource
       }))
     }))
   }))
@@ -426,6 +454,48 @@ export const useStore = create<AppState>((set, get) => ({
       await api.post(`submissions/${submissionId}/retry`);
       get().fetchSubmissions();
       set({ isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  fetchCatalogue: async (type: TransactionType) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await catalogueApi.getFields(type);
+      
+      // Map API fields to our internal Field type
+      const mappedFields: Field[] = response.data.map(f => ({
+        id: f.internalId,
+        label: f.label,
+        type: f.type,
+        fieldGroup: f.isSystemField ? 'Standard Information' : 'Custom Fields',
+        tab: 'Main',
+        mandatory: f.required,
+        visible: true,
+        displayType: 'normal',
+        checkBoxDefault: 'default',
+        helpText: f.nlapiSubmitField ? 'Saves via nlapiSubmitField' : '',
+        defaultValue: '',
+        layout: { columnBreak: false, spaceBefore: false },
+        isSystemField: f.isSystemField,
+        dataSource: f.dataSource
+      }));
+
+      const newCatalogue: CatalogueData = {
+        name: type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+        tabs: ['Main'], // Simpler grouping since we lost the specific tab metadata from static list
+        fieldGroups: ['Standard Information', 'Custom Fields'],
+        fields: mappedFields
+      };
+
+      set((state) => ({
+        catalogues: {
+          ...state.catalogues,
+          [type]: newCatalogue
+        },
+        isLoading: false
+      }));
     } catch (err: any) {
       set({ error: err.message, isLoading: false });
     }

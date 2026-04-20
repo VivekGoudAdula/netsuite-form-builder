@@ -2,8 +2,10 @@ import * as React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import CustomerLayout from '../components/layout/CustomerLayout';
-import { Button, Input, Select, Label } from '../components/ui/Base';
+import { Button, Input, Select, Label, Checkbox } from '../components/ui/Base';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/HorizontalTabs';
+import { DynamicSelect } from '../components/ui/DynamicSelect';
+import { CustomForm, Field } from '../types';
 import { 
   FileCheck, 
   ArrowLeft, 
@@ -209,12 +211,32 @@ export default function FormFillPage() {
                                </div>
 
                                {field.displayType === 'normal' || !field.displayType ? (
-                                  <Input 
-                                    className="h-10 text-sm focus:ring-ns-blue/20"
-                                    placeholder={`Enter ${field.label}...`}
-                                    value={formValues[field.id] || ''}
-                                    onChange={(e) => handleInputChange(field.id, e.target.value)}
-                                  />
+                                  <div className="relative">
+                                    {field.type === 'RecordRef' || field.type === 'select' ? (
+                                      <DynamicSelect 
+                                        className="h-10 text-sm"
+                                        field={field}
+                                        value={formValues[field.id] || ''}
+                                        onChange={(val) => handleInputChange(field.id, val)}
+                                      />
+                                    ) : field.type === 'boolean' || field.type === 'checkbox' ? (
+                                      <div className="h-10 flex items-center gap-3 bg-white border border-ns-border rounded-sm px-3">
+                                        <Checkbox 
+                                          checked={formValues[field.id] === true} 
+                                          onChange={(e) => handleInputChange(field.id, e.target.checked)} 
+                                        />
+                                        <span className="text-xs text-ns-text-muted italic">Click to toggle</span>
+                                      </div>
+                                    ) : (
+                                      <Input 
+                                        className="h-10 text-sm focus:ring-ns-blue/20"
+                                        placeholder={`Enter ${field.label}...`}
+                                        value={formValues[field.id] || ''}
+                                        onChange={(e) => handleInputChange(field.id, e.target.value)}
+                                        type={field.type === 'double' ? 'number' : field.type === 'dateTime' ? 'date' : 'text'}
+                                      />
+                                    )}
+                                  </div>
                                ) : field.displayType === 'hidden' ? (
                                   <div className="h-10 bg-gray-50 border border-dashed rounded-sm flex items-center justify-center text-[10px] text-gray-400 font-mono italic">
                                     [Proprietary/Hidden Field]
@@ -223,7 +245,7 @@ export default function FormFillPage() {
                                   <Input 
                                     disabled
                                     className="h-10 bg-gray-50 border-gray-200 text-gray-400 text-sm"
-                                    value="[Read Only Protection]"
+                                    value={formValues[field.id] || '[Read Only Protection]'}
                                   />
                                )}
                              </div>

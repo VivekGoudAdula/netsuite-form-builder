@@ -11,7 +11,11 @@ import {
   User,
   Settings,
   Bell,
-  Search
+  Search,
+  ShoppingCart,
+  Tag,
+  CreditCard,
+  Receipt
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -36,14 +40,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-ns-gray-bg flex overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 bg-ns-navy flex-shrink-0 flex flex-col shadow-2xl z-30">
+      <aside className="w-64 bg-ns-navy h-screen flex-shrink-0 flex flex-col shadow-2xl z-30 sticky top-0">
         <div className="p-6 flex items-center gap-3">
           <div className="w-8 h-8 bg-ns-blue rounded-sm flex items-center justify-center font-bold text-lg shadow-inner text-white">N</div>
           <span className="font-bold text-lg tracking-tight text-white italic">FormBridge</span>
         </div>
         
-        <nav className="flex-1 px-4 py-4 space-y-1">
-          <div className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] px-3 mb-4">Management Console</div>
+        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">
+          <div className="pt-2 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] px-3 mb-4">Management Console</div>
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path || (item.path === '/dashboard' && location.pathname === '/dashboard');
             return (
@@ -52,6 +56,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 to={item.path}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-semibold transition-all group",
+                  isActive 
+                    ? "bg-ns-blue text-white shadow-lg shadow-ns-blue/20" 
+                    : "text-white/60 hover:text-white hover:bg-white/5"
+                )}
+              >
+                <item.icon size={18} className={cn(isActive ? "text-white" : "text-white/40 group-hover:text-white")} />
+                {item.name}
+              </Link>
+            );
+          })}
+
+          <div className="pt-6 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] px-3 mb-4">Field Catalogue</div>
+          {[
+            { name: 'Purchase Order', path: '/catalogue/purchase-order', icon: ShoppingCart },
+            { name: 'Sales Order', path: '/catalogue/sales-order', icon: Tag },
+            { name: 'Accounts Payable', path: '/catalogue/ap', icon: CreditCard },
+            { name: 'Accounts Receivable', path: '/catalogue/ar', icon: Receipt },
+          ].map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.name}
+                to={item.path}
+                className={cn(
+                   "flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-semibold transition-all group",
                   isActive 
                     ? "bg-ns-blue text-white shadow-lg shadow-ns-blue/20" 
                     : "text-white/60 hover:text-white hover:bg-white/5"

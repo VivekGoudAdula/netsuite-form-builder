@@ -211,7 +211,7 @@ export default function DashboardPage() {
                   </TD>
                   <TD className="text-[11px] text-ns-text-muted">{form.updatedAt}</TD>
                   <TD className="px-6">
-                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex justify-end gap-1 transition-all">
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(form)} title="Open in Designer" className="h-8 w-8 hover:bg-ns-blue hover:text-white rounded-full transition-all">
                         <Edit2 size={13} />
                       </Button>

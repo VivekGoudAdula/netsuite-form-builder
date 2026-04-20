@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import connect_to_mongo, close_mongo_connection
-from .routes import auth, users, companies, forms, submissions
+from .routes import auth, users, companies, forms, submissions, mock, catalogue
 
 app = FastAPI(title="NetSuite Form Builder API", version="1.0.0")
 
@@ -36,6 +36,8 @@ app.include_router(users.router, prefix="/api")
 app.include_router(companies.router, prefix="/api")
 app.include_router(forms.router, prefix="/api")
 app.include_router(submissions.router, prefix="/api")
+app.include_router(catalogue.router, prefix="/api")
+app.include_router(mock.router)
 
 @app.get("/")
 async def root():

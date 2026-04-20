@@ -5,6 +5,7 @@ import { Button, Input, Select, Label, Checkbox } from '../components/ui/Base';
 import { Tabs, Modal } from '../components/ui/Complex';
 import { ChevronLeft, Printer, Mail, Share2, MoreHorizontal } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { DynamicSelect } from '../components/ui/DynamicSelect';
 
 export default function PreviewPage() {
   const { currentForm, catalogues } = useStore();
@@ -238,9 +239,9 @@ export default function PreviewPage() {
                         ) : (
                           <div className="relative">
                             {field.type === 'RecordRef' || field.type === 'select' ? (
-                              <Select 
+                              <DynamicSelect 
                                 className="h-9"
-                                options={[{ label: field.defaultValue || 'Select an option...', value: '' }]} 
+                                field={field}
                               />
                             ) : field.type === 'boolean' || field.type === 'checkbox' ? (
                               <div className="h-9 flex items-center gap-3 bg-white border border-ns-border rounded-sm px-3">
