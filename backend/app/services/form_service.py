@@ -306,13 +306,24 @@ class FormService:
             )
             
         # 4. Validate mandatory fields
-        # Iterate through tabs -> fieldGroups -> fields to find mandatory ones
+        # Iterate through tabs -> fieldGroups -> fields AND sublists to find mandatory ones
         mandatory_fields = []
         for tab in form.get("structure", {}).get("tabs", []):
+            # Check standard field groups
             for group in tab.get("fieldGroups", []):
                 for field in group.get("fields", []):
                     if field.get("mandatory"):
                         mandatory_fields.append(field["fieldId"])
+            
+            # Check item sublist
+            for field in tab.get("itemSublist", []):
+                if field.get("mandatory"):
+                    mandatory_fields.append(field["fieldId"])
+            
+            # Check expense sublist
+            for field in tab.get("expenseSublist", []):
+                if field.get("mandatory"):
+                    mandatory_fields.append(field["fieldId"])
                         
         missing_fields = [fid for fid in mandatory_fields if fid not in values or not values[fid]]
         if missing_fields:

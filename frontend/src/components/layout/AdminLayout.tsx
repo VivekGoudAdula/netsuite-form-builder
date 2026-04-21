@@ -23,6 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, logout } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isExpanded, setIsExpanded] = React.useState(false);
 
   const handleLogout = () => {
     logout();
@@ -32,22 +33,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { name: 'Companies', icon: Building2, path: '/companies' },
-    { name: 'Forms', icon: FileText, path: '/dashboard' }, // Reusing dashboard for forms list
+    { name: 'Forms', icon: FileText, path: '/forms' },
     { name: 'Templates', icon: Library, path: '/templates' },
     { name: 'Submissions', icon: Database, path: '/submissions' },
   ];
 
   return (
-    <div className="min-h-screen bg-ns-gray-bg flex overflow-hidden">
+    <div className="h-screen bg-ns-gray-bg flex overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 bg-ns-navy h-screen flex-shrink-0 flex flex-col shadow-2xl z-30 sticky top-0">
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 bg-ns-blue rounded-sm flex items-center justify-center font-bold text-lg shadow-inner text-white">N</div>
-          <span className="font-bold text-lg tracking-tight text-white italic">FormBridge</span>
+      <aside 
+        onMouseEnter={() => setIsExpanded(true)}
+        onMouseLeave={() => setIsExpanded(false)}
+        className={cn(
+          "bg-ns-navy h-screen flex-shrink-0 flex flex-col shadow-2xl z-30 transition-all duration-500 ease-[cubic-bezier(0.2,0,0,1)] relative group/sidebar",
+          isExpanded ? "w-64" : "w-16"
+        )}
+      >
+        <div className={cn("p-6 flex items-center gap-3 transition-all duration-300", !isExpanded && "px-6")}>
+          <div className="w-8 h-8 bg-ns-blue rounded-sm flex-shrink-0 flex items-center justify-center font-bold text-lg shadow-inner text-white">N</div>
+          <span className={cn(
+            "font-bold text-lg tracking-tight text-white italic transition-all duration-300 origin-left overflow-hidden",
+            isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
+          )}>
+            FormBridge
+          </span>
         </div>
         
-        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">
-          <div className="pt-2 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] px-3 mb-4">Management Console</div>
+        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar overflow-x-hidden">
+          <div className={cn(
+            "pt-2 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] px-3 mb-4 transition-all duration-300 whitespace-nowrap overflow-hidden",
+            isExpanded ? "opacity-100" : "opacity-0"
+          )}>
+            Management
+          </div>
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path || (item.path === '/dashboard' && location.pathname === '/dashboard');
             return (
@@ -55,19 +73,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 key={item.name}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-semibold transition-all group",
+                  "flex items-center rounded-sm text-sm font-semibold transition-all group/item whitespace-nowrap overflow-hidden relative",
+                  isExpanded ? "px-3 py-2.5 gap-3" : "px-0 py-3 justify-center gap-0",
                   isActive 
                     ? "bg-ns-blue text-white shadow-lg shadow-ns-blue/20" 
                     : "text-white/60 hover:text-white hover:bg-white/5"
                 )}
+                title={!isExpanded ? item.name : ""}
               >
-                <item.icon size={18} className={cn(isActive ? "text-white" : "text-white/40 group-hover:text-white")} />
-                {item.name}
+                <item.icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-white" : "text-white/40 group-hover/item:text-white")} />
+                <span className={cn(
+                  "transition-all duration-300 origin-left overflow-hidden",
+                  isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
+                )}>
+                  {item.name}
+                </span>
               </Link>
             );
           })}
 
-          <div className="pt-6 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] px-3 mb-4">Field Catalogue</div>
+          <div className={cn(
+            "pt-6 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] px-3 mb-4 transition-all duration-300 whitespace-nowrap overflow-hidden",
+            isExpanded ? "opacity-100" : "opacity-0"
+          )}>
+            Catalogue
+          </div>
           {[
             { name: 'Purchase Order', path: '/catalogue/purchase-order', icon: ShoppingCart },
             { name: 'Sales Order', path: '/catalogue/sales-order', icon: Tag },
@@ -80,35 +110,54 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 key={item.name}
                 to={item.path}
                 className={cn(
-                   "flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-semibold transition-all group",
+                   "flex items-center rounded-sm text-sm font-semibold transition-all group/item whitespace-nowrap overflow-hidden relative",
+                   isExpanded ? "px-3 py-2.5 gap-3" : "px-0 py-3 justify-center gap-0",
                   isActive 
                     ? "bg-ns-blue text-white shadow-lg shadow-ns-blue/20" 
                     : "text-white/60 hover:text-white hover:bg-white/5"
                 )}
+                title={!isExpanded ? item.name : ""}
               >
-                <item.icon size={18} className={cn(isActive ? "text-white" : "text-white/40 group-hover:text-white")} />
-                {item.name}
+                <item.icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-white" : "text-white/40 group-hover/item:text-white")} />
+                <span className={cn(
+                  "transition-all duration-300 origin-left overflow-hidden",
+                  isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
+                )}>
+                  {item.name}
+                </span>
               </Link>
             );
           })}
         </nav>
         
-        <div className="p-4 bg-black/20 mt-auto border-t border-white/5">
-          <div className="flex items-center gap-3 mb-4 px-2">
-            <div className="w-9 h-9 rounded-full bg-ns-blue/20 border border-ns-blue/30 flex items-center justify-center text-ns-blue">
+        <div className="p-4 bg-black/20 mt-auto border-t border-white/5 overflow-hidden">
+          <div className={cn("flex items-center mb-4 transition-all duration-300", isExpanded ? "gap-3 px-2" : "gap-0 px-0 justify-center")}>
+            <div className="w-9 h-9 flex-shrink-0 rounded-full bg-ns-blue/20 border border-ns-blue/30 flex items-center justify-center text-ns-blue">
               <User size={18} />
             </div>
-            <div className="flex flex-col overflow-hidden">
+            <div className={cn(
+              "flex flex-col overflow-hidden transition-all duration-300 origin-left",
+              isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
+            )}>
               <span className="text-xs font-bold text-white truncate">{user?.name}</span>
-              <span className="text-[10px] text-white/40 font-semibold uppercase tracking-wider">System Admin</span>
+              <span className="text-[10px] text-white/40 font-semibold uppercase tracking-wider truncate">System Admin</span>
             </div>
           </div>
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-white/60 hover:text-white bg-white/5 hover:bg-white/10 transition-all rounded-sm border border-white/5"
+            className={cn(
+              "w-full flex items-center justify-center transition-all rounded-sm border border-white/5",
+              isExpanded ? "gap-2 py-2 px-4 shadow-inner bg-white/5" : "gap-0 py-3 px-0 bg-transparent border-none"
+            )}
+            title={!isExpanded ? "Sign Out" : ""}
           >
-            <LogOut size={14} />
-            Sign Out
+            <LogOut size={14} className="text-white/60" />
+            <span className={cn(
+              "text-xs font-bold text-white/60 transition-all duration-300 overflow-hidden",
+              isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
+            )}>
+              Sign Out
+            </span>
           </button>
         </div>
       </aside>

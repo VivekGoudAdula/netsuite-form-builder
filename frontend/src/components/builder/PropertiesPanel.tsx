@@ -29,15 +29,21 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
         fields: group.fields.map(field => 
           field.id === selectedField.id ? { ...field, ...updates } : field
         )
-      }))
+      })),
+      itemSublist: tab.itemSublist?.map(field => 
+        field.id === selectedField.id ? { ...field, ...updates } : field
+      ),
+      expenseSublist: tab.expenseSublist?.map(field => 
+        field.id === selectedField.id ? { ...field, ...updates } : field
+      )
     }));
     updateCurrentForm({ tabs: newTabs });
   };
 
   const handleMoveField = (direction: 'up' | 'down' | 'top' | 'bottom') => {
-    const newTabs = currentForm.tabs.map(tab => ({
-      ...tab,
-      fieldGroups: tab.fieldGroups.map(group => {
+    const newTabs = currentForm.tabs.map(tab => {
+      // 1. Try moving in field groups
+      const updatedFieldGroups = tab.fieldGroups.map(group => {
         const index = group.fields.findIndex(f => f.id === selectedField.id);
         if (index === -1) return group;
         
@@ -50,8 +56,45 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
         else if (direction === 'bottom') newFields.push(field);
         
         return { ...group, fields: newFields };
-      })
-    }));
+      });
+
+      // 2. Try moving in item sublist
+      let updatedItemSublist = tab.itemSublist;
+      if (tab.itemSublist) {
+        const index = tab.itemSublist.findIndex(f => f.id === selectedField.id);
+        if (index !== -1) {
+          const newFields = [...tab.itemSublist];
+          const field = newFields.splice(index, 1)[0];
+          if (direction === 'up') newFields.splice(Math.max(0, index - 1), 0, field);
+          else if (direction === 'down') newFields.splice(Math.min(newFields.length, index + 1), 0, field);
+          else if (direction === 'top') newFields.unshift(field);
+          else if (direction === 'bottom') newFields.push(field);
+          updatedItemSublist = newFields;
+        }
+      }
+
+      // 3. Try moving in expense sublist
+      let updatedExpenseSublist = tab.expenseSublist;
+      if (tab.expenseSublist) {
+        const index = tab.expenseSublist.findIndex(f => f.id === selectedField.id);
+        if (index !== -1) {
+          const newFields = [...tab.expenseSublist];
+          const field = newFields.splice(index, 1)[0];
+          if (direction === 'up') newFields.splice(Math.max(0, index - 1), 0, field);
+          else if (direction === 'down') newFields.splice(Math.min(newFields.length, index + 1), 0, field);
+          else if (direction === 'top') newFields.unshift(field);
+          else if (direction === 'bottom') newFields.push(field);
+          updatedExpenseSublist = newFields;
+        }
+      }
+
+      return { 
+        ...tab, 
+        fieldGroups: updatedFieldGroups,
+        itemSublist: updatedItemSublist,
+        expenseSublist: updatedExpenseSublist
+      };
+    });
     updateCurrentForm({ tabs: newTabs });
   };
 

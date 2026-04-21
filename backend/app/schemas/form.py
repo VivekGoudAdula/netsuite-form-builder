@@ -30,6 +30,10 @@ class FieldSchema(BaseModel):
     displayType: str = "normal"
     checkBoxDefault: str = "default"
     type: str = "string"
+    section: str = "body"
+    subSection: Optional[str] = None
+    group: Optional[str] = None
+    tab: Optional[str] = None
     layout: FieldLayoutSchema = FieldLayoutSchema()
     dataSource: Optional[DataSourceSchema] = None
 
@@ -40,9 +44,12 @@ class FieldGroupSchema(BaseModel):
     fields: List[FieldSchema] = []
 
 class TabSchema(BaseModel):
+    id: Optional[str] = None
     name: str
     visible: bool = True
     fieldGroups: List[FieldGroupSchema] = []
+    itemSublist: Optional[List[FieldSchema]] = []
+    expenseSublist: Optional[List[FieldSchema]] = []
 
 class FormStructure(BaseModel):
     tabs: List[TabSchema] = []

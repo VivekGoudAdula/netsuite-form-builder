@@ -9,6 +9,12 @@ export interface CatalogueField {
   required: boolean;
   transactionType: string;
   isSystemField: boolean;
+  section: 'body' | 'sublist';
+  subSection: 'item' | 'expense' | null;
+  group: string;
+  tab: string;
+  displayOrder: number;
+  origin: string;
   createdAt?: string;
   updatedAt?: string;
 }

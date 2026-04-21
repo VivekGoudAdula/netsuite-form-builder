@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useStore } from '../store/useStore';
 import AdminLayout from '../components/layout/AdminLayout';
 import { Button, Input, Label } from '../components/ui/Base';
-import { Table, THead, TBody, TR, TH, TD, Modal } from '../components/ui/Complex';
+import { Table, THead, TBody, TR, TH, TD, Modal, ConfirmModal } from '../components/ui/Complex';
 import { Building2, Plus, Users, Search, MoreHorizontal, ArrowRight, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,6 +12,7 @@ export default function CompaniesPage() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [newCompanyName, setNewCompanyName] = React.useState('');
+  const [deleteId, setDeleteId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     fetchCompanies();
@@ -115,7 +116,7 @@ export default function CompaniesPage() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => { if(confirm('Delete company and all associated users?')) deleteCompany(company.id); }}
+                      onClick={() => setDeleteId(company.id)}
                       className="h-8 w-8 text-red-400 hover:bg-red-500 hover:text-white rounded-full transition-all"
                     >
                       <Trash2 size={13} />
@@ -166,6 +167,13 @@ export default function CompaniesPage() {
           </div>
         </Modal>
       </div>
+      <ConfirmModal
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => { if(deleteId) deleteCompany(deleteId); }}
+        title="Purge Client Entity?"
+        message="This will permanently delete the company and all its associated employee accounts. This action is irreversible."
+      />
     </AdminLayout>
   );
 }

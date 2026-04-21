@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import FormsPage from './pages/FormsPage';
 import BuilderPage from './pages/BuilderPage';
 import PreviewPage from './pages/PreviewPage';
 import CompaniesPage from './pages/CompaniesPage';
@@ -40,7 +41,15 @@ export default function App() {
           path="/dashboard" 
           element={
             <ProtectedRoute role="admin">
-              <DashboardPage />
+              <AdminDashboardPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/forms" 
+          element={
+            <ProtectedRoute role="admin">
+              <FormsPage />
             </ProtectedRoute>
           } 
         />

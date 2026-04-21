@@ -66,3 +66,64 @@ export const Modal = ({ isOpen, onClose, title, children, footer, className }: {
     </div>
   );
 };
+
+// Confirm Modal
+export const ConfirmModal = ({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  title = "Confirm Action", 
+  message = "Are you sure you want to proceed? This action cannot be undone.",
+  confirmText = "Delete",
+  type = "danger"
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onConfirm: () => void; 
+  title?: string; 
+  message?: string;
+  confirmText?: string;
+  type?: "danger" | "warning" | "info"
+}) => {
+  if (!isOpen) return null;
+  const isDanger = type === "danger";
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      className="max-w-sm"
+      footer={
+        <>
+          <button 
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-bold text-ns-text-muted hover:text-ns-text transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={() => { onConfirm(); onClose(); }}
+            className={cn(
+              "px-6 py-2 text-xs font-extrabold uppercase tracking-widest text-white rounded-none shadow-sm",
+              isDanger ? "bg-red-600 hover:bg-red-700" : "bg-ns-blue hover:opacity-90"
+            )}
+          >
+            {confirmText}
+          </button>
+        </>
+      }
+    >
+      <div className="flex flex-col items-center text-center py-2">
+        {isDanger && (
+          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-4">
+            <span className="text-xl">⚠️</span>
+          </div>
+        )}
+        <p className="text-sm text-ns-text leading-relaxed">
+          {message}
+        </p>
+      </div>
+    </Modal>
+  );
+};

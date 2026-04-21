@@ -29,6 +29,8 @@ async def create_user(
     
     result = await db.users.insert_one(new_user)
     new_user["id"] = str(result.inserted_id)
+    if "_id" in new_user:
+        del new_user["_id"]
     
     await log_activity(
         str(current_admin.get("_id", "admin")), 

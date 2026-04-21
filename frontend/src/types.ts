@@ -35,7 +35,9 @@ export interface Field {
   label: string;              // UI label (e.g., "Approval Status")
   description?: string;       // NetSuite internal description
   type: string;               // data type (string, boolean, RecordRef, dateTime, double, etc.)
-  fieldGroup: string;         // UI section grouping
+  section: 'body' | 'sublist';
+  subSection: 'item' | 'expense' | null;
+  group: string;              // UI section grouping
   tab: string;                // Main, Items, Shipping, etc.
   displayType: DisplayType;
   mandatory: boolean;
@@ -48,6 +50,16 @@ export interface Field {
   isSystemField?: boolean;
 }
 
+export interface CatalogueTab {
+  name: string;
+  groups: { name: string; fields: Field[] }[];
+  subSections: Record<string, Field[]>;
+}
+
+export interface GroupedCatalogue {
+  tabs: CatalogueTab[];
+}
+
 export interface FieldGroup {
   id: string;
   name: string;
@@ -58,6 +70,8 @@ export interface Tab {
   id: string;
   name: string;
   fieldGroups: FieldGroup[];
+  itemSublist?: Field[];
+  expenseSublist?: Field[];
 }
 
 export type TransactionType = 'purchase_order' | 'sales_order' | 'accounts_payable' | 'accounts_receivable';
@@ -70,6 +84,7 @@ export interface User {
   email: string;
   role: UserRole;
   companyId?: string; // If customer
+  companyName?: string; // Add company name for dashboard display
   password?: string; // Mock password
   jobTitle?: string;
   employeeId?: string;
@@ -104,6 +119,7 @@ export interface CustomForm {
   createdAt: string;
   updatedAt: string;
   source: FormSource;
+  status?: string;    // e.g., 'Submitted', 'Draft', 'In Progress'
   templateId?: string;
   assignedTo?: string[]; // Array of employee user IDs
 }
@@ -136,6 +152,7 @@ export interface AppState {
   selectedFieldId: string | null;
   transactionType: TransactionType;
   catalogues: Record<TransactionType, CatalogueData>;
+  groupedCatalogues: Record<TransactionType, GroupedCatalogue | null>;
   isLoading: boolean;
   error: string | null;
   
@@ -152,6 +169,7 @@ export interface AppState {
   fetchMyFormDetails: (formId: string) => Promise<CustomForm | null>;
   fetchSubmissions: () => Promise<void>;
   fetchCatalogue: (type: TransactionType) => Promise<void>;
+  fetchGroupedCatalogue: (type: TransactionType) => Promise<void>;
   
   // Form Management
   createForm: (name: string, companyId: string, transactionType: TransactionType, tabs?: Tab[]) => Promise<void>;
@@ -169,6 +187,7 @@ export interface AppState {
   setTransactionType: (type: TransactionType) => void;
   updateCurrentForm: (updates: Partial<CustomForm>) => void;
   toggleField: (field: Field) => void;
+  addAllFields: () => void;
   
   // Company & User Actions
   addCompany: (name: string) => Promise<void>;

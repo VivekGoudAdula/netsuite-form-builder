@@ -13,6 +13,12 @@ class CatalogueFieldBase(BaseModel):
     transactionType: str  # purchase_order, sales_order, ap, ar
     isSystemField: bool = True
     dataSource: Optional[DataSourceSchema] = None
+    section: str = "body" # body, sublist
+    subSection: Optional[str] = None # item, expense, null
+    group: Optional[str] = None
+    tab: Optional[str] = None
+    displayOrder: int = 100
+    origin: str = "system"
 
 class CatalogueFieldCreate(CatalogueFieldBase):
     pass
@@ -26,6 +32,12 @@ class CatalogueFieldUpdate(BaseModel):
     transactionType: Optional[str] = None
     isSystemField: Optional[bool] = None
     dataSource: Optional[DataSourceSchema] = None
+    section: Optional[str] = None
+    subSection: Optional[str] = None
+    group: Optional[str] = None
+    tab: Optional[str] = None
+    displayOrder: Optional[int] = None
+    origin: Optional[str] = None
 
 class CatalogueFieldResponse(CatalogueFieldBase):
     id: str = Field(alias="_id")

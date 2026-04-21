@@ -1,11 +1,70 @@
 import * as React from 'react';
 import { useStore } from '../../store/useStore';
-import { Tabs } from '../ui/Complex';
+import { Tabs, ConfirmModal } from '../ui/Complex';
 import { Button, Input } from '../ui/Base';
 import { Plus, Trash2, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '../../lib/utils';
 import { FieldGroup, Tab } from '../../types';
+import { FieldControlPreview } from '../ui/FieldControl';
+
+const SublistRenderer = ({ name, fields, onRemoveField, onSelectField, selectedFieldId }: any) => {
+  return (
+    <div className="bg-white border border-ns-border rounded-sm mb-8 ns-panel-shadow overflow-hidden">
+      <div className="px-5 py-3 border-b border-ns-border ns-header-gradient flex justify-between items-center">
+        <h3 className="text-[11px] font-bold text-ns-text uppercase tracking-[0.15em]">{name}</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-ns-gray-bg border-b border-ns-border">
+              <th className="px-4 py-2 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider">Field</th>
+              <th className="px-4 py-2 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider">Type</th>
+              <th className="px-4 py-2 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-ns-border">
+            {fields.map((field: any) => (
+              <tr 
+                key={field.id}
+                onClick={() => onSelectField(field.id)}
+                className={cn(
+                  "hover:bg-ns-gray-bg transition-colors cursor-pointer",
+                  selectedFieldId === field.id ? "bg-ns-blue/[0.03]" : ""
+                )}
+              >
+                <td className="px-4 py-3">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-ns-navy">{field.label}</span>
+                    <span className="text-[10px] text-ns-text-muted font-mono">{field.id}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                   <span className="px-2 py-0.5 bg-gray-100 border border-ns-border rounded-sm text-[9px] font-bold text-ns-text-muted uppercase tracking-tight">
+                    {field.type}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onRemoveField(field.id); }}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-sm transition-all"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {fields.length === 0 && (
+          <div className="p-10 text-center text-gray-300 italic text-[11px] uppercase tracking-widest">
+            Drop sublist fields here
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, onUpdateGroup, onDeleteGroup, onMoveGroup, hideHeader }: any) => {
   const { setNodeRef, isOver } = useDroppable({
@@ -19,64 +78,6 @@ const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, 
     onUpdateGroup(group.id, { name: editedName });
     setIsEditingName(false);
   };
-
-  if (hideHeader) {
-    return (
-      <div 
-        ref={setNodeRef}
-        className={cn(
-          "bg-white border-2 border-dashed rounded-lg min-h-[400px] transition-all duration-200 p-8",
-          isOver ? "border-ns-blue bg-ns-blue/[0.02] ring-4 ring-ns-blue/5" : "border-ns-border"
-        )}
-      >
-        <div className="grid grid-cols-2 gap-x-12 gap-y-6">
-          {group.fields.map((field: any) => (
-            <div 
-              key={field.id}
-              onClick={(e) => { e.stopPropagation(); onSelectField(field.id); }}
-              className={cn(
-                "flex items-center gap-4 p-3 border rounded-sm group cursor-pointer transition-all relative select-none",
-                selectedFieldId === field.id 
-                  ? "border-ns-blue bg-ns-blue/[0.03] ring-1 ring-ns-blue/30" 
-                  : "border-transparent hover:border-ns-border hover:bg-gray-50/50"
-              )}
-            >
-              <div className="text-ns-blue/40 transition-colors shrink-0">
-                <GripVertical size={14} />
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <label className={cn(
-                  "text-[10px] font-bold uppercase tracking-wider mb-1.5 block transition-colors truncate",
-                  selectedFieldId === field.id ? "text-ns-blue" : "text-ns-text-muted"
-                )}>
-                  {field.label} {field.mandatory && <span className="text-red-500 ml-0.5">*</span>}
-                </label>
-                <div className={cn(
-                  "h-8 border border-ns-border rounded-sm px-3 flex items-center text-[10px] font-medium transition-all shadow-inner truncate",
-                  field.displayType === 'disabled' ? "bg-gray-100 italic text-gray-400" : "bg-white text-gray-400"
-                )}>
-                  {field.type === 'RecordRef' || field.type === 'select' ? 'Select Option...' : 'Text Input...'}
-                </div>
-              </div>
-              <button 
-                onClick={(e) => { e.stopPropagation(); onRemoveField(field.id); }}
-                className="absolute -top-2 -right-2 bg-white border border-ns-border rounded-full p-1 text-gray-400 hover:text-red-500 shadow-sm transition-all z-10"
-              >
-                <Trash2 size={12} />
-              </button>
-            </div>
-          ))}
-          {group.fields.length === 0 && (
-            <div className="col-span-2 flex flex-col items-center justify-center py-20 text-gray-300">
-              <Plus size={40} className="mb-4 opacity-20" />
-              <p className="text-xs font-bold uppercase tracking-widest">Initialization Complete</p>
-              <p className="text-[10px] mt-1 italic">Click or drag fields from the catalogue to begin.</p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div 
@@ -111,36 +112,38 @@ const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, 
             </h3>
           )}
         </div>
-        <div className="flex gap-2 shrink-0 ml-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-7 w-7 hover:bg-gray-200" 
-            onClick={() => onMoveGroup(group.id, 'up')}
-            title="Move Group Up"
-          >
-            <ChevronUp size={14}/>
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-7 w-7 hover:bg-gray-200" 
-            onClick={() => onMoveGroup(group.id, 'down')}
-            title="Move Group Down"
-          >
-            <ChevronDown size={14}/>
-          </Button>
-          <div className="w-[1px] h-4 bg-ns-border mx-1 my-auto" />
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-7 w-7 text-red-400 hover:bg-red-50"
-            onClick={() => onDeleteGroup(group.id)}
-            title="Delete Group"
-          >
-            <Trash2 size={14}/>
-          </Button>
-        </div>
+        {!hideHeader && (
+          <div className="flex gap-2 shrink-0 ml-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7 hover:bg-gray-200" 
+              onClick={() => onMoveGroup(group.id, 'up')}
+              title="Move Group Up"
+            >
+              <ChevronUp size={14}/>
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7 hover:bg-gray-200" 
+              onClick={() => onMoveGroup(group.id, 'down')}
+              title="Move Group Down"
+            >
+              <ChevronDown size={14}/>
+            </Button>
+            <div className="w-[1px] h-4 bg-ns-border mx-1 my-auto" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7 text-red-400 hover:bg-red-50"
+              onClick={() => onDeleteGroup(group.id)}
+              title="Delete Group"
+            >
+              <Trash2 size={14}/>
+            </Button>
+          </div>
+        )}
       </div>
       
       <div className="p-6 grid grid-cols-2 gap-x-12 gap-y-6 min-h-[120px]">
@@ -149,35 +152,23 @@ const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, 
             key={field.id}
             onClick={(e) => { e.stopPropagation(); onSelectField(field.id); }}
             className={cn(
-              "flex items-center gap-4 p-3 border rounded-sm group cursor-pointer transition-all relative select-none",
+              "p-3 border rounded-sm cursor-pointer transition-all relative select-none",
               selectedFieldId === field.id 
                 ? "border-ns-blue bg-ns-blue/[0.03] ring-1 ring-ns-blue/30" 
                 : "border-transparent hover:border-ns-border hover:bg-gray-50/50"
             )}
           >
-            <div className="text-ns-blue/40 transition-colors shrink-0">
-              <GripVertical size={14} />
-            </div>
-            <div className="flex-1 overflow-hidden">
+            <div className="flex items-center gap-2 mb-1.5">
+              <GripVertical size={12} className="text-ns-blue/30 shrink-0" />
               <label className={cn(
-                "text-[10px] font-bold uppercase tracking-wider mb-1.5 block transition-colors truncate",
+                "text-[10px] font-bold uppercase tracking-wider block transition-colors truncate flex-1",
                 selectedFieldId === field.id ? "text-ns-blue" : "text-ns-text-muted"
               )}>
-                {field.label} {field.mandatory && <span className="text-red-500 ml-0.5">*</span>}
+                {field.label}{field.mandatory && <span className="text-red-500 ml-0.5">*</span>}
               </label>
-              <div className={cn(
-                "h-8 border border-ns-border rounded-sm px-3 flex items-center text-[10px] font-medium transition-all shadow-inner truncate",
-                field.displayType === 'disabled' ? "bg-gray-100 italic text-gray-400" : "bg-white text-gray-400",
-                field.displayType === 'hidden' ? "opacity-30 border-dashed" : "opacity-100"
-              )}>
-                {field.type === 'RecordRef' || field.type === 'select' 
-                  ? 'Record Reference...' 
-                  : field.type === 'dateTime' 
-                    ? 'YYYY-MM-DD' 
-                    : (field.type === 'boolean' || field.type === 'checkbox')
-                      ? `[${field.checkBoxDefault.toUpperCase()}] Checkbox`
-                      : 'Text Input...'}
-              </div>
+            </div>
+            <div className={cn(field.displayType === 'hidden' && "opacity-30")}>
+              <FieldControlPreview fieldType={field.type} checkBoxDefault={field.checkBoxDefault} />
             </div>
             <button 
               onClick={(e) => { e.stopPropagation(); onRemoveField(field.id); }}
@@ -186,8 +177,6 @@ const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, 
             >
               <Trash2 size={12} />
             </button>
-
-            {/* Field Position Actions Component could go here, but I'll add simple up/down to Properties Panel instead for space */}
           </div>
         ))}
         {group.fields.length === 0 && (
@@ -203,18 +192,41 @@ const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, 
 
 export default function BuilderCanvas({ activeTabId, setActiveTabId, selectedFieldId, setSelectedFieldId }: any) {
   const { currentForm, updateCurrentForm } = useStore();
+  const [confirmState, setConfirmState] = React.useState<{ 
+    isOpen: boolean; 
+    type: 'field' | 'group' | 'tab' | null;
+    id: string | null;
+    message: string;
+    title: string;
+  }>({
+    isOpen: false,
+    type: null,
+    id: null,
+    message: '',
+    title: ''
+  });
 
   if (!currentForm) return null;
 
   const activeTab = currentForm.tabs.find(t => t.id === activeTabId);
 
+  const openConfirm = (type: 'field' | 'group' | 'tab', id: string, title: string, message: string) => {
+    setConfirmState({ isOpen: true, type, id, title, message });
+  };
+
   const handleRemoveField = (fieldId: string) => {
+    openConfirm('field', fieldId, 'Remove Field?', 'This will remove the field from this layout blueprint.');
+  };
+
+  const processRemoveField = (fieldId: string) => {
     const newTabs = currentForm.tabs.map(tab => ({
       ...tab,
       fieldGroups: tab.fieldGroups.map(group => ({
         ...group,
         fields: group.fields.filter(f => f.id !== fieldId)
-      }))
+      })),
+      itemSublist: tab.itemSublist?.filter(f => f.id !== fieldId),
+      expenseSublist: tab.expenseSublist?.filter(f => f.id !== fieldId)
     }));
     updateCurrentForm({ tabs: newTabs });
     if (selectedFieldId === fieldId) setSelectedFieldId(null);
@@ -259,7 +271,10 @@ export default function BuilderCanvas({ activeTabId, setActiveTabId, selectedFie
   };
 
   const handleDeleteGroup = (groupId: string) => {
-    if (!window.confirm('Delete this field group and all its fields?')) return;
+    openConfirm('group', groupId, 'Delete Field Group?', 'Are you sure? All fields within this group will be removed from the tab.');
+  };
+
+  const processDeleteGroup = (groupId: string) => {
     const newTabs = currentForm.tabs.map(tab => ({
       ...tab,
       fieldGroups: tab.fieldGroups.filter(g => g.id !== groupId)
@@ -303,10 +318,22 @@ export default function BuilderCanvas({ activeTabId, setActiveTabId, selectedFie
 
   const handleDeleteTab = (tabId: string) => {
     if (currentForm.tabs.length <= 1) return;
-    if (!window.confirm('Delete this tab?')) return;
+    openConfirm('tab', tabId, 'Delete Tab?', 'This will permanently delete the tab and all its hierarchical containers.');
+  };
+
+  const processDeleteTab = (tabId: string) => {
     const newTabs = currentForm.tabs.filter(t => t.id !== tabId);
     updateCurrentForm({ tabs: newTabs });
     if (activeTabId === tabId) setActiveTabId(newTabs[0].id);
+  };
+
+  const handleConfirmAction = () => {
+    if (!confirmState.id) return;
+    switch (confirmState.type) {
+      case 'field': processRemoveField(confirmState.id); break;
+      case 'group': processDeleteGroup(confirmState.id); break;
+      case 'tab': processDeleteTab(confirmState.id); break;
+    }
   };
 
   return (
@@ -337,19 +364,38 @@ export default function BuilderCanvas({ activeTabId, setActiveTabId, selectedFie
       </div>
 
       <div className="flex-1 overflow-auto pr-2 custom-scrollbar">
-        {activeTab?.fieldGroups.slice(0, 1).map(group => (
-          <DroppableGroup 
-            key={group.id} 
-            group={group} 
-            onRemoveField={handleRemoveField}
-            onSelectField={setSelectedFieldId}
-            selectedFieldId={selectedFieldId}
-            onUpdateGroup={() => {}}
-            onDeleteGroup={() => {}}
-            onMoveGroup={() => {}}
-            hideHeader={true}
-          />
-        ))}
+        {activeTab?.name === 'Items' ? (
+          <div className="space-y-6">
+            <SublistRenderer 
+              name="Line Items" 
+              fields={activeTab.itemSublist || []} 
+              onRemoveField={handleRemoveField} 
+              onSelectField={setSelectedFieldId} 
+              selectedFieldId={selectedFieldId} 
+            />
+            <SublistRenderer 
+              name="Expenses" 
+              fields={activeTab.expenseSublist || []} 
+              onRemoveField={handleRemoveField} 
+              onSelectField={setSelectedFieldId} 
+              selectedFieldId={selectedFieldId} 
+            />
+          </div>
+        ) : (
+          activeTab?.fieldGroups.map(group => (
+            <DroppableGroup 
+              key={group.id} 
+              group={group} 
+              onRemoveField={handleRemoveField}
+              onSelectField={setSelectedFieldId}
+              selectedFieldId={selectedFieldId}
+              onUpdateGroup={handleUpdateGroup}
+              onDeleteGroup={handleDeleteGroup}
+              onMoveGroup={handleMoveGroup}
+              hideHeader={false}
+            />
+          ))
+        )}
 
         {!activeTab && (
           <div className="flex-1 flex flex-col items-center justify-center py-20 opacity-20 border-2 border-dashed border-gray-200 rounded-sm italic">
@@ -357,6 +403,13 @@ export default function BuilderCanvas({ activeTabId, setActiveTabId, selectedFie
           </div>
         )}
       </div>
+      <ConfirmModal 
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState({ ...confirmState, isOpen: false })}
+        onConfirm={handleConfirmAction}
+        title={confirmState.title}
+        message={confirmState.message}
+      />
     </div>
   );
 }

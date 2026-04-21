@@ -185,10 +185,11 @@ export default function CataloguePage() {
                 <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider w-10"></th>
                 <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider">Internal ID</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider">Label</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider">Type</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider text-center">nlapiSubmit</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider text-center">Required</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider">Origin</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider text-center">Section</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider text-center">Tab</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider">Group</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider text-center">nlapi</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider text-center">Req.</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
@@ -219,34 +220,34 @@ export default function CataloguePage() {
                         {field.required && <span className="w-1.5 h-1.5 rounded-full bg-red-500" title="Required" />}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-xs font-bold text-ns-text-muted uppercase tracking-wider">
-                      <span className="px-2 py-1 bg-ns-gray-bg border border-ns-border rounded-sm">{field.type}</span>
+                    <td className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-widest text-center">
+                      <span className={cn(
+                        "px-2 py-1 rounded-sm border",
+                        field.section === 'body' ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-purple-50 text-purple-600 border-purple-100"
+                      )}>
+                        {field.section === 'sublist' ? `${field.subSection}` : 'body'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-[10px] font-bold text-ns-navy bg-ns-gray-bg px-2 py-1 rounded-sm border border-ns-border uppercase">
+                        {field.tab}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-[10px] font-medium text-ns-text-muted truncate max-w-[120px]">
+                      {field.group}
                     </td>
                     <td className="px-6 py-4 text-center">
                       {field.nlapiSubmitField ? (
-                        <Check size={16} className="text-green-500 mx-auto" />
+                        <Check size={14} className="text-green-500 mx-auto" />
                       ) : (
-                        <X size={16} className="text-gray-300 mx-auto" />
+                        <X size={14} className="text-gray-300 mx-auto" />
                       )}
                     </td>
                     <td className="px-6 py-4 text-center">
                        {field.required ? (
-                        <div className="px-2 py-0.5 bg-red-50 text-red-600 rounded-full text-[10px] font-bold inline-block border border-red-100">YES</div>
+                        <span className="text-[10px] font-bold text-red-500 uppercase">Yes</span>
                       ) : (
-                        <div className="px-2 py-0.5 bg-gray-50 text-gray-400 rounded-full text-[10px] font-bold inline-block border border-gray-100">NO</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {field.isSystemField ? (
-                        <div className="flex items-center gap-1.5 text-ns-blue bg-ns-blue/5 px-2 py-1 rounded-sm border border-ns-blue/10 w-fit">
-                          <ShieldCheck size={12} />
-                          <span className="text-[10px] font-bold uppercase tracking-tight">System Field</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-2 py-1 rounded-sm border border-amber-100 w-fit">
-                          <User size={12} />
-                          <span className="text-[10px] font-bold uppercase tracking-tight">Custom Field</span>
-                        </div>
+                        <span className="text-[10px] font-bold text-gray-300 uppercase">No</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -337,6 +338,12 @@ function FieldModal({ field, onClose, onSave }: FieldModalProps) {
     required: field?.required || false,
     transactionType: field?.transactionType || '',
     isSystemField: field?.isSystemField || false,
+    section: field?.section || 'body',
+    subSection: field?.subSection || null,
+    group: field?.group || 'Primary Information',
+    tab: field?.tab || 'Main',
+    displayOrder: field?.displayOrder || 100,
+    origin: field?.origin || 'system'
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -350,7 +357,8 @@ function FieldModal({ field, onClose, onSave }: FieldModalProps) {
 
   const fieldTypes = [
     'text', 'select', 'currency', 'checkbox', 'date', 'datetime', 'textarea', 
-    'integer', 'double', 'email', 'url', 'phone', 'RecordRef'
+    'integer', 'double', 'email', 'url', 'phone', 'RecordRef',
+    'address', 'summary', 'emails', 'currency2'
   ];
 
   return (
@@ -365,91 +373,141 @@ function FieldModal({ field, onClose, onSave }: FieldModalProps) {
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-[10px] font-bold text-ns-text-muted uppercase tracking-widest mb-1.5">
-              Internal ID
-            </label>
-            <input 
-              type="text" 
-              value={formData.internalId}
-              onChange={e => setFormData({ ...formData, internalId: e.target.value })}
-              placeholder="e.g. custbody_my_field"
-              className="w-full px-4 py-2 bg-ns-gray-bg border border-ns-border rounded-sm text-sm focus:outline-none focus:border-ns-blue transition-all"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold text-ns-text-muted uppercase tracking-widest mb-1.5">
-              Label
-            </label>
-            <input 
-              type="text" 
-              value={formData.label}
-              onChange={e => setFormData({ ...formData, label: e.target.value })}
-              placeholder="e.g. My Custom Field"
-              className="w-full px-4 py-2 bg-ns-gray-bg border border-ns-border rounded-sm text-sm focus:outline-none focus:border-ns-blue transition-all"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="p-6 grid grid-cols-2 gap-6">
+          <div className="col-span-2 space-y-4">
             <div>
               <label className="block text-[10px] font-bold text-ns-text-muted uppercase tracking-widest mb-1.5">
-                Type
+                Internal ID
+              </label>
+              <input 
+                type="text" 
+                value={formData.internalId}
+                onChange={e => setFormData({ ...formData, internalId: e.target.value })}
+                placeholder="e.g. custbody_my_field"
+                className="w-full px-4 py-2 bg-ns-gray-bg border border-ns-border rounded-sm text-sm focus:outline-none focus:border-ns-blue transition-all"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-ns-text-muted uppercase tracking-widest mb-1.5">
+                Label
+              </label>
+              <input 
+                type="text" 
+                value={formData.label}
+                onChange={e => setFormData({ ...formData, label: e.target.value })}
+                placeholder="e.g. My Custom Field"
+                className="w-full px-4 py-2 bg-ns-gray-bg border border-ns-border rounded-sm text-sm focus:outline-none focus:border-ns-blue transition-all"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-ns-text-muted uppercase tracking-widest mb-1.5">
+              Field Type
+            </label>
+            <select 
+              value={formData.type}
+              onChange={e => setFormData({ ...formData, type: e.target.value })}
+              className="w-full px-4 py-2 bg-ns-gray-bg border border-ns-border rounded-sm text-sm focus:outline-none focus:border-ns-blue transition-all"
+            >
+              {fieldTypes.sort().map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-ns-text-muted uppercase tracking-widest mb-1.5">
+              Section
+            </label>
+            <select 
+              value={formData.section}
+              onChange={e => setFormData({ ...formData, section: e.target.value as any, subSection: e.target.value === 'body' ? null : 'item' })}
+              className="w-full px-4 py-2 bg-ns-gray-bg border border-ns-border rounded-sm text-sm focus:outline-none focus:border-ns-blue"
+            >
+              <option value="body">Body Field</option>
+              <option value="sublist">Sublist Field</option>
+            </select>
+          </div>
+
+          {formData.section === 'sublist' && (
+            <div>
+              <label className="block text-[10px] font-bold text-ns-text-muted uppercase tracking-widest mb-1.5">
+                Sub Section
               </label>
               <select 
-                value={formData.type}
-                onChange={e => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-4 py-2 bg-ns-gray-bg border border-ns-border rounded-sm text-sm focus:outline-none focus:border-ns-blue transition-all appearance-none"
+                value={formData.subSection || 'item'}
+                onChange={e => setFormData({ ...formData, subSection: e.target.value as any })}
+                className="w-full px-4 py-2 bg-ns-gray-bg border border-ns-border rounded-sm text-sm focus:outline-none focus:border-ns-blue"
               >
-                {fieldTypes.sort().map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
+                <option value="item">Line Item</option>
+                <option value="expense">Expense</option>
               </select>
             </div>
-            
-            <div className="flex flex-col justify-end">
-              <div className="flex items-center justify-between p-2 border border-ns-border rounded-sm bg-ns-gray-bg">
-                <span className="text-xs font-bold text-ns-navy">nlapiSubmitField</span>
-                <button 
-                  type="button"
-                  onClick={() => setFormData({ ...formData, nlapiSubmitField: !formData.nlapiSubmitField })}
-                  className={cn(
-                    "w-10 h-5 rounded-full transition-all relative",
-                    formData.nlapiSubmitField ? "bg-ns-blue" : "bg-gray-300"
-                  )}
-                >
-                  <div className={cn(
-                    "absolute top-1 w-3 h-3 bg-white rounded-full transition-all",
-                    formData.nlapiSubmitField ? "left-6" : "left-1"
-                  )} />
-                </button>
-              </div>
-            </div>
-          </div>
+          )}
 
-          <div className="flex items-center justify-between p-3 border border-ns-border rounded-sm bg-ns-gray-bg">
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-ns-navy">Required</span>
-              <span className="text-[10px] text-ns-text-muted">Force user to fill this field</span>
-            </div>
-            <button 
-              type="button"
-              onClick={() => setFormData({ ...formData, required: !formData.required })}
-              className={cn(
-                "w-12 h-6 rounded-full transition-all relative",
-                formData.required ? "bg-red-500" : "bg-gray-300"
-              )}
+          <div>
+            <label className="block text-[10px] font-bold text-ns-text-muted uppercase tracking-widest mb-1.5">
+              NetSuite Tab
+            </label>
+            <select 
+              value={formData.tab}
+              onChange={e => setFormData({ ...formData, tab: e.target.value })}
+              className="w-full px-4 py-2 bg-ns-gray-bg border border-ns-border rounded-sm text-sm focus:outline-none focus:border-ns-blue"
             >
-              <div className={cn(
-                "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-                formData.required ? "left-7" : "left-1"
-              )} />
-            </button>
+              <option value="Main">Main</option>
+              <option value="Items">Items</option>
+              <option value="Shipping">Shipping</option>
+              <option value="Billing">Billing</option>
+              <option value="Tax Details">Tax Details</option>
+            </select>
           </div>
 
+          <div className={cn(formData.section === 'body' ? "col-span-1" : "col-span-2")}>
+            <label className="block text-[10px] font-bold text-ns-text-muted uppercase tracking-widest mb-1.5">
+              Group Name
+            </label>
+            <input 
+              type="text" 
+              value={formData.group}
+              onChange={e => setFormData({ ...formData, group: e.target.value })}
+              placeholder="e.g. Primary Information"
+              className="w-full px-4 py-2 bg-ns-gray-bg border border-ns-border rounded-sm text-sm focus:outline-none focus:border-ns-blue"
+            />
+          </div>
+
+          <div className="flex items-center gap-6 col-span-2 mt-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={formData.required}
+                onChange={e => setFormData({ ...formData, required: e.target.checked })}
+                className="w-4 h-4 rounded text-ns-blue focus:ring-ns-blue"
+              />
+              <span className="text-xs font-bold text-ns-navy">Mandatory</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={formData.nlapiSubmitField}
+                onChange={e => setFormData({ ...formData, nlapiSubmitField: e.target.checked })}
+                className="w-4 h-4 rounded text-ns-blue focus:ring-ns-blue"
+              />
+              <span className="text-xs font-bold text-ns-navy">nlapiSubmitField</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={formData.isSystemField}
+                onChange={e => setFormData({ ...formData, isSystemField: e.target.checked })}
+                className="w-4 h-4 rounded text-ns-blue focus:ring-ns-blue"
+              />
+              <span className="text-xs font-bold text-ns-navy">System Field</span>
+            </label>
+          </div>
         </form>
 
         <div className="p-6 bg-ns-gray-bg border-t border-ns-border flex items-center gap-3">

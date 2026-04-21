@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import AdminLayout from '../components/layout/AdminLayout';
 import { Button, Input, Select, Label } from '../components/ui/Base';
-import { Table, THead, TBody, TR, TH, TD, Modal } from '../components/ui/Complex';
+import { Table, THead, TBody, TR, TH, TD, Modal, ConfirmModal } from '../components/ui/Complex';
 import { Users, Plus, Mail, IdCard, Briefcase, Trash2, ArrowLeft, Shield } from 'lucide-react';
 
 export default function CompanyDetailsPage() {
@@ -23,10 +23,11 @@ export default function CompanyDetailsPage() {
   const [newEmployee, setNewEmployee] = React.useState({
     name: '',
     email: '',
-    employeeId: '',
+    empId: '',
     jobTitle: '',
     password: 'password123'
   });
+  const [deleteUserId, setDeleteUserId] = React.useState<string | null>(null);
 
   if (!company) {
     return (
@@ -46,14 +47,14 @@ export default function CompanyDetailsPage() {
     await addUser({
       name: newEmployee.name,
       email: newEmployee.email,
-      employeeId: newEmployee.employeeId,
+      empId: newEmployee.empId,
       jobTitle: newEmployee.jobTitle,
       password: newEmployee.password,
       role: 'customer',
       companyId: company.id
     });
 
-    setNewEmployee({ name: '', email: '', employeeId: '', jobTitle: '', password: 'password123' });
+    setNewEmployee({ name: '', email: '', empId: '', jobTitle: '', password: 'password123' });
     setIsModalOpen(false);
   };
 
@@ -141,7 +142,7 @@ export default function CompanyDetailsPage() {
                   <TD className="py-4">
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-ns-text">{emp.name}</span>
-                      <span className="text-[10px] text-ns-text-muted font-mono tracking-tighter uppercase">ID: {emp.employeeId || 'N/A'}</span>
+                      <span className="text-[10px] text-ns-text-muted font-mono tracking-tighter uppercase">ID: {emp.empId || 'N/A'}</span>
                     </div>
                   </TD>
                   <TD>
@@ -159,7 +160,7 @@ export default function CompanyDetailsPage() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => deleteUser(emp.id)}
+                      onClick={() => setDeleteUserId(emp.id)}
                       className="h-8 w-8 text-ns-text-muted hover:text-red-500 hover:bg-red-50 transition-all rounded-full"
                     >
                       <Trash2 size={13} />
@@ -220,8 +221,8 @@ export default function CompanyDetailsPage() {
                 <Label>Employee Serial ID</Label>
                 <Input 
                   placeholder="e.g. EMP-2024-001" 
-                  value={newEmployee.employeeId}
-                  onChange={(e) => setNewEmployee({...newEmployee, employeeId: e.target.value})}
+                  value={newEmployee.empId}
+                  onChange={(e) => setNewEmployee({...newEmployee, empId: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
@@ -245,6 +246,13 @@ export default function CompanyDetailsPage() {
           </form>
         </Modal>
       </div>
+      <ConfirmModal
+        isOpen={!!deleteUserId}
+        onClose={() => setDeleteUserId(null)}
+        onConfirm={() => { if(deleteUserId) deleteUser(deleteUserId); }}
+        title="Revoke User Access?"
+        message="This will permanently delete this user account. The employee will lose all access to their corporate dashboard."
+      />
     </AdminLayout>
   );
 }

@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { Button, Input, Select, Label, Checkbox } from '../components/ui/Base';
+import { Button, Label, Input } from '../components/ui/Base';
 import { Tabs, Modal } from '../components/ui/Complex';
 import { ChevronLeft, Printer, Mail, Share2, MoreHorizontal } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { DynamicSelect } from '../components/ui/DynamicSelect';
+import { FieldControl } from '../components/ui/FieldControl';
 
 export default function PreviewPage() {
   const { currentForm, catalogues } = useStore();
@@ -156,53 +156,8 @@ export default function PreviewPage() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full flex gap-8">
-        <div className="flex-1 space-y-8">
-          {/* Header Info Card */}
-          <div className="bg-white p-8 rounded-sm shadow-sm border border-ns-border grid grid-cols-3 gap-12 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 bg-ns-blue h-full" />
-            
-            <div className="space-y-6">
-              <section>
-                <Label className="text-ns-blue/60">Primary Entity</Label>
-                <div className="text-base font-bold text-ns-navy">ABC Global Supplies Ltd.</div>
-                <div className="text-xs text-ns-text-muted mt-1 leading-relaxed">
-                  123 Business Park, Sector 45<br />
-                  Gurugram, Haryana 122003<br />
-                  India
-                </div>
-              </section>
-            </div>
-
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-5">
-                <div>
-                  <Label className="text-ns-blue/60">Transaction Date</Label>
-                  <div className="text-sm font-semibold">April 15, 2026</div>
-                </div>
-                <div>
-                  <Label className="text-ns-blue/60">Document Number</Label>
-                  <div className="text-sm font-mono font-bold text-ns-blue">PUR-ORD-2026-00421</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-6 bg-gray-50/50 p-4 rounded-sm border border-gray-100">
-              <div>
-                <Label className="text-ns-blue/60">Approval Status</Label>
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-full border border-amber-200 uppercase tracking-wider">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                  Pending Approval
-                </div>
-              </div>
-              <div>
-                <Label className="text-ns-blue/60">Total Amount</Label>
-                <div className="text-3xl font-black text-ns-navy tracking-tight">$1,250.00</div>
-                <div className="text-[10px] text-ns-text-muted font-bold uppercase mt-1">Currency: USD</div>
-              </div>
-            </div>
-          </div>
-
+      <main className="flex-1 p-8 max-w-5xl mx-auto w-full">
+        <div className="space-y-8">
           {/* Dynamic Tabs & Sections */}
           <div className="bg-white rounded-sm shadow-sm border border-ns-border overflow-hidden">
             <Tabs 
@@ -223,49 +178,117 @@ export default function PreviewPage() {
                   
                   <div className="grid grid-cols-2 gap-x-16 gap-y-6">
                     {group.fields.filter(f => f.visible && f.displayType !== 'hidden').map(field => (
-                      <div key={field.id} className={cn("group", field.layout.columnBreak && "col-start-2")}>
+                      <div key={field.id} className={cn("group", field.layout?.columnBreak && "col-start-2")}>
                         <div className="flex justify-between items-center mb-1.5">
-                          <Label mandatory={field.mandatory} helpText={field.helpText} className="mb-0">{field.label}</Label>
-                          {/* Metadata badge hidden unless relevant */}
+                          <Label mandatory={field.mandatory} helpText={field.helpText} className="mb-0">
+                            {field.label}
+                          </Label>
                           {field.displayType === 'disabled' && (
-                            <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest pl-2 mb-1.5">Read Only</span>
+                            <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest pl-2">Read Only</span>
                           )}
                         </div>
-                        
-                        {field.displayType === 'disabled' ? (
-                          <div className="h-9 bg-gray-50 border border-ns-border/50 rounded-sm px-3 flex items-center text-sm text-ns-text-muted font-medium italic">
-                            {field.defaultValue || 'No data provided'}
-                          </div>
-                        ) : (
-                          <div className="relative">
-                            {field.type === 'RecordRef' || field.type === 'select' ? (
-                              <DynamicSelect 
-                                className="h-9"
-                                field={field}
-                              />
-                            ) : field.type === 'boolean' || field.type === 'checkbox' ? (
-                              <div className="h-9 flex items-center gap-3 bg-white border border-ns-border rounded-sm px-3">
-                                <Checkbox checked={field.checkBoxDefault === 'checked'} readOnly />
-                                <span className="text-xs text-ns-text-muted italic">Value: {field.checkBoxDefault}</span>
-                              </div>
-                            ) : (
-                              <Input 
-                                className="h-9"
-                                defaultValue={field.defaultValue} 
-                                placeholder={`Enter ${field.label.toLowerCase()}...`} 
-                                type={field.type === 'double' ? 'number' : field.type === 'dateTime' ? 'date' : 'text'}
-                              />
-                            )}
-                          </div>
-                        )}
-                        
-                        {field.layout.spaceBefore && <div className="mt-4" />}
+                        <FieldControl
+                          fieldType={field.type}
+                          disabled={field.displayType === 'disabled'}
+                          defaultValue={field.defaultValue}
+                          checkBoxDefault={field.checkBoxDefault}
+                          label={field.label}
+                          preview={false}
+                          dataSource={field.dataSource}
+                        />
+                        {field.layout?.spaceBefore && <div className="mt-4" />}
                       </div>
                     ))}
+                    </div>
+                  </div>
+                ))}
+
+              {/* Sublist Rendering */}
+              {activeTab?.itemSublist && activeTab.itemSublist.length > 0 && (
+                <div className="mt-12 backdrop-blur-sm">
+                  <div className="flex items-center gap-4 mb-6">
+                    <h3 className="text-[11px] font-black text-ns-text uppercase tracking-[0.2em] whitespace-nowrap">
+                      Itemized Line Details
+                    </h3>
+                    <div className="h-[1px] bg-ns-blue/10 w-full" />
+                  </div>
+                  
+                  <div className="border border-ns-border rounded-sm overflow-hidden bg-ns-gray-bg/50">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-ns-navy text-white">
+                          {activeTab.itemSublist.map(field => (
+                            <th key={field.id} className="p-3 text-[10px] font-black uppercase tracking-widest border-r border-white/10 last:border-0">
+                              {field.label}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[1, 2].map((row) => (
+                          <tr key={row} className="border-b border-ns-border bg-white last:border-0 group hover:bg-ns-light-blue/20 transition-colors">
+                            {activeTab.itemSublist!.map(field => (
+                              <td key={field.id} className="p-3 border-r border-ns-border last:border-0">
+                                <FieldControl
+                                  fieldType={field.type}
+                                  disabled={field.displayType === 'disabled'}
+                                  label={field.label}
+                                  preview={true}
+                                  dataSource={field.dataSource}
+                                />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              ))}
-              {(!activeTab || activeTab.fieldGroups.length === 0) && (
+              )}
+
+              {activeTab?.expenseSublist && activeTab.expenseSublist.length > 0 && (
+                <div className="mt-12">
+                  <div className="flex items-center gap-4 mb-6">
+                    <h3 className="text-[11px] font-black text-ns-text uppercase tracking-[0.2em] whitespace-nowrap">
+                      Corporate Expense Ledger
+                    </h3>
+                    <div className="h-[1px] bg-ns-blue/10 w-full" />
+                  </div>
+                  
+                  <div className="border border-ns-border rounded-sm overflow-hidden bg-ns-gray-bg/50">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-ns-navy text-white">
+                          {activeTab.expenseSublist.map(field => (
+                            <th key={field.id} className="p-3 text-[10px] font-black uppercase tracking-widest border-r border-white/10 last:border-0">
+                              {field.label}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[1].map((row) => (
+                          <tr key={row} className="border-b border-ns-border bg-white last:border-0 hover:bg-ns-light-blue/20 transition-colors">
+                            {activeTab.expenseSublist!.map(field => (
+                              <td key={field.id} className="p-3 border-r border-ns-border last:border-0">
+                                <FieldControl
+                                  fieldType={field.type}
+                                  disabled={field.displayType === 'disabled'}
+                                  label={field.label}
+                                  preview={true}
+                                  dataSource={field.dataSource}
+                                />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {(!activeTab || (activeTab.fieldGroups.length === 0 && (!activeTab.itemSublist || activeTab.itemSublist.length === 0) && (!activeTab.expenseSublist || activeTab.expenseSublist.length === 0))) && (
                 <div className="py-20 flex flex-col items-center justify-center text-gray-300">
                   <Share2 size={48} className="mb-4 opacity-20" />
                   <p className="text-xs font-bold uppercase tracking-[0.2em]">No fields configured for this view</p>
@@ -274,49 +297,6 @@ export default function PreviewPage() {
             </div>
           </div>
         </div>
-
-        {/* Sidebar Summary */}
-        <aside className="w-80 space-y-8">
-          <div className="bg-ns-navy p-8 rounded-sm shadow-xl text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-ns-blue/10 rounded-full -mr-16 -mt-16" />
-            
-            <h3 className="text-[10px] font-bold text-ns-blue uppercase tracking-[0.2em] border-b border-white/10 pb-3 mb-6">Financial Summary</h3>
-            <div className="space-y-4">
-              <div className="flex justify-between text-xs">
-                <span className="text-white/50 font-medium">Subtotal</span>
-                <span className="font-bold">$1,200.00</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-white/50 font-medium">Tax (GST 5%)</span>
-                <span className="font-bold">$50.00</span>
-              </div>
-              <div className="h-[1px] bg-white/10 my-4" />
-              <div className="flex justify-between items-end">
-                <span className="text-[10px] font-bold text-ns-blue uppercase tracking-widest">Total Amount</span>
-                <span className="text-2xl font-black tracking-tight">$1,250.00</span>
-              </div>
-            </div>
-            <Button className="w-full mt-8 bg-ns-blue border-none hover:bg-ns-blue/80 h-10">Submit Transaction</Button>
-          </div>
-
-          <div className="bg-white p-6 rounded-sm shadow-sm border border-ns-border">
-            <h3 className="text-[10px] font-bold text-ns-text uppercase tracking-[0.2em] border-b border-gray-100 pb-3 mb-5">Classification</h3>
-            <div className="space-y-5">
-              <div>
-                <Label className="text-ns-blue/60">Subsidiary</Label>
-                <div className="text-xs font-semibold text-ns-text">Parent Company : India Subsidiary</div>
-              </div>
-              <div>
-                <Label className="text-ns-blue/60">Department</Label>
-                <div className="text-xs font-semibold text-ns-text">Sales & Marketing Operations</div>
-              </div>
-              <div>
-                <Label className="text-ns-blue/60">Class</Label>
-                <div className="text-xs font-semibold text-ns-text">Direct Sales : Enterprise</div>
-              </div>
-            </div>
-          </div>
-        </aside>
       </main>
     </div>
   );

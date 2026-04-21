@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { CustomForm, TransactionType, FormTemplate } from '../types';
 import { Button, Input, Select, Label } from '../components/ui/Base';
-import { Table, THead, TBody, TR, TH, TD, Modal } from '../components/ui/Complex';
+import { Table, THead, TBody, TR, TH, TD, Modal, ConfirmModal } from '../components/ui/Complex';
 import { Plus, Search, Copy, Trash2, Edit2, LogOut, Settings2, Filter, User as UserIcon, Layout, Zap, Award, FileCode, Check, ChevronRight, ArrowLeft, Building2, Users } from 'lucide-react';
 import { cn } from '../lib/utils';
 import AdminLayout from '../components/layout/AdminLayout';
@@ -43,6 +43,10 @@ export default function DashboardPage() {
 
   const [selectedEmployees, setSelectedEmployees] = React.useState<string[]>([]);
   const [templatePreview, setTemplatePreview] = React.useState<FormTemplate | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = React.useState<{ isOpen: boolean; formId: string | null }>({
+    isOpen: false,
+    formId: null
+  });
 
   const filteredForms = forms.filter(f => {
     const company = companies.find(c => c.id === f.customerId);
@@ -86,6 +90,15 @@ export default function DashboardPage() {
     if (assignModal.formId) {
       await assignUsers(assignModal.formId, selectedEmployees);
       setAssignModal({ ...assignModal, isOpen: false });
+    }
+  };
+  const confirmDelete = (formId: string) => {
+    setDeleteConfirm({ isOpen: true, formId });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteConfirm.formId) {
+      await deleteForm(deleteConfirm.formId);
     }
   };
 
@@ -218,7 +231,7 @@ export default function DashboardPage() {
                       <Button variant="ghost" size="icon" onClick={() => openAssignModal(form)} title="Manage Entitlements" className="h-8 w-8 hover:bg-ns-navy hover:text-white rounded-full transition-all">
                         <Users size={13} />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => deleteForm(form.id)} className="h-8 w-8 text-red-400 hover:bg-red-500 hover:text-white rounded-full transition-all" title="Purge Record">
+                      <Button variant="ghost" size="icon" onClick={() => confirmDelete(form.id)} className="h-8 w-8 text-red-500 hover:bg-red-500 hover:text-white rounded-full transition-all" title="Purge Record">
                         <Trash2 size={13} />
                       </Button>
                     </div>
@@ -370,6 +383,13 @@ export default function DashboardPage() {
         </div>
       </Modal>
 
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
+        onConfirm={handleConfirmDelete}
+        title="Delete Transaction Layout?"
+        message="This will permanently purge this layout from the repository. All associated assignment data will be lost."
+      />
     </AdminLayout>
   );
 }

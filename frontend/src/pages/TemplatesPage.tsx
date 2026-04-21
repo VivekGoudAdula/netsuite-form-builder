@@ -24,8 +24,9 @@ export default function TemplatesPage() {
   const handleUseTemplate = (template: FormTemplate) => {
     setSelectedTemplate(template);
     setIsUseModalOpen(true);
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     setFormDetails({
-      name: `${template.name} - Custom`,
+      name: `${template.name} - ${timestamp}`,
       customerId: companies[0]?.id || '',
     });
   };
@@ -77,7 +78,12 @@ export default function TemplatesPage() {
                         {catalogues[template.transactionType].name}
                       </span>
                       <span className="text-[10px] text-ns-text-muted font-mono tracking-tighter">
-                        {template.tabs.length} TABS • {template.tabs.reduce((acc, tab) => acc + tab.fieldGroups.reduce((acc2, grp) => acc2 + grp.fields.length, 0), 0)} FIELDS
+                        {template.tabs.length} TABS • {template.tabs.reduce((acc, tab) => 
+                          acc + 
+                          tab.fieldGroups.reduce((acc2, grp) => acc2 + grp.fields.length, 0) + 
+                          (tab.itemSublist?.length || 0) + 
+                          (tab.expenseSublist?.length || 0)
+                        , 0)} FIELDS
                       </span>
                     </div>
                   </div>

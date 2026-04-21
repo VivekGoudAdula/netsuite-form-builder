@@ -97,6 +97,45 @@ async def get_mock_shipping_methods():
         { "id": "3", "name": "DHL International" }
     ]
 
+@router.get("/transactions", response_model=List[Dict[str, str]])
+async def get_mock_transactions():
+    return [
+        { "id": "1", "name": "Purchase Order #101" },
+        { "id": "2", "name": "Sales Order #505" },
+        { "id": "3", "name": "Bill #909" }
+    ]
+
+@router.get("/custom-forms", response_model=List[Dict[str, str]])
+async def get_mock_custom_forms():
+    return [
+        { "id": "1", "name": "Standard Purchase Order" },
+        { "id": "2", "name": "Standard Sales Order" },
+        { "id": "3", "name": "Custom Product Configurator" }
+    ]
+
+@router.get("/nexuses", response_model=List[Dict[str, str]])
+async def get_mock_nexuses():
+    return [
+        { "id": "1", "name": "California - NY" },
+        { "id": "2", "name": "India - Telangana" },
+        { "id": "3", "name": "UK - London" }
+    ]
+
+@router.get("/intercompany-statuses", response_model=List[Dict[str, str]])
+async def get_mock_intercompany_statuses():
+    return [
+        { "id": "1", "name": "Paired" },
+        { "id": "2", "name": "Unpaired" },
+        { "id": "3", "name": "Pending Elimination" }
+    ]
+
+@router.get("/purchase-contracts", response_model=List[Dict[str, str]])
+async def get_mock_purchase_contracts():
+    return [
+        { "id": "1", "name": "Global Supply Agreement v1" },
+        { "id": "2", "name": "Regional Office Supplies v2" }
+    ]
+
 @router.get("/addresses", response_model=List[Dict[str, str]])
 async def get_mock_addresses():
     return [

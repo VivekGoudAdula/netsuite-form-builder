@@ -1,30 +1,34 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Outfit:wght@100..900&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  
+
   --color-ns-navy: #102641;
-  --color-ns-blue: #607799;
-  --color-ns-light-blue: #e5eaef;
-  --color-ns-gray-bg: #f0f0f0;
-  --color-ns-border: #cccccc;
-  --color-ns-text: #333333;
-  --color-ns-text-muted: #666666;
+  --color-ns-blue: #334155;        /* Professional Slate Grey per request */
+  --color-ns-blue-soft: #f1f5f9;   /* Neutral grey highlight */
+  --color-ns-light-blue: #f8fafc;  /* Clean panel grey */
+  --color-ns-gray-bg: #ffffff;     /* Stark white for content contrast */
+  --color-ns-border: #e2e8f0;      /* Slate border */
+  --color-ns-text: #0f172a;        /* Deep navy-slate text */
+  --color-ns-text-muted: #64748b;  /* Professional muted slate */
+
+  --color-brand-purple: #7C3AED;
+  --color-brand-emerald: #10B981;
 }
 
 @layer base {
   body {
-    @apply font-sans text-ns-text bg-ns-gray-bg antialiased;
-    font-size: 13px; /* Enterprise apps usually have slightly smaller text for density */
-    line-height: 1.5;
+    @apply font-sans text-ns-text bg-ns-gray-bg antialiased selection:bg-ns-blue/20;
+    font-size: 13px;
+    line-height: 1.6;
   }
 
-  /* Professional Scrollbars */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
 
   ::-webkit-scrollbar-track {
@@ -32,33 +36,67 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #d1d1d1;
-    border-radius: 10px;
+    background: #CBD5E1;
+    border-radius: 20px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #b1b1b1;
+    @apply bg-slate-400;
   }
 
   h1, h2, h3, h4 {
-    @apply font-semibold tracking-tight;
+    @apply font-display font-semibold tracking-tight;
   }
 }
 
 @layer utilities {
   .ns-panel-shadow {
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   }
-  
+
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-md border border-white/20;
+  }
+
+  .glass-dark {
+    @apply bg-ns-navy/80 backdrop-blur-lg border border-white/10;
+  }
+
   .ns-header-gradient {
-    background: linear-gradient(to bottom, #ffffff 0%, #f5f5f5 100%);
+    background: linear-gradient(180deg, #FFFFFF 0%, rgba(255, 255, 255, 0.8) 100%);
   }
 
   .ns-active-tab {
-    @apply bg-white border-t-2 border-t-ns-blue text-ns-blue font-semibold;
+    @apply bg-white border-t-2 border-t-ns-blue text-ns-blue font-bold shadow-[0_-4px_12px_rgba(51,65,85,0.1)];
   }
 
   .ns-inactive-tab {
-    @apply bg-[#e5eaef] text-ns-text-muted hover:bg-[#dce2e8] border-r border-ns-border;
+    @apply bg-ns-light-blue text-ns-text-muted hover:bg-slate-200 transition-colors border-r border-ns-border;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .sidebar-transition {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }

@@ -10,125 +10,183 @@ const mapNetSuiteField = (
   id: string,
   label: string,
   type: string,
-  fieldGroup: string,
+  group: string,
   tab: string,
   mandatory: boolean = false,
+  section: 'body' | 'sublist' = 'body',
+  subSection: 'item' | 'expense' | null = null,
+  dataSource: any = null,
   helpText: string = ''
 ): Field => ({
   id,
   label: label || id.charAt(0).toUpperCase() + id.slice(1).replace(/([A-Z])/g, ' $1'),
   type,
-  fieldGroup: fieldGroup || 'Custom',
+  group: group || 'Custom',
   tab: tab || 'Main',
+  section,
+  subSection,
   mandatory,
   visible: true,
   displayType: 'normal',
   checkBoxDefault: 'default',
   helpText,
   defaultValue: '',
-  layout: { columnBreak: false, spaceBefore: false }
+  layout: { columnBreak: false, spaceBefore: false },
+  dataSource
 });
 
 const CATALOGUES: Record<TransactionType, CatalogueData> = {
-  purchase_order: {
-    name: 'Purchase Order',
-    tabs: ['Main', 'Items', 'Shipping', 'Billing', 'Accounting', 'Tax Details', 'System Information'],
-    fieldGroups: ['Primary Information', 'Classification', 'India Tax Information', 'Shipping', 'Billing', 'Accounting', 'System Information'],
+  purchase_order: { 
+    name: 'Purchase Order', 
+    tabs: ['Main', 'Shipping', 'Billing', 'Tax Details', 'Items'], 
+    fieldGroups: ['Primary Information', 'Classification', 'Shipping', 'Billing', 'Tax Details', 'System Information', 'Line Items', 'Expenses'], 
     fields: [
-      mapNetSuiteField('approvalStatus', 'Approval Status', 'RecordRef', 'Primary Information', 'Main', false, 'Reflects the state of the transaction in approval workflow'),
-      {
-        ...mapNetSuiteField('entity', 'Vendor', 'RecordRef', 'Primary Information', 'Main', true, 'Select the vendor for this purchase'),
-        dataSource: {
-          type: 'api',
-          apiConfig: { url: '/mock/vendors', method: 'GET', labelKey: 'name', valueKey: 'id' }
-        }
-      },
-      mapNetSuiteField('tranDate', 'Date', 'dateTime', 'Primary Information', 'Main', true, 'The date the purchase order is issued'),
-      mapNetSuiteField('tranId', 'PO #', 'string', 'Primary Information', 'Main', false, 'Purchase order identification number'),
-      mapNetSuiteField('memo', 'Memo', 'string', 'Primary Information', 'Main', false, 'Internal notes for this transaction'),
-      mapNetSuiteField('subsidiary', 'Subsidiary', 'RecordRef', 'Classification', 'Main', true),
-      mapNetSuiteField('department', 'Department', 'RecordRef', 'Classification', 'Main', false),
-      mapNetSuiteField('class', 'Class', 'RecordRef', 'Classification', 'Main', false),
-      mapNetSuiteField('location', 'Location', 'RecordRef', 'Classification', 'Main', false),
-      mapNetSuiteField('taxTotal', 'Tax Total', 'double', 'India Tax Information', 'Tax Details', false),
-      mapNetSuiteField('placeOfSupply', 'Place of Supply', 'string', 'India Tax Information', 'Tax Details', false),
-      mapNetSuiteField('shipDate', 'Ship Date', 'dateTime', 'Shipping', 'Shipping', false),
-      mapNetSuiteField('shipMethod', 'Ship Method', 'RecordRef', 'Shipping', 'Shipping', false),
-      mapNetSuiteField('billAddressList', 'Billing Address', 'RecordRef', 'Billing', 'Billing', true),
-      mapNetSuiteField('currency', 'Currency', 'RecordRef', 'Accounting', 'Accounting', true),
-      mapNetSuiteField('terms', 'Terms', 'RecordRef', 'Accounting', 'Accounting', false),
-      mapNetSuiteField('status', 'Status', 'string', 'System Information', 'System Information', false),
-      mapNetSuiteField('createdDate', 'Date Created', 'dateTime', 'System Information', 'System Information', false),
-    ]
+      // --- PRIMARY INFORMATION ---
+      mapNetSuiteField('customform', 'Custom Form', 'select', 'Primary Information', 'Main', true, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/custom-forms', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('entity', 'Vendor', 'select', 'Primary Information', 'Main', true, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/vendors', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('otherrefnum', 'Vendor #', 'text', 'Primary Information', 'Main'),
+      mapNetSuiteField('employee', 'Employee', 'select', 'Primary Information', 'Main', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/employees', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('trandate', 'Date', 'date', 'Primary Information', 'Main', true),
+      mapNetSuiteField('tranid', 'PO #', 'text', 'Primary Information', 'Main'),
+      mapNetSuiteField('duedate', 'Receive By', 'date', 'Primary Information', 'Main'),
+      mapNetSuiteField('memo', 'Memo', 'text', 'Primary Information', 'Main'),
+      mapNetSuiteField('approvalstatus', 'Approval Status', 'select', 'Primary Information', 'Main', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/approval-status', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('nextapprover', 'Next Approver', 'select', 'Primary Information', 'Main', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/employees', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('supervisorapproval', 'Supervisor Approval', 'checkbox', 'Primary Information', 'Main'),
+      mapNetSuiteField('message', 'Vendor Message', 'textarea', 'Primary Information', 'Main'),
+      mapNetSuiteField('email', 'Email', 'emails', 'Primary Information', 'Main'),
+      mapNetSuiteField('tobeemailed', 'To Be E-mailed', 'checkbox', 'Primary Information', 'Main'),
+      mapNetSuiteField('tobefaxed', 'To Be Faxed', 'checkbox', 'Primary Information', 'Main'),
+      mapNetSuiteField('tobeprinted', 'To Be Printed', 'checkbox', 'Primary Information', 'Main'),
+      mapNetSuiteField('createdfrom', 'Created From', 'select', 'Primary Information', 'Main', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/transactions', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+
+      // --- CLASSIFICATION ---
+      mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/subsidiaries', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('department', 'Department', 'select', 'Classification', 'Main', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/departments', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('class', 'Class', 'select', 'Classification', 'Main', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/classifications', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('location', 'Location', 'select', 'Classification', 'Main', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/locations', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+
+      // --- SHIPPING ---
+      mapNetSuiteField('shipdate', 'Ship Date', 'date', 'Shipping', 'Shipping', false),
+      mapNetSuiteField('shipmethod', 'Ship Via', 'select', 'Shipping', 'Shipping', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/shipping-methods', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('shipto', 'Ship To', 'select', 'Shipping', 'Shipping', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/customers', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('shipaddress', 'Ship To', 'address', 'Shipping', 'Shipping'),
+      mapNetSuiteField('shippingaddress', 'Shipping Address Summary', 'summary', 'Shipping', 'Shipping'),
+      mapNetSuiteField('shipaddressee', 'Shipping Addressee', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('shipattention', 'Shipping Attention', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('shipaddr1', 'Shipping Address Line 1', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('shipaddr2', 'Shipping Address Line 2', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('shipaddr3', 'Shipping Address Line 3', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('shipcity', 'Shipping Address City', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('shipstate', 'Shipping Address State', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('shipzip', 'Shipping Address Zip Code', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('shipcountry', 'Shipping Address Country', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('shipphone', 'Shipping Phone', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('shipisresidential', 'Residential', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('shipoverride', 'Ship Override', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('fob', 'FOB', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('linkedtrackingnumbers', 'Tracking #', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('trackingnumbers', 'Additional Tracking #', 'text', 'Shipping', 'Shipping'),
+      mapNetSuiteField('returntrackingnumbers', 'Return Tracking #', 'text', 'Shipping', 'Shipping'),
+
+      // --- BILLING ---
+      mapNetSuiteField('terms', 'Terms', 'select', 'Billing', 'Billing', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/terms', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('billaddress', 'Vendor', 'address', 'Billing', 'Billing'),
+      mapNetSuiteField('billingaddress', 'Billing Address Summary', 'summary', 'Billing', 'Billing'),
+      mapNetSuiteField('billaddressee', 'Billing Addressee', 'text', 'Billing', 'Billing'),
+      mapNetSuiteField('billattention', 'Billing Attention', 'text', 'Billing', 'Billing'),
+      mapNetSuiteField('billaddr1', 'Billing Address Line 1', 'text', 'Billing', 'Billing'),
+      mapNetSuiteField('billaddr2', 'Billing Address Line 2', 'text', 'Billing', 'Billing'),
+      mapNetSuiteField('billaddr3', 'Billing Address Line 3', 'text', 'Billing', 'Billing'),
+      mapNetSuiteField('billcity', 'Billing Address City', 'text', 'Billing', 'Billing'),
+      mapNetSuiteField('billstate', 'Billing Address State', 'text', 'Billing', 'Billing'),
+      mapNetSuiteField('billzip', 'Billing Address Zip Code', 'text', 'Billing', 'Billing'),
+      mapNetSuiteField('billcountry', 'Billing Address Country', 'text', 'Billing', 'Billing'),
+      mapNetSuiteField('billphone', 'Billing Phone', 'text', 'Billing', 'Billing'),
+      mapNetSuiteField('billisresidential', 'Residential', 'text', 'Billing', 'Billing'),
+      mapNetSuiteField('currency', 'Currency', 'select', 'Billing', 'Billing', true, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/currencies', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('currencyname', 'Currency Name', 'text', 'Billing', 'Billing'),
+      mapNetSuiteField('currencysymbol', 'Currency Symbol', 'text', 'Billing', 'Billing'),
+      mapNetSuiteField('exchangerate', 'Exchange Rate', 'currency2', 'Billing', 'Billing', true),
+      mapNetSuiteField('availablevendorcredit', 'Available Vendor Credit', 'currency', 'Billing', 'Billing'),
+      mapNetSuiteField('balance', 'Balance', 'currency', 'Billing', 'Billing'),
+      mapNetSuiteField('isbasecurrency', 'Base Currency', 'checkbox', 'Billing', 'Billing'),
+      mapNetSuiteField('purchasecontract', 'Purchase Contract', 'select', 'Billing', 'Billing', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/purchase-contracts', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('total', 'Total', 'currency', 'Billing', 'Billing'),
+      mapNetSuiteField('unbilledorders', 'Unbilled Orders', 'currency', 'Billing', 'Billing'),
+      mapNetSuiteField('intercostatus', 'Intercompany Status', 'select', 'Billing', 'Billing', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/intercompany-statuses', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('intercotransaction', 'Paired Transaction', 'select', 'Billing', 'Billing', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/transactions', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+
+      // --- TAX DETAILS ---
+      mapNetSuiteField('nexus', 'Nexus', 'select', 'Tax Details', 'Tax Details', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/nexuses', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('entitynexus', 'Nexus Reference', 'select', 'Tax Details', 'Tax Details', false, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/nexuses', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+
+      // --- SYSTEM INFO ---
+      mapNetSuiteField('status', 'Status', 'text', 'System Information', 'Main'),
+      mapNetSuiteField('orderstatus', 'Order Status', 'text', 'System Information', 'Main'),
+      mapNetSuiteField('source', 'Source', 'text', 'System Information', 'Main'),
+      mapNetSuiteField('externalid', 'ExternalId', 'text', 'System Information', 'Main'),
+      mapNetSuiteField('createddate', 'Created Date', 'datetime', 'System Information', 'Main'),
+      mapNetSuiteField('lastmodifieddate', 'Last Modified Date', 'datetime', 'System Information', 'Main'),
+
+      // --- ITEMS (SUBLIST) ---
+      mapNetSuiteField('item', 'Item', 'select', 'Line Items', 'Items', true, 'sublist', 'item', { type: 'api', apiConfig: { url: '/api/mock/transactions', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('quantity', 'Quantity', 'float', 'Line Items', 'Items', true, 'sublist', 'item'),
+      mapNetSuiteField('units', 'Units', 'select', 'Line Items', 'Items', false, 'sublist', 'item'),
+      mapNetSuiteField('description', 'Description', 'text', 'Line Items', 'Items', false, 'sublist', 'item'),
+      mapNetSuiteField('rate', 'Rate', 'currency', 'Line Items', 'Items', true, 'sublist', 'item'),
+      mapNetSuiteField('amount', 'Amount', 'currency', 'Line Items', 'Items', true, 'sublist', 'item'),
+      mapNetSuiteField('taxcode', 'Tax Code', 'select', 'Line Items', 'Items', false, 'sublist', 'item'),
+      mapNetSuiteField('taxrate1', 'Tax Rate', 'percent', 'Line Items', 'Items', false, 'sublist', 'item'),
+      mapNetSuiteField('taxamount1', 'Tax Amount', 'currency', 'Line Items', 'Items', false, 'sublist', 'item'),
+      mapNetSuiteField('expectedreceivedate', 'Expected Receipt Date', 'date', 'Line Items', 'Items', false, 'sublist', 'item'),
+
+      // --- EXPENSES (SUBLIST) ---
+      mapNetSuiteField('category', 'Category', 'select', 'Expenses', 'Items', false, 'sublist', 'expense'),
+      mapNetSuiteField('account', 'Account', 'select', 'Expenses', 'Items', true, 'sublist', 'expense', { type: 'api', apiConfig: { url: '/api/mock/departments', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('amount_expense', 'Amount', 'currency', 'Expenses', 'Items', true, 'sublist', 'expense'),
+      mapNetSuiteField('memo_expense', 'Memo', 'text', 'Expenses', 'Items', false, 'sublist', 'expense'),
+      mapNetSuiteField('department_expense', 'Department', 'select', 'Expenses', 'Items', false, 'sublist', 'expense', { type: 'api', apiConfig: { url: '/api/mock/departments', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('class_expense', 'Class', 'select', 'Expenses', 'Items', false, 'sublist', 'expense', { type: 'api', apiConfig: { url: '/api/mock/classifications', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('location_expense', 'Location', 'select', 'Expenses', 'Items', false, 'sublist', 'expense', { type: 'api', apiConfig: { url: '/api/mock/locations', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('customer_expense', 'Customer', 'select', 'Expenses', 'Items', false, 'sublist', 'expense', { type: 'api', apiConfig: { url: '/api/mock/customers', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('isbillable', 'Billable', 'checkbox', 'Expenses', 'Items', false, 'sublist', 'expense'),
+    ] 
   },
-  sales_order: {
-    name: 'Sales Order',
-    tabs: ['Main', 'Items', 'Shipping', 'Billing', 'Accounting', 'System Information'],
-    fieldGroups: ['Primary Information', 'Classification', 'Shipping', 'Billing', 'Accounting', 'System Information'],
+  sales_order: { 
+    name: 'Sales Order', 
+    tabs: ['Main', 'Shipping', 'Billing', 'Items'], 
+    fieldGroups: ['Primary Information', 'Classification', 'Shipping', 'Billing', 'Line Items'], 
     fields: [
-      {
-        ...mapNetSuiteField('entity', 'Customer', 'RecordRef', 'Primary Information', 'Main', true),
-        dataSource: {
-          type: 'api',
-          apiConfig: { url: '/mock/customers', method: 'GET', labelKey: 'name', valueKey: 'id' }
-        }
-      },
-      mapNetSuiteField('tranDate', 'Order Date', 'dateTime', 'Primary Information', 'Main', true),
-      mapNetSuiteField('tranId', 'SO #', 'string', 'Primary Information', 'Main', false),
-      mapNetSuiteField('status', 'Order Status', 'string', 'Primary Information', 'Main', false),
-      mapNetSuiteField('total', 'Amount', 'double', 'Primary Information', 'Main', false),
-      mapNetSuiteField('subsidiary', 'Subsidiary', 'RecordRef', 'Classification', 'Main', true),
-      mapNetSuiteField('department', 'Department', 'RecordRef', 'Classification', 'Main', false),
-      mapNetSuiteField('shipAddressList', 'Shipping Address', 'RecordRef', 'Shipping', 'Shipping', true),
-      mapNetSuiteField('billAddressList', 'Billing Address', 'RecordRef', 'Billing', 'Billing', true),
-      mapNetSuiteField('currency', 'Currency', 'RecordRef', 'Accounting', 'Accounting', true),
-      mapNetSuiteField('createdDate', 'Date Created', 'dateTime', 'System Information', 'System Information', false),
-    ]
+      mapNetSuiteField('entity', 'Customer', 'select', 'Primary Information', 'Main', true, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/customers', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('trandate', 'Date', 'date', 'Primary Information', 'Main', true),
+      mapNetSuiteField('tranid', 'Order #', 'text', 'Primary Information', 'Main'),
+      mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/subsidiaries', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('item', 'Item', 'select', 'Line Items', 'Items', true, 'sublist', 'item', { type: 'api', apiConfig: { url: '/api/mock/transactions', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('quantity', 'Quantity', 'float', 'Line Items', 'Items', true, 'sublist', 'item'),
+    ] 
   },
-  accounts_payable: {
-    name: 'Accounts Payable',
-    tabs: ['Main', 'Expenses', 'Journal', 'System Information'],
-    fieldGroups: ['Primary Information', 'Classification', 'Accounting', 'System Information'],
+  accounts_payable: { 
+    name: 'Accounts Payable', 
+    tabs: ['Main', 'Expenses'], 
+    fieldGroups: ['Primary Information', 'Expenses'], 
     fields: [
-      {
-        ...mapNetSuiteField('entity', 'Vendor', 'RecordRef', 'Primary Information', 'Main', true),
-        dataSource: {
-          type: 'api',
-          apiConfig: { url: '/mock/vendors', method: 'GET', labelKey: 'name', valueKey: 'id' }
-        }
-      },
-      mapNetSuiteField('tranDate', 'Bill Date', 'dateTime', 'Primary Information', 'Main', true),
-      mapNetSuiteField('dueDate', 'Due Date', 'dateTime', 'Primary Information', 'Main', true),
-      mapNetSuiteField('approvalStatus', 'Approval Status', 'RecordRef', 'Primary Information', 'Main', false),
-      mapNetSuiteField('amount', 'Amount', 'double', 'Primary Information', 'Main', false),
-      mapNetSuiteField('subsidiary', 'Subsidiary', 'RecordRef', 'Classification', 'Main', true),
-      mapNetSuiteField('taxTotal', 'Tax Total', 'double', 'Primary Information', 'Main', false),
-      mapNetSuiteField('currency', 'Currency', 'RecordRef', 'Accounting', 'Accounting', true),
-      mapNetSuiteField('createdDate', 'Date Created', 'dateTime', 'System Information', 'System Information', false),
-    ]
+      mapNetSuiteField('entity', 'Vendor', 'select', 'Primary Information', 'Main', true, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/vendors', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('trandate', 'Date', 'date', 'Primary Information', 'Main', true),
+      mapNetSuiteField('account', 'Account', 'select', 'Expenses', 'Expenses', true, 'sublist', 'expense', { type: 'api', apiConfig: { url: '/api/mock/departments', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('amount', 'Amount', 'currency', 'Expenses', 'Expenses', true, 'sublist', 'expense'),
+    ] 
   },
-  accounts_receivable: {
-    name: 'Accounts Receivable',
-    tabs: ['Main', 'Items', 'Journal', 'System Information'],
-    fieldGroups: ['Primary Information', 'Classification', 'Accounting', 'System Information'],
+  accounts_receivable: { 
+    name: 'Accounts Receivable', 
+    tabs: ['Main', 'Items'], 
+    fieldGroups: ['Primary Information', 'Line Items'], 
     fields: [
-      {
-        ...mapNetSuiteField('entity', 'Customer', 'RecordRef', 'Primary Information', 'Main', true),
-        dataSource: {
-          type: 'api',
-          apiConfig: { url: '/mock/customers', method: 'GET', labelKey: 'name', valueKey: 'id' }
-        }
-      },
-      mapNetSuiteField('tranDate', 'Invoice Date', 'dateTime', 'Primary Information', 'Main', true),
-      mapNetSuiteField('status', 'Payment Status', 'string', 'Primary Information', 'Main', false),
-      mapNetSuiteField('amount', 'Amount', 'double', 'Primary Information', 'Main', false),
-      mapNetSuiteField('subsidiary', 'Subsidiary', 'RecordRef', 'Classification', 'Main', true),
-      mapNetSuiteField('taxTotal', 'Tax Total', 'double', 'Primary Information', 'Main', false),
-      mapNetSuiteField('currency', 'Currency', 'RecordRef', 'Accounting', 'Accounting', true),
-      mapNetSuiteField('terms', 'Terms', 'RecordRef', 'Accounting', 'Accounting', false),
-      mapNetSuiteField('createdDate', 'Date Created', 'dateTime', 'System Information', 'System Information', false),
-    ]
-  }
+      mapNetSuiteField('entity', 'Customer', 'select', 'Primary Information', 'Main', true, 'body', null, { type: 'api', apiConfig: { url: '/api/mock/customers', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+      mapNetSuiteField('trandate', 'Date', 'date', 'Primary Information', 'Main', true),
+      mapNetSuiteField('item', 'Item', 'select', 'Line Items', 'Items', true, 'sublist', 'item', { type: 'api', apiConfig: { url: '/api/mock/transactions', method: 'GET', labelKey: 'name', valueKey: 'id' } }),
+    ] 
+  },
 };
 
 // Map backend form to frontend CustomForm
@@ -142,73 +200,101 @@ const mapBackendForm = (form: any): CustomForm => ({
   updatedAt: form.updatedAt,
   source: form.source || 'scratch',
   assignedTo: form.assignedTo || [],
-  tabs: form.structure?.tabs?.map((t: any) => ({
-    id: t.id || Math.random().toString(36).substr(2, 5),
-    name: t.name,
-    fieldGroups: t.fieldGroups?.map((g: any) => ({
-      id: g.id,
-      name: g.name,
-      fields: g.fields?.map((f: any) => ({
-        id: f.fieldId,
-        label: f.label,
-        visible: f.visible,
-        mandatory: f.mandatory,
-        type: f.type || 'string',
-        displayType: f.displayType || 'normal',
-        checkBoxDefault: f.checkBoxDefault || 'default',
-        layout: f.layout || { columnBreak: false, spaceBefore: false },
-        dataSource: f.dataSource
-      }))
-    }))
-  })) || []
+  tabs: form.structure?.tabs?.map((t: any) => {
+    const mapFields = (fields: any[]) => fields?.map((f: any) => ({
+      id: f.fieldId,
+      label: f.label,
+      visible: f.visible,
+      mandatory: f.mandatory,
+      type: f.type || 'string',
+      group: f.group,
+      tab: f.tab,
+      section: f.section || 'body',
+      subSection: f.subSection,
+      displayType: f.displayType || 'normal',
+      checkBoxDefault: f.checkBoxDefault || 'default',
+      layout: f.layout || { columnBreak: false, spaceBefore: false },
+      dataSource: f.dataSource
+    })) || [];
+
+    return {
+      id: t.id || Math.random().toString(36).substr(2, 5),
+      name: t.name,
+      itemSublist: mapFields(t.itemSublist),
+      expenseSublist: mapFields(t.expenseSublist),
+      fieldGroups: t.fieldGroups?.map((g: any) => ({
+        id: g.id,
+        name: g.name,
+        fields: mapFields(g.fields)
+      })) || []
+    };
+  }) || []
 });
 
-// Map frontend structure to backend
 const mapFrontendStructure = (tabs: Tab[]) => ({
-  tabs: tabs.map(t => ({
-    name: t.name,
-    visible: true,
-    fieldGroups: t.fieldGroups.map(g => ({
-      id: g.id,
-      name: g.name,
-      fields: g.fields.map(f => ({
-        fieldId: f.id,
-        label: f.label,
-        visible: f.visible,
-        mandatory: f.mandatory,
-        type: f.type, // Added this line to fix the dropdown rendering issue
-        displayType: f.displayType,
-        checkBoxDefault: f.checkBoxDefault,
-        layout: f.layout,
-        dataSource: f.dataSource
+  tabs: tabs.map(t => {
+    const mapFieldsToBackend = (fields: Field[]) => fields.map(f => ({
+      fieldId: f.id,
+      label: f.label,
+      visible: f.visible,
+      mandatory: f.mandatory,
+      type: f.type,
+      group: f.group,
+      tab: f.tab,
+      section: f.section,
+      subSection: f.subSection,
+      displayType: f.displayType,
+      checkBoxDefault: f.checkBoxDefault,
+      layout: f.layout,
+      dataSource: f.dataSource
+    }));
+
+    return {
+      id: t.id,
+      name: t.name,
+      visible: true,
+      itemSublist: mapFieldsToBackend(t.itemSublist || []),
+      expenseSublist: mapFieldsToBackend(t.expenseSublist || []),
+      fieldGroups: t.fieldGroups.map(g => ({
+        id: g.id,
+        name: g.name,
+        fields: mapFieldsToBackend(g.fields)
       }))
-    }))
-  }))
+    };
+  })
 });
 
 const generateTemplateFromCatalogue = (id: string, name: string, description: string, type: TransactionType) => {
   const catalogue = CATALOGUES[type];
   const tabs: Tab[] = catalogue.tabs.map(tabName => {
-    return {
+    const tab: Tab = {
       id: `tab_${tabName.replace(/\s+/g, '_').toLowerCase()}`,
       name: tabName,
       fieldGroups: catalogue.fieldGroups.map(groupName => {
-        const fields = catalogue.fields.filter(f => f.tab === tabName && f.fieldGroup === groupName);
+        const fields = catalogue.fields.filter(f => f.tab === tabName && f.group === groupName && (!f.section || f.section === 'body'));
         if (fields.length === 0) return null;
         return {
           id: `group_${groupName.replace(/\s+/g, '_').toLowerCase()}`,
           name: groupName,
           fields: fields
         };
-      }).filter(Boolean) as any
+      }).filter(Boolean) as any[]
     };
-  }).filter(tab => tab.fieldGroups.length > 0);
+
+    if (tabName === 'Items') {
+      tab.itemSublist = catalogue.fields.filter(f => f.tab === tabName && f.section === 'sublist' && f.subSection === 'item');
+      tab.expenseSublist = catalogue.fields.filter(f => f.tab === tabName && f.section === 'sublist' && f.subSection === 'expense');
+    }
+
+    return tab;
+  }).filter(tab => tab.fieldGroups.length > 0 || (tab.itemSublist?.length || 0) > 0 || (tab.expenseSublist?.length || 0) > 0);
 
   return {
     id,
     name,
     description,
     transactionType: type,
+    source: 'template',
     tags: ['Comprehensive', type.replace('_', ' ')],
     tabs
   };
@@ -231,8 +317,16 @@ export const useStore = create<AppState>((set, get) => ({
   currentForm: null,
   transactionType: 'purchase_order',
   catalogues: CATALOGUES,
+  groupedCatalogues: {
+    purchase_order: null,
+    sales_order: null,
+    accounts_payable: null,
+    accounts_receivable: null
+  },
   isLoading: false,
   error: null,
+  activeTabId: '',
+  selectedFieldId: null,
 
   login: async (email: string, password?: string) => {
     set({ isLoading: true, error: null });
@@ -374,7 +468,8 @@ export const useStore = create<AppState>((set, get) => ({
         isLoading: false 
       }));
     } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+      const msg = err.response?.data?.detail || err.message;
+      set({ error: msg, isLoading: false });
     }
   },
 
@@ -393,7 +488,8 @@ export const useStore = create<AppState>((set, get) => ({
         isLoading: false
       }));
     } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+      const msg = err.response?.data?.detail || err.message;
+      set({ error: msg, isLoading: false });
     }
   },
 
@@ -462,20 +558,21 @@ export const useStore = create<AppState>((set, get) => ({
   fetchCatalogue: async (type: TransactionType) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await catalogueApi.getFields(type);
+      const response = await api.get('catalogue', { params: { type } });
       
-      // Map API fields to our internal Field type
-      const mappedFields: Field[] = response.data.map(f => ({
+      const mappedFields: Field[] = response.data.map((f: any) => ({
         id: f.internalId,
         label: f.label,
         type: f.type,
-        fieldGroup: f.isSystemField ? 'Standard Information' : 'Custom Fields',
-        tab: 'Main',
+        section: f.section || 'body',
+        subSection: f.subSection,
+        group: f.group || (f.isSystemField ? 'Standard Information' : 'Custom Fields'),
+        tab: f.tab || 'Main',
         mandatory: f.required,
         visible: true,
         displayType: 'normal',
         checkBoxDefault: 'default',
-        helpText: f.nlapiSubmitField ? 'Saves via nlapiSubmitField' : '',
+        helpText: f.helpText || '',
         defaultValue: '',
         layout: { columnBreak: false, spaceBefore: false },
         isSystemField: f.isSystemField,
@@ -484,16 +581,61 @@ export const useStore = create<AppState>((set, get) => ({
 
       const newCatalogue: CatalogueData = {
         name: type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-        tabs: ['Main'], // Simpler grouping since we lost the specific tab metadata from static list
-        fieldGroups: ['Standard Information', 'Custom Fields'],
+        tabs: Array.from(new Set(mappedFields.map(f => f.tab))),
+        fieldGroups: Array.from(new Set(mappedFields.map(f => f.group))),
         fields: mappedFields
       };
 
       set((state) => ({
-        catalogues: {
-          ...state.catalogues,
-          [type]: newCatalogue
-        },
+        catalogues: { ...state.catalogues, [type]: newCatalogue },
+        isLoading: false
+      }));
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  fetchGroupedCatalogue: async (type: TransactionType) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get(`catalogue/${type}/grouped`);
+      
+      // Response is { tabs: [ { name, groups: [{ name, fields: [] }], subSections: { item: [], expense: [] } } ] }
+      const groupedData = response.data;
+      
+      // Map fields in grouped data to our internal Field type
+      const mapField = (f: any): Field => ({
+        id: f.internalId,
+        label: f.label,
+        type: f.type,
+        section: f.section,
+        subSection: f.subSection,
+        group: f.group,
+        tab: f.tab,
+        mandatory: f.required,
+        visible: true,
+        displayType: 'normal',
+        checkBoxDefault: 'default',
+        helpText: f.helpText || '',
+        defaultValue: '',
+        layout: { columnBreak: false, spaceBefore: false },
+        isSystemField: f.isSystemField,
+        dataSource: f.dataSource
+      });
+
+      groupedData.tabs = groupedData.tabs.map((tab: any) => ({
+        ...tab,
+        groups: tab.groups.map((group: any) => ({
+          ...group,
+          fields: group.fields.map(mapField)
+        })),
+        subSections: Object.fromEntries(
+          Object.entries(tab.subSections).map(([key, fields]: [string, any]) => [key, fields.map(mapField)])
+        )
+      }));
+
+      set((state) => ({
+        groupedCatalogues: { ...state.groupedCatalogues, [type]: groupedData },
         isLoading: false
       }));
     } catch (err: any) {
@@ -509,6 +651,64 @@ export const useStore = create<AppState>((set, get) => ({
     activeTabId: form?.tabs[0]?.id || '',
     selectedFieldId: null 
   }),
+  addAllFields: () => {
+    const { currentForm, catalogues } = get();
+    if (!currentForm) return;
+
+    const catalogue = catalogues[currentForm.transactionType];
+    if (!catalogue) return;
+
+    let newTabs = [...currentForm.tabs];
+
+    catalogue.fields.forEach(field => {
+      // Check if already added
+      const isAlreadyAdded = newTabs.some(t => 
+        t.fieldGroups.some(g => g.fields.some(f => f.id === field.id)) ||
+        t.itemSublist?.some(f => f.id === field.id) ||
+        t.expenseSublist?.some(f => f.id === field.id)
+      );
+
+      if (!isAlreadyAdded) {
+        // Hierarchical logic
+        let targetTab = newTabs.find(t => t.name === field.tab);
+        if (!targetTab) {
+          targetTab = {
+            id: `tab_${Math.random().toString(36).substr(2, 5)}`,
+            name: field.tab,
+            fieldGroups: [],
+            itemSublist: [],
+            expenseSublist: []
+          };
+          newTabs.push(targetTab);
+        }
+
+        if (field.section === 'body') {
+          // Find or create the group within the tab
+          let targetGroup = targetTab.fieldGroups.find(g => g.name === field.group);
+          if (!targetGroup) {
+            targetGroup = {
+              id: `group_${Math.random().toString(36).substr(2, 5)}`,
+              name: field.group,
+              fields: []
+            };
+            targetTab.fieldGroups.push(targetGroup);
+          }
+          targetGroup.fields.push({ ...field });
+        } else if (field.section === 'sublist') {
+          if (field.subSection === 'item') {
+            if (!targetTab.itemSublist) targetTab.itemSublist = [];
+            targetTab.itemSublist.push({ ...field });
+          } else if (field.subSection === 'expense') {
+            if (!targetTab.expenseSublist) targetTab.expenseSublist = [];
+            targetTab.expenseSublist.push({ ...field });
+          }
+        }
+      }
+    });
+
+    set({ currentForm: { ...currentForm, tabs: newTabs } });
+  },
+
   setTransactionType: (type) => set({ transactionType: type, currentForm: null }),
   updateCurrentForm: (updates) => {
     const { currentForm } = get();
@@ -518,11 +718,13 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   toggleField: (field: Field) => {
-    const { currentForm, activeTabId } = get();
+    const { currentForm } = get();
     if (!currentForm) return;
 
     const isAlreadyAdded = currentForm.tabs.some(t => 
-      t.fieldGroups.some(g => g.fields.some(f => f.id === field.id))
+      t.fieldGroups.some(g => g.fields.some(f => f.id === field.id)) ||
+      t.itemSublist?.some(f => f.id === field.id) ||
+      t.expenseSublist?.some(f => f.id === field.id)
     );
 
     let newTabs = [...currentForm.tabs];
@@ -533,35 +735,45 @@ export const useStore = create<AppState>((set, get) => ({
         fieldGroups: tab.fieldGroups.map(group => ({
           ...group,
           fields: group.fields.filter(f => f.id !== field.id)
-        }))
+        })),
+        itemSublist: tab.itemSublist?.filter(f => f.id !== field.id),
+        expenseSublist: tab.expenseSublist?.filter(f => f.id !== field.id)
       }));
     } else {
-      // Find the active tab, or the first one, or the one matching field meta
-      let targetTab = newTabs.find(t => t.id === activeTabId) || 
-                      newTabs.find(t => t.name === field.tab) ||
-                      newTabs[0];
-      
+      // Find or create the correct tab
+      let targetTab = newTabs.find(t => t.name === field.tab);
       if (!targetTab) {
         targetTab = {
           id: `tab_${Math.random().toString(36).substr(2, 5)}`,
-          name: field.tab || 'General',
-          fieldGroups: []
+          name: field.tab,
+          fieldGroups: [],
+          itemSublist: [],
+          expenseSublist: []
         };
         newTabs.push(targetTab);
       }
 
-      // Find the first group in the tab, or create one
-      let targetGroup = targetTab.fieldGroups[0];
-      if (!targetGroup) {
-        targetGroup = {
-          id: `group_${Math.random().toString(36).substr(2, 5)}`,
-          name: field.fieldGroup || 'Primary Information',
-          fields: []
-        };
-        targetTab.fieldGroups.push(targetGroup);
+      if (field.section === 'body') {
+        // Find or create the group within the tab
+        let targetGroup = targetTab.fieldGroups.find(g => g.name === field.group);
+        if (!targetGroup) {
+          targetGroup = {
+            id: `group_${Math.random().toString(36).substr(2, 5)}`,
+            name: field.group,
+            fields: []
+          };
+          targetTab.fieldGroups.push(targetGroup);
+        }
+        targetGroup.fields.push({ ...field });
+      } else if (field.section === 'sublist') {
+        if (field.subSection === 'item') {
+          if (!targetTab.itemSublist) targetTab.itemSublist = [];
+          targetTab.itemSublist.push({ ...field });
+        } else if (field.subSection === 'expense') {
+          if (!targetTab.expenseSublist) targetTab.expenseSublist = [];
+          targetTab.expenseSublist.push({ ...field });
+        }
       }
-
-      targetGroup.fields.push({ ...field });
     }
 
     set({ currentForm: { ...currentForm, tabs: newTabs } });
@@ -590,7 +802,9 @@ export const useStore = create<AppState>((set, get) => ({
       await api.post('users', userData);
       get().fetchUsers();
     } catch (err: any) {
-      set({ error: err.message });
+      const msg = err.response?.data?.detail || err.message;
+      set({ error: msg });
+      throw new Error(msg);
     }
   },
 
@@ -600,6 +814,35 @@ export const useStore = create<AppState>((set, get) => ({
       get().fetchUsers();
     } catch (err: any) {
       set({ error: err.message });
+    }
+  },
+
+  assignForm: async (formId, userIds) => {
+    try {
+      await api.put(`forms/${formId}/assign`, { userIds });
+      get().fetchForms();
+    } catch (err: any) {
+      set({ error: err.message });
+    }
+  },
+
+  fetchAssignedUsers: async (formId) => {
+    try {
+      const response = await api.get(`forms/${formId}/assigned-users`);
+      return response.data;
+    } catch (err: any) {
+      set({ error: err.message });
+      return [];
+    }
+  },
+
+  fetchFormById: async (id) => {
+    set({ isLoading: true });
+    try {
+      const response = await api.get(`forms/${id}`);
+      set({ currentForm: mapBackendForm(response.data), isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
     }
   },
 }));

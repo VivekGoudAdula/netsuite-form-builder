@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -14,9 +14,10 @@ export default function BuilderPage() {
     currentForm, updateCurrentForm, catalogues, 
     activeTabId, setActiveTabId, 
     selectedFieldId, setSelectedFieldId,
-    fetchCatalogue
+    fetchCatalogue, fetchFormById
   } = useStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeDragItem, setActiveDragItem] = React.useState<Field | null>(null);
 
   const sensors = useSensors(
@@ -25,14 +26,19 @@ export default function BuilderPage() {
   );
 
   React.useEffect(() => {
-    if (!currentForm) navigate('/dashboard');
-    else {
+    const formIdFromState = (location.state as any)?.formId;
+    
+    if (formIdFromState && (!currentForm || currentForm.id !== formIdFromState)) {
+      fetchFormById(formIdFromState);
+    } else if (!currentForm && !formIdFromState) {
+      navigate('/dashboard');
+    } else if (currentForm) {
       if (!activeTabId && currentForm.tabs.length > 0) {
         setActiveTabId(currentForm.tabs[0].id);
       }
       fetchCatalogue(currentForm.transactionType);
     }
-  }, [currentForm, navigate, activeTabId, fetchCatalogue]);
+  }, [currentForm, navigate, activeTabId, fetchCatalogue, location.state, fetchFormById]);
 
   if (!currentForm) return null;
 
