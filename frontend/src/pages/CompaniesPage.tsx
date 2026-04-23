@@ -3,7 +3,7 @@ import { useStore } from '../store/useStore';
 import AdminLayout from '../components/layout/AdminLayout';
 import { Button, Input, Label } from '../components/ui/Base';
 import { Table, THead, TBody, TR, TH, TD, Modal, ConfirmModal } from '../components/ui/Complex';
-import { Building2, Plus, Users, Search, MoreHorizontal, ArrowRight, Trash2 } from 'lucide-react';
+import { Building2, Plus, Users, Search, MoreHorizontal, ArrowRight, Trash2, GitBranch } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function CompaniesPage() {
@@ -111,7 +111,15 @@ export default function CompaniesPage() {
                       onClick={() => navigate(`/companies/${company.id}`)}
                       className="h-8 px-3 gap-1.5 text-[10px] font-bold uppercase tracking-widest"
                     >
-                      Staff Management <ArrowRight size={12} />
+                      Staff <Users size={12} />
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      onClick={() => navigate(`/companies/${company.id}/workflow`)}
+                      className="h-8 px-3 gap-1.5 text-[10px] font-bold uppercase tracking-widest border-ns-blue text-ns-blue hover:bg-ns-blue hover:text-white"
+                    >
+                      Workflow <GitBranch size={12} />
                     </Button>
                     <Button 
                       variant="ghost" 

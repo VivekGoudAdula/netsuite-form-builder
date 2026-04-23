@@ -42,10 +42,17 @@ async def create_user(
     return new_user
 
 @router.get("", response_model=List[UserOut])
-async def list_users(current_admin: dict = Depends(get_admin_user)):
+async def list_users(
+    companyId: str = None,
+    current_admin: dict = Depends(get_admin_user)
+):
     db = get_database()
+    query = {}
+    if companyId:
+        query["companyId"] = companyId
+        
     users = []
-    async for user in db.users.find():
+    async for user in db.users.find(query):
         user["id"] = str(user["_id"])
         users.append(user)
     return users

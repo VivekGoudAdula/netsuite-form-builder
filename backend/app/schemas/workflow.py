@@ -22,6 +22,6 @@ class WorkflowResponse(BaseModel):
     companyId: str
     name: str
     levels: List[WorkflowLevel]
-    createdBy: Optional[str] = None
-    createdAt: Optional[datetime] = None
-    updatedAt: Optional[datetime] = None
+    createdBy: str
+    createdAt: datetime
+    updatedAt: datetime

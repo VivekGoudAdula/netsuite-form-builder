@@ -7,6 +7,7 @@ import BuilderPage from './pages/BuilderPage';
 import PreviewPage from './pages/PreviewPage';
 import CompaniesPage from './pages/CompaniesPage';
 import CompanyDetailsPage from './pages/CompanyDetailsPage';
+import WorkflowManagementPage from './pages/WorkflowManagementPage';
 import TemplatesPage from './pages/TemplatesPage';
 import CustomerDashboardPage from './pages/CustomerDashboardPage';
 import FormFillPage from './pages/FormFillPage';
@@ -66,6 +67,14 @@ export default function App() {
           element={
             <ProtectedRoute role="admin">
               <CompanyDetailsPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/companies/:companyId/workflow" 
+          element={
+            <ProtectedRoute role="admin">
+              <WorkflowManagementPage />
             </ProtectedRoute>
           } 
         />
