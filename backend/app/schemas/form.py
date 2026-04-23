@@ -79,7 +79,7 @@ class MyFormResponse(BaseModel):
     id: str
     name: str
     transactionType: str
-    status: str = "Not Started"
+    lastUsed: str = "Never"
     updatedAt: Optional[str] = None
 
 class FormSubmissionRequest(BaseModel):

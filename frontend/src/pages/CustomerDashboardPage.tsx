@@ -74,7 +74,7 @@ export default function CustomerDashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-sm border border-ns-border shadow-sm flex items-center justify-between group hover:border-ns-blue transition-colors">
             <div className="space-y-1">
               <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">Pending Forms</p>
@@ -91,15 +91,6 @@ export default function CustomerDashboardPage() {
             </div>
             <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform">
               <CheckCircle2 size={22} />
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-sm border border-ns-blue/20 shadow-md flex items-center justify-between bg-ns-navy">
-            <div className="space-y-1">
-              <p className="text-[10px] font-bold white/40 uppercase tracking-[0.2em]">Protocol Class</p>
-              <p className="text-3xl font-bold text-white uppercase italic">Standard</p>
-            </div>
-            <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-ns-blue">
-              <AlertCircle size={22} />
             </div>
           </div>
         </div>

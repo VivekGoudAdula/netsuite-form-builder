@@ -22,6 +22,22 @@ async def get_pending_approvals(
     """Retrieve submissions waiting for the current user's approval."""
     return await FormService.get_pending_approvals(current_user["id"])
 
+@router.get("/my")
+async def get_my_submissions(
+    transactionType: Optional[str] = Query(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """Retrieve current user's form submissions."""
+    return await FormService.get_submissions_for_user(current_user["id"], transactionType)
+
+@router.get("/my/stats")
+async def get_my_submission_stats(
+    transactionType: Optional[str] = Query(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """Retrieve current user's submission statistics."""
+    return await FormService.get_submission_stats_for_user(current_user["id"], transactionType)
+
 @router.post("/{id}/retry")
 async def retry_submission(
     id: str,

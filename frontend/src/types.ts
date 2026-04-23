@@ -183,9 +183,11 @@ export interface AppState {
   fetchUsers: () => Promise<void>;
   fetchForms: (companyId?: string) => Promise<void>;
   fetchFormById: (id: string) => Promise<void>;
-  fetchMyForms: () => Promise<void>;
+  fetchMyForms: (transactionType?: string) => Promise<void>;
   fetchMyFormDetails: (formId: string) => Promise<CustomForm | null>;
   fetchSubmissions: () => Promise<void>;
+  fetchMySubmissions: (transactionType?: string) => Promise<void>;
+  fetchMyStats: (transactionType?: string) => Promise<{total: number, approved: number, pending: number, rejected: number} | null>;
   fetchCatalogue: (type: TransactionType) => Promise<void>;
   fetchGroupedCatalogue: (type: TransactionType) => Promise<void>;
   

@@ -403,15 +403,38 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  fetchMyForms: async () => {
+  fetchMyForms: async (transactionType?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.get('forms/my');
+      const params = transactionType ? { transactionType } : {};
+      const response = await api.get('forms/my', { params });
       console.log('Fetched My Forms:', response.data);
       set({ forms: response.data, isLoading: false });
     } catch (err: any) {
       console.error('Fetch My Forms Error:', err);
       set({ error: err.message, isLoading: false });
+    }
+  },
+
+  fetchMySubmissions: async (transactionType?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const params = transactionType ? { transactionType } : {};
+      const response = await api.get('submissions/my', { params });
+      set({ submissions: response.data, isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  fetchMyStats: async (transactionType?: string) => {
+    try {
+      const params = transactionType ? { transactionType } : {};
+      const response = await api.get('submissions/my/stats', { params });
+      return response.data;
+    } catch (err: any) {
+      console.error('Fetch Stats Error:', err);
+      return null;
     }
   },
 

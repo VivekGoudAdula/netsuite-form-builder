@@ -208,36 +208,41 @@ class FormService:
         return {"message": f"Successfully assigned {len(valid_user_ids)} users to form"}
 
     @staticmethod
-    async def get_forms_for_user(user_id: str) -> List[Dict[str, Any]]:
+    async def get_forms_for_user(user_id: str, transaction_type: Optional[str] = None) -> List[Dict[str, Any]]:
         db = get_database()
         
         # Find forms where assignedTo contains user_id
+        query = {"assignedTo": user_id}
+        if transaction_type:
+            query["transactionType"] = transaction_type
+
         forms = []
-        async for form in db.forms.find({"assignedTo": user_id}):
+        async for form in db.forms.find(query):
             form_id = str(form["_id"])
             
-            # Check submission status
-            submission = await db.submissions.find_one({"formId": form_id, "userId": user_id})
+            # Find the last submission for this form by this user
+            last_submission = await db.submissions.find_one(
+                {"formId": form_id, "userId": user_id},
+                sort=[("submittedAt", -1)]
+            )
             
-            status = "Not Started"
-            current_level = None
-            if submission:
-                status = submission.get("status", "pending")
-                current_level = submission.get("currentLevel")
+            last_used = "Never"
+            if last_submission:
+                last_used = last_submission.get("submittedAt").strftime("%Y-%m-%d %H:%M:%S") if isinstance(last_submission.get("submittedAt"), datetime) else "N/A"
             
             forms.append({
                 "id": form_id,
                 "name": form["name"],
                 "transactionType": form["transactionType"],
-                "status": status,
-                "currentLevel": current_level,
+                "lastUsed": last_used,
                 "updatedAt": form.get("updatedAt", form.get("createdAt")).strftime("%Y-%m-%d %H:%M:%S") if isinstance(form.get("updatedAt", form.get("createdAt")), datetime) else "N/A"
             })
             
         await log_activity(
             user_id, 
             "FETCH_MY_FORMS", 
-            entity_type="FORM"
+            entity_type="FORM",
+            metadata={"transactionType": transaction_type}
         )
             
         return forms
@@ -296,7 +301,7 @@ class FormService:
         user_id = user["id"]
         company_id = user["companyId"]
         
-        # STEP 1: Validate form + assignment (already exists in original but I'll refactor for the new logic)
+        # STEP 1: Validate form + assignment
         form = await db.forms.find_one({"_id": ObjectId(form_id)})
         if not form:
             raise HTTPException(status_code=404, detail="Form not found")
@@ -305,14 +310,6 @@ class FormService:
             raise HTTPException(
                 status_code=403, 
                 detail="Access denied. You are not assigned to this form."
-            )
-            
-        # Check for existing submission
-        existing = await db.submissions.find_one({"formId": form_id, "userId": user_id})
-        if existing:
-            raise HTTPException(
-                status_code=400, 
-                detail="Form already submitted and is currently in approval workflow."
             )
             
         # STEP 2: Fetch workflow
@@ -392,13 +389,48 @@ class FormService:
             }
         )
 
-        # STEP 7: Trigger Level 1 (placeholder for now)
+        # STEP 7: Trigger Level 1
         await trigger_workflow_level(submission)
 
         return {
             "message": "Submitted for approval",
             "status": "pending",
             "currentLevel": 1
+        }
+
+    @staticmethod
+    async def get_submissions_for_user(user_id: str, transaction_type: Optional[str] = None) -> List[Dict[str, Any]]:
+        db = get_database()
+        query = {"userId": user_id}
+        if transaction_type:
+            query["transactionType"] = transaction_type
+            
+        submissions = []
+        async for sub in db.submissions.find(query).sort("submittedAt", -1):
+            sub["id"] = str(sub["_id"])
+            del sub["_id"]
+            submissions.append(sub)
+            
+        return submissions
+
+    @staticmethod
+    async def get_submission_stats_for_user(user_id: str, transaction_type: Optional[str] = None) -> Dict[str, Any]:
+        db = get_database()
+        query = {"userId": user_id}
+        if transaction_type:
+            query["transactionType"] = transaction_type
+            
+        total = await db.submissions.count_documents(query)
+        approved = await db.submissions.count_documents({**query, "status": "approved"})
+        pending = await db.submissions.count_documents({**query, "status": "pending"})
+        rejected = await db.submissions.count_documents({**query, "status": "rejected"})
+        completed = await db.submissions.count_documents({**query, "status": "submitted"}) # "submitted" means sent to NetSuite/Completed
+
+        return {
+            "total": total,
+            "approved": approved + completed, # Completed is also approved
+            "pending": pending,
+            "rejected": rejected
         }
 
     @staticmethod
@@ -441,12 +473,6 @@ class FormService:
         if submission["status"] == "submitted":
             raise HTTPException(status_code=400, detail="Submission already successfully processed")
             
-        # We don't store values, so we might need a placeholder or the user has to re-submit
-        # BUT the task says "Retry sending to mock NetSuite". 
-        # Since I don't store values, I'll simulate a retry with an empty payload or mock data, 
-        # or maybe the user meant we SHOULD store values for retry? 
-        # Rule says NEVER store values. I'll just simulate a retry of the "event".
-        
         ns_response = await send_to_netsuite_mock({}) # Payload is empty as we don't store values
         
         update_data = {

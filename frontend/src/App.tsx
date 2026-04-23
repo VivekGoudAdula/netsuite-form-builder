@@ -14,6 +14,7 @@ import FormFillPage from './pages/FormFillPage';
 import AdminSubmissionsPage from './pages/AdminSubmissionsPage';
 import CataloguePage from './pages/CataloguePage';
 import MyApprovalsPage from './pages/MyApprovalsPage';
+import UserTransactionHub from './pages/UserTransactionHub';
 import { useStore } from './store/useStore';
 import { UserRole } from './types';
 
@@ -137,15 +138,24 @@ export default function App() {
             </ProtectedRoute>
           } 
         />
-
         <Route 
-          path="/my-approvals" 
+          path="/user/forms/:id/new" 
           element={
-            <ProtectedRoute>
-              <MyApprovalsPage />
+            <ProtectedRoute role="customer">
+              <FormFillPage />
             </ProtectedRoute>
           } 
         />
+        <Route 
+          path="/user/:type" 
+          element={
+            <ProtectedRoute role="customer">
+              <UserTransactionHub />
+            </ProtectedRoute>
+          } 
+        />
+
+
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

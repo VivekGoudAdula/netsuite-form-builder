@@ -13,7 +13,8 @@ import {
   Save,
   Info,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  PlusCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -64,29 +65,43 @@ export default function FormFillPage() {
 
   if (!form) return <div>Form not found or access denied.</div>;
 
-  const isAlreadySubmitted = form.status && 
-    form.status.toLowerCase() !== 'not started' && 
-    form.status.toLowerCase() !== 'draft';
-
-  if (isAlreadySubmitted || submissionResult) {
-    const status = submissionResult?.status || form.status;
-    const currentLevel = submissionResult?.currentLevel || form.currentLevel || 1;
+  if (submissionResult) {
+    const status = submissionResult.status;
+    const currentLevel = submissionResult.currentLevel || 1;
+    const transType = form.transactionType === 'purchase_order' ? 'po' : 
+                     form.transactionType === 'sales_order' ? 'so' : 
+                     form.transactionType === 'accounts_payable' ? 'ap' : 
+                     form.transactionType === 'accounts_receivable' ? 'ar' : 'po';
 
     return (
       <CustomerLayout>
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-6 border border-green-200 shadow-sm">
-            <ShieldCheck size={32} />
+        <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in duration-500">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-8 border-4 border-white shadow-xl">
+            <ShieldCheck size={40} />
           </div>
-          <h2 className="text-2xl font-bold text-ns-navy">Submitted Successfully</h2>
-          <div className="mt-4 p-6 bg-ns-gray-bg border border-ns-border rounded-sm">
-            <p className="text-sm font-bold text-ns-navy">Status: <span className="text-ns-blue capitalize">{status} Approval</span></p>
-            <p className="text-sm font-bold text-ns-navy mt-1">Current Level: <span className="text-ns-blue">Level {currentLevel}</span></p>
+          <h2 className="text-3xl font-bold text-ns-navy tracking-tight">Submission Transmitted</h2>
+          <div className="mt-6 p-8 bg-white border border-ns-border rounded-sm shadow-sm max-w-sm w-full">
+            <div className="flex justify-between items-center mb-4 pb-4 border-b border-ns-border">
+              <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">Protocol Status</span>
+              <span className="text-xs font-bold text-ns-blue uppercase tracking-wider bg-ns-blue/5 px-2 py-0.5 rounded-sm border border-ns-blue/10">{status} Approval</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">Workflow Stage</span>
+              <span className="text-xs font-bold text-ns-navy uppercase tracking-wider">Level {currentLevel}</span>
+            </div>
           </div>
-          <p className="text-ns-text-muted mt-6 max-w-md">Your submission for '{form.name}' has been received and is now entering the approval workflow.</p>
-          <Button onClick={() => navigate('/customer-dashboard')} className="mt-8 gap-2">
-            <ArrowLeft size={16} /> Return to Assignments
-          </Button>
+          <p className="text-ns-text-muted mt-8 max-w-md text-sm font-medium">Your submission for <span className="text-ns-navy font-bold">'{form.name}'</span> has been successfully logged and queued for validation.</p>
+          <div className="flex gap-4 mt-10">
+            <Button onClick={() => navigate(`/user/${transType}`)} className="gap-2 h-11 px-8 font-bold text-xs uppercase tracking-widest">
+              <ArrowLeft size={16} /> Return to {transType.toUpperCase()} Hub
+            </Button>
+            <Button variant="secondary" onClick={() => {
+              setSubmissionResult(null);
+              setFormValues({});
+            }} className="gap-2 h-11 px-8 font-bold text-xs uppercase tracking-widest">
+              <PlusCircle size={16} /> Fill Another
+            </Button>
+          </div>
         </div>
       </CustomerLayout>
     );
@@ -135,10 +150,16 @@ export default function FormFillPage() {
         <div className="flex justify-between items-start">
           <div className="space-y-1">
             <button
-              onClick={() => navigate('/customer-dashboard')}
+              onClick={() => {
+                const transType = form.transactionType === 'purchase_order' ? 'po' : 
+                                 form.transactionType === 'sales_order' ? 'so' : 
+                                 form.transactionType === 'accounts_payable' ? 'ap' : 
+                                 form.transactionType === 'accounts_receivable' ? 'ar' : 'po';
+                navigate(`/user/${transType}`);
+              }}
               className="flex items-center gap-2 text-[10px] font-bold text-ns-text-muted hover:text-ns-blue transition-colors uppercase tracking-widest mb-4"
             >
-              <ArrowLeft size={14} /> Back to Dashboard
+              <ArrowLeft size={14} /> Back to Hub
             </button>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-ns-blue/10 rounded-sm flex items-center justify-center text-ns-blue">
