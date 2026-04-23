@@ -3,6 +3,11 @@ from datetime import datetime
 from bson import ObjectId
 from ..database import get_database
 from .activity import log_activity
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 async def trigger_workflow_level(submission: Dict[str, Any]):
     """
@@ -27,8 +32,33 @@ async def trigger_workflow_level(submission: Dict[str, Any]):
     # For now -> just log
     print(f"Notify Level {current_level} approvers: {[a['name'] for a in approvers]}")
     
-    # Placeholder for email logic in Phase 4
-    # await send_approval_emails(approvers, submission)
+    # Send email notifications
+    from .token_service import generate_action_token
+    from .email_service import send_email, generate_email_html
+    
+    for approver in approvers:
+        approve_token = generate_action_token(
+            submission["_id"], approver["userId"], "approve"
+        )
+
+        reject_token = generate_action_token(
+            submission["_id"], approver["userId"], "reject"
+        )
+
+        approve_url = f"{BASE_URL}/api/workflows/action?token={approve_token}"
+        reject_url = f"{BASE_URL}/api/workflows/action?token={reject_token}"
+
+        form_name = submission.get("formName", "Form Submission")
+        user_name = submission.get("userName", "A user")
+
+        html = generate_email_html(
+            form_name,
+            user_name,
+            approve_url,
+            reject_url
+        )
+
+        await send_email(approver["email"], "Approval Required", html)
 
 async def approve_submission(submission_id: str, user: Dict[str, Any]):
     db = get_database()
