@@ -20,11 +20,15 @@ import {
 } from 'lucide-react';
 
 export default function WorkflowManagementPage() {
-  const { companyId } = useParams();
+  const { companyId: paramCompanyId } = useParams();
   const navigate = useNavigate();
-  const { companies, users, fetchCompanies, fetchUsers } = useStore();
+  const { user, companies, users, fetchCompanies, fetchUsers } = useStore();
   
-  const [workflowName, setWorkflowName] = React.useState('PO Approval Workflow');
+  // Scoping: Use param or current user's company
+  const companyId = paramCompanyId || user?.companyId;
+  const isSuperAdmin = user?.role === 'super_admin';
+
+  const [workflowName, setWorkflowName] = React.useState('Standard Approval Workflow');
   const [levels, setLevels] = React.useState<WorkflowLevel[]>([
     { level: 1, approvers: [] }
   ]);
@@ -42,21 +46,24 @@ export default function WorkflowManagementPage() {
 
   React.useEffect(() => {
     const loadData = async () => {
+      if (!companyId) {
+        setIsLoading(false);
+        return;
+      }
+      
       setIsLoading(true);
       try {
         await Promise.all([fetchCompanies(), fetchUsers()]);
         
-        if (companyId) {
-          try {
-            const existingWorkflow = await workflowApi.getWorkflowByCompany(companyId);
-            if (existingWorkflow) {
-              setWorkflowName(existingWorkflow.name);
-              setLevels(existingWorkflow.levels);
-            }
-          } catch (err) {
-            // Workflow might not exist yet, which is fine
-            console.log('No existing workflow found or error fetching it');
+        try {
+          const existingWorkflow = await workflowApi.getWorkflowByCompany(companyId);
+          if (existingWorkflow) {
+            setWorkflowName(existingWorkflow.name);
+            setLevels(existingWorkflow.levels);
           }
+        } catch (err) {
+          // Workflow might not exist yet, which is fine
+          console.log('No existing workflow found or error fetching it');
         }
       } catch (error) {
         showNotification('Failed to load workflow data', 'error');
@@ -175,12 +182,14 @@ export default function WorkflowManagementPage() {
     <AdminLayout>
       <div className="space-y-8 pb-20">
         <div className="flex flex-col gap-4">
-          <button 
-            onClick={() => navigate('/companies')}
-            className="flex items-center gap-2 text-xs font-bold text-ns-text-muted hover:text-ns-blue transition-colors uppercase tracking-widest"
-          >
-            <ArrowLeft size={14} /> Back to Directory
-          </button>
+          {isSuperAdmin && (
+            <button 
+              onClick={() => navigate('/companies')}
+              className="flex items-center gap-2 text-xs font-bold text-ns-text-muted hover:text-ns-blue transition-colors uppercase tracking-widest"
+            >
+              <ArrowLeft size={14} /> Back to Directory
+            </button>
+          )}
           
           <div className="flex justify-between items-end">
             <div className="flex items-center gap-5">

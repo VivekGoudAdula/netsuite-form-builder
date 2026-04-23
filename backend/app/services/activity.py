@@ -5,6 +5,7 @@ from ..database import get_database
 async def log_activity(
     user_id: str,
     action: str,
+    role: Optional[str] = None,
     entity_id: Optional[str] = None,
     entity_type: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None
@@ -12,6 +13,7 @@ async def log_activity(
     db = get_database()
     activity = {
         "userId": user_id,
+        "role": role,
         "action": action,
         "entityId": entity_id,
         "entityType": entity_type,

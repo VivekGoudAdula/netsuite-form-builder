@@ -17,21 +17,33 @@ async def connect_to_mongo():
 
 async def init_db():
     db = get_database()
-    # Check if any admin exists
-    admin = await db.users.find_one({"role": "admin"})
+    # Migration: Promote all legacy 'admin' to 'super_admin'
+    await db.users.update_many({"role": "admin"}, {"$set": {"role": "super_admin"}})
+    
+    # Migration: Convert all legacy 'customer' to 'user'
+    await db.users.update_many({"role": "customer"}, {"$set": {"role": "user"}})
+    
+    # Migration: Ensure all users have a createdAt field
+    await db.users.update_many(
+        {"createdAt": {"$exists": False}}, 
+        {"$set": {"createdAt": datetime.utcnow()}}
+    )
+
+    # Check if any super_admin exists
+    admin = await db.users.find_one({"role": "super_admin"})
     if not admin:
-        print("No admin found. Creating default admin...")
+        print("No super_admin found. Creating default admin...")
         default_admin = {
             "name": "System Administrator",
             "email": "admin@netsuiteform.com",
             "password": get_password_hash("Admin@123"),
-            "role": "admin",
+            "role": "super_admin",
             "isActive": True,
             "createdAt": datetime.utcnow(),
             "lastLogin": None
         }
         await db.users.insert_one(default_admin)
-        print("Default admin created: admin@netsuiteform.com / Admin@123")
+        print("Default super_admin created: admin@netsuiteform.com / Admin@123")
 
 async def close_mongo_connection():
     if db_instance.client:

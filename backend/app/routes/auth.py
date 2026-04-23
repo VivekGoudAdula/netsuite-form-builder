@@ -1,13 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from ..schemas.auth import LoginRequest, Token, UserInfo
-from ..utils.security import verify_password, create_access_token
+from ..schemas.user import ForgotPassword, ResetPassword
+from ..utils.security import verify_password, create_access_token, get_password_hash
 from ..utils.deps import get_current_user
 from ..config import settings
 from ..database import get_database
 from ..services.activity import log_activity
-from datetime import datetime
+from datetime import datetime, timedelta
 from bson import ObjectId
+import secrets
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -40,7 +42,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         "companyId": user.get("companyId")
     })
     
-    await log_activity(user_id_str, "LOGIN", metadata={"email": user["email"]})
+    await log_activity(user_id_str, "LOGIN", role=user["role"], metadata={"email": user["email"]})
     
     company_id = user.get("companyId")
     company_name = None
@@ -66,13 +68,61 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         "user": user_info
     }
 
+@router.post("/forgot-password")
+async def forgot_password(data: ForgotPassword):
+    db = get_database()
+    user = await db.users.find_one({"email": data.email})
+    
+    if not user:
+        # Don't reveal if user exists for security
+        return {"message": "If an account exists with this email, a reset link has been sent."}
+    
+    token = secrets.token_urlsafe(32)
+    expires = datetime.utcnow() + timedelta(hours=1)
+    
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {
+            "resetToken": token,
+            "resetExpires": expires
+        }}
+    )
+    
+    # In a real app, send email here
+    print(f"DEBUG: Password reset token for {data.email}: {token}")
+    
+    return {"message": "If an account exists with this email, a reset link has been sent."}
+
+@router.post("/reset-password")
+async def reset_password(data: ResetPassword):
+    db = get_database()
+    user = await db.users.find_one({
+        "resetToken": data.token,
+        "resetExpires": {"$gt": datetime.utcnow()}
+    })
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {"password": get_password_hash(data.newPassword)},
+            "$unset": {"resetToken": "", "resetExpires": ""}
+        }
+    )
+    
+    await log_activity(str(user["_id"]), "RESET_PASSWORD", role=user["role"])
+    
+    return {"message": "Password reset successfully"}
+
 @router.get("/me", response_model=UserInfo)
 async def get_me(current_user: dict = Depends(get_current_user)):
     db = get_database()
     company_id = current_user.get("companyId")
-    company_name = current_user.get("companyName")
+    company_name = None
     
-    if company_id and not company_name:
+    if company_id:
         company = await db.companies.find_one({"_id": ObjectId(company_id)})
         if company:
             company_name = company.get("name")

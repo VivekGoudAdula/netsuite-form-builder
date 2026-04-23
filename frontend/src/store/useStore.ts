@@ -824,22 +824,76 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   addUser: async (userData) => {
+    set({ isLoading: true, error: null });
     try {
       await api.post('users', userData);
       get().fetchUsers();
+      set({ isLoading: false });
     } catch (err: any) {
       const msg = err.response?.data?.detail || err.message;
-      set({ error: msg });
+      set({ error: msg, isLoading: false });
+      throw new Error(msg);
+    }
+  },
+
+  updateUserStatus: async (userId, isActive) => {
+    set({ isLoading: true, error: null });
+    try {
+      await api.put(`users/${userId}/status`, { isActive });
+      get().fetchUsers();
+      set({ isLoading: false });
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || err.message;
+      set({ error: msg, isLoading: false });
       throw new Error(msg);
     }
   },
 
   deleteUser: async (id) => {
+    set({ isLoading: true, error: null });
     try {
       await api.delete(`users/${id}`);
       get().fetchUsers();
+      set({ isLoading: false });
     } catch (err: any) {
-      set({ error: err.message });
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  changePassword: async (oldPassword, newPassword) => {
+    set({ isLoading: true, error: null });
+    try {
+      await api.put('users/change-password', { oldPassword, newPassword });
+      set({ isLoading: false });
+      return true;
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || err.message;
+      set({ error: msg, isLoading: false });
+      return false;
+    }
+  },
+
+  forgotPassword: async (email) => {
+    set({ isLoading: true, error: null });
+    try {
+      await api.post('auth/forgot-password', { email });
+      set({ isLoading: false });
+      return true;
+    } catch (err: any) {
+      set({ error: err.response?.data?.detail || err.message, isLoading: false });
+      return false;
+    }
+  },
+
+  resetPassword: async (token, newPassword) => {
+    set({ isLoading: true, error: null });
+    try {
+      await api.post('auth/reset-password', { token, newPassword });
+      set({ isLoading: false });
+      return true;
+    } catch (err: any) {
+      set({ error: err.response?.data?.detail || err.message, isLoading: false });
+      return false;
     }
   },
 

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useStore } from '../store/useStore';
+import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../components/layout/AdminLayout';
 import CustomerLayout from '../components/layout/CustomerLayout';
 import { Button } from '../components/ui/Base';
@@ -17,6 +18,7 @@ import { Submission } from '../types';
 
 export default function MyApprovalsPage() {
   const { user, fetchPendingApprovals, approveSubmission, rejectSubmission, isLoading } = useStore();
+  const navigate = useNavigate();
   const [pendingSubmissions, setPendingSubmissions] = React.useState<Submission[]>([]);
 
   const loadApprovals = React.useCallback(async () => {
@@ -25,8 +27,12 @@ export default function MyApprovalsPage() {
   }, [fetchPendingApprovals]);
 
   React.useEffect(() => {
+    if (user?.role === 'super_admin') {
+      navigate('/dashboard');
+      return;
+    }
     loadApprovals();
-  }, [loadApprovals]);
+  }, [loadApprovals, user, navigate]);
 
   const handleApprove = async (id: string) => {
     try {

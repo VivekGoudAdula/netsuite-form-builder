@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { 
-  LayoutDashboard, 
-  Building2, 
-  FileText, 
-  Library, 
+import {
+  LayoutDashboard,
+  Building2,
+  FileText,
+  Library,
   Database,
   LogOut,
   User,
@@ -16,7 +16,10 @@ import {
   Tag,
   CreditCard,
   Receipt,
-  CheckCircle
+  CheckCircle,
+  Users,
+  GitBranch,
+  UserCircle
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -31,19 +34,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     navigate('/');
   };
 
-  const menuItems = [
+  const superAdminMenu = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { name: 'Companies', icon: Building2, path: '/companies' },
     { name: 'Forms', icon: FileText, path: '/forms' },
     { name: 'Templates', icon: Library, path: '/templates' },
     { name: 'Submissions', icon: Database, path: '/submissions' },
-    { name: 'My Approvals', icon: CheckCircle, path: '/my-approvals' },
   ];
+
+  const clientAdminMenu = [
+    { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+    { name: 'Employees', icon: Users, path: '/employees' },
+    { name: 'Assign Forms', icon: FileText, path: '/assign-forms' },
+    { name: 'Workflow', icon: GitBranch, path: '/workflow' },
+    { name: 'Submissions', icon: Database, path: '/submissions' },
+    { name: 'Approvals', icon: CheckCircle, path: '/approvals' },
+    { name: 'Profile', icon: UserCircle, path: '/profile' },
+  ];
+
+  const menuItems = user?.role === 'super_admin' ? superAdminMenu : clientAdminMenu;
 
   return (
     <div className="h-screen bg-ns-gray-bg flex overflow-hidden">
       {/* Sidebar */}
-      <aside 
+      <aside
         onMouseEnter={() => setIsExpanded(true)}
         onMouseLeave={() => setIsExpanded(false)}
         className={cn(
@@ -60,16 +74,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             FormBridge
           </span>
         </div>
-        
+
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar overflow-x-hidden">
           <div className={cn(
             "pt-2 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] px-3 mb-4 transition-all duration-300 whitespace-nowrap overflow-hidden",
             isExpanded ? "opacity-100" : "opacity-0"
           )}>
-            Management
+            {user?.role === 'super_admin' ? 'Global Management' : 'Company Admin'}
           </div>
           {menuItems.map((item) => {
-            const isActive = location.pathname === item.path || (item.path === '/dashboard' && location.pathname === '/dashboard');
+            const isActive = location.pathname === item.path;
             return (
               <Link
                 key={item.name}
@@ -77,8 +91,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 className={cn(
                   "flex items-center rounded-sm text-sm font-semibold transition-all group/item whitespace-nowrap overflow-hidden relative",
                   isExpanded ? "px-3 py-2.5 gap-3" : "px-0 py-3 justify-center gap-0",
-                  isActive 
-                    ? "bg-ns-blue text-white shadow-lg shadow-ns-blue/20" 
+                  isActive
+                    ? "bg-ns-blue text-white shadow-lg shadow-ns-blue/20"
                     : "text-white/60 hover:text-white hover:bg-white/5"
                 )}
                 title={!isExpanded ? item.name : ""}
@@ -94,44 +108,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             );
           })}
 
-          <div className={cn(
-            "pt-6 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] px-3 mb-4 transition-all duration-300 whitespace-nowrap overflow-hidden",
-            isExpanded ? "opacity-100" : "opacity-0"
-          )}>
-            Catalogue
-          </div>
-          {[
-            { name: 'Purchase Order', path: '/catalogue/purchase-order', icon: ShoppingCart },
-            { name: 'Sales Order', path: '/catalogue/sales-order', icon: Tag },
-            { name: 'Accounts Payable', path: '/catalogue/ap', icon: CreditCard },
-            { name: 'Accounts Receivable', path: '/catalogue/ar', icon: Receipt },
-          ].map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={cn(
-                   "flex items-center rounded-sm text-sm font-semibold transition-all group/item whitespace-nowrap overflow-hidden relative",
-                   isExpanded ? "px-3 py-2.5 gap-3" : "px-0 py-3 justify-center gap-0",
-                  isActive 
-                    ? "bg-ns-blue text-white shadow-lg shadow-ns-blue/20" 
-                    : "text-white/60 hover:text-white hover:bg-white/5"
-                )}
-                title={!isExpanded ? item.name : ""}
-              >
-                <item.icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-white" : "text-white/40 group-hover/item:text-white")} />
-                <span className={cn(
-                  "transition-all duration-300 origin-left overflow-hidden",
-                  isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
-                )}>
-                  {item.name}
-                </span>
-              </Link>
-            );
-          })}
+          {user?.role === 'super_admin' && (
+            <>
+              <div className={cn(
+                "pt-6 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] px-3 mb-4 transition-all duration-300 whitespace-nowrap overflow-hidden",
+                isExpanded ? "opacity-100" : "opacity-0"
+              )}>
+                Catalogue
+              </div>
+              {[
+                { name: 'Purchase Order', path: '/catalogue/purchase-order', icon: ShoppingCart },
+                { name: 'Sales Order', path: '/catalogue/sales-order', icon: Tag },
+                { name: 'Accounts Payable', path: '/catalogue/ap', icon: CreditCard },
+                { name: 'Accounts Receivable', path: '/catalogue/ar', icon: Receipt },
+              ].map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.path}
+                    className={cn(
+                      "flex items-center rounded-sm text-sm font-semibold transition-all group/item whitespace-nowrap overflow-hidden relative",
+                      isExpanded ? "px-3 py-2.5 gap-3" : "px-0 py-3 justify-center gap-0",
+                      isActive
+                        ? "bg-ns-blue text-white shadow-lg shadow-ns-blue/20"
+                        : "text-white/60 hover:text-white hover:bg-white/5"
+                    )}
+                    title={!isExpanded ? item.name : ""}
+                  >
+                    <item.icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-white" : "text-white/40 group-hover/item:text-white")} />
+                    <span className={cn(
+                      "transition-all duration-300 origin-left overflow-hidden",
+                      isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
+                    )}>
+                      {item.name}
+                    </span>
+                  </Link>
+                );
+              })}
+            </>
+          )}
         </nav>
-        
+
         <div className="p-4 bg-black/20 mt-auto border-t border-white/5 overflow-hidden">
           <div className={cn("flex items-center mb-4 transition-all duration-300", isExpanded ? "gap-3 px-2" : "gap-0 px-0 justify-center")}>
             <div className="w-9 h-9 flex-shrink-0 rounded-full bg-ns-blue/20 border border-ns-blue/30 flex items-center justify-center text-ns-blue">
@@ -142,10 +160,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
             )}>
               <span className="text-xs font-bold text-white truncate">{user?.name}</span>
-              <span className="text-[10px] text-white/40 font-semibold uppercase tracking-wider truncate">System Admin</span>
+              <span className="text-[10px] text-white/40 font-semibold uppercase tracking-wider truncate">
+                {user?.role === 'super_admin' ? 'Super Admin' : 'Client Admin'}
+              </span>
             </div>
           </div>
-          <button 
+          {user?.role !== 'super_admin' && (
+            <button
+              onClick={() => navigate('/customer-dashboard')}
+              className={cn(
+                "w-full flex items-center justify-center transition-all rounded-sm border border-ns-blue/30 bg-ns-blue/10 hover:bg-ns-blue/20 mb-2",
+                isExpanded ? "gap-2 py-2 px-4 shadow-inner" : "gap-0 py-3 px-0 border-none"
+              )}
+              title={!isExpanded ? "Customer View" : ""}
+            >
+              <UserCircle size={14} className="text-ns-blue" />
+              <span className={cn(
+                "text-[10px] font-bold text-ns-blue transition-all duration-300 overflow-hidden uppercase tracking-widest",
+                isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
+              )}>
+                Customer View
+              </span>
+            </button>
+          )}
+          <button
             onClick={handleLogout}
             className={cn(
               "w-full flex items-center justify-center transition-all rounded-sm border border-white/5",
@@ -171,14 +209,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-4 flex-1">
             <div className="relative max-w-md w-full">
               <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
-              <input 
-                type="text" 
-                placeholder="Search resources, forms, or users..." 
+              <input
+                type="text"
+                placeholder="Search resources, forms, or users..."
                 className="w-full pl-9 pr-4 py-2 text-xs bg-ns-gray-bg border border-ns-border rounded-sm focus:outline-none focus:border-ns-blue transition-all"
               />
             </div>
           </div>
-          
+
           <div className="flex items-center gap-6">
             <button className="text-ns-text-muted hover:text-ns-blue transition-colors p-1 relative">
               <Bell size={18} />
@@ -186,12 +224,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </button>
             <div className="h-4 w-[1px] bg-ns-border" />
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest leading-none">Internal Protocol</span>
+              <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest leading-none">
+                {user?.role === 'super_admin' ? 'Super Admin' : 'Entity Admin'}
+              </span>
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             </div>
-            <button className="text-ns-text-muted hover:text-ns-navy transition-colors">
+            <Link to="/profile" className="text-ns-text-muted hover:text-ns-navy transition-colors">
               <Settings size={18} />
-            </button>
+            </Link>
           </div>
         </header>
 

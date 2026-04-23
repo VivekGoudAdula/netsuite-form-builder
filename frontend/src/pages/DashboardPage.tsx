@@ -9,16 +9,16 @@ import { cn } from '../lib/utils';
 import AdminLayout from '../components/layout/AdminLayout';
 
 export default function DashboardPage() {
-  const { 
-    forms, user, logout, deleteForm, cloneForm, setCurrentForm, 
+  const {
+    forms, user, logout, deleteForm, cloneForm, setCurrentForm,
     catalogues, companies, users, createForm, templates, assignForm,
-    fetchForms, fetchCompanies, fetchUsers, isLoading 
+    fetchForms, fetchCompanies, fetchUsers, isLoading
   } = useStore();
   const navigate = useNavigate();
   const [search, setSearch] = React.useState('');
   const [typeFilter, setTypeFilter] = React.useState<string>('all');
   const [companyFilter, setCompanyFilter] = React.useState<string>('all');
-  
+
   React.useEffect(() => {
     fetchForms();
     fetchCompanies();
@@ -50,11 +50,11 @@ export default function DashboardPage() {
 
   const filteredForms = forms.filter(f => {
     const company = companies.find(c => c.id === f.customerId);
-    const matchesSearch = f.name.toLowerCase().includes(search.toLowerCase()) || 
-                         (company?.name.toLowerCase().includes(search.toLowerCase()));
+    const matchesSearch = f.name.toLowerCase().includes(search.toLowerCase()) ||
+      (company?.name.toLowerCase().includes(search.toLowerCase()));
     const matchesType = typeFilter === 'all' || f.transactionType === typeFilter;
     const matchesCompany = companyFilter === 'all' || f.customerId === companyFilter;
-    
+
     return matchesSearch && matchesType && matchesCompany;
   });
 
@@ -68,14 +68,14 @@ export default function DashboardPage() {
       alert('Please provide a configuration name.');
       return;
     }
-    
+
     await createForm(
-      newFormDetails.name, 
-      newFormDetails.customerId, 
+      newFormDetails.name,
+      newFormDetails.customerId,
       newFormDetails.transactionType,
       template?.tabs
     );
-    
+
     setIsCreateModalOpen(false);
     setCreateStep(1);
     navigate('/builder');
@@ -126,11 +126,11 @@ export default function DashboardPage() {
         {/* Filters */}
         <div className="bg-white p-6 rounded-sm border border-ns-border ns-panel-shadow flex gap-6 items-end">
           <div className="flex-1">
-            <Label className="flex items-center gap-2"><Search size={12}/> Repository Lookup</Label>
+            <Label className="flex items-center gap-2"><Search size={12} /> Repository Lookup</Label>
             <div className="relative">
               <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
-              <Input 
-                placeholder="Search by layout identifier or entity..." 
+              <Input
+                placeholder="Search by layout identifier or entity..."
                 className="pl-9 h-10"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -138,30 +138,30 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="w-56">
-            <Label className="flex items-center gap-2"><Filter size={12}/> Transaction Class</Label>
-            <Select 
+            <Label className="flex items-center gap-2"><Filter size={12} /> Transaction Class</Label>
+            <Select
               className="h-10"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
               options={[
                 { label: 'All Transaction Types', value: 'all' },
-                ...Object.keys(catalogues).map(type => ({ 
-                  label: catalogues[type as TransactionType].name, 
-                  value: type 
+                ...Object.keys(catalogues).map(type => ({
+                  label: catalogues[type as TransactionType].name,
+                  value: type
                 }))
-              ]} 
+              ]}
             />
           </div>
           <div className="w-56">
-            <Label className="flex items-center gap-2"><Building2 size={12}/> Select Company</Label>
-            <Select 
+            <Label className="flex items-center gap-2"><Building2 size={12} /> Select Company</Label>
+            <Select
               className="h-10"
               value={companyFilter}
               onChange={(e) => setCompanyFilter(e.target.value)}
               options={[
                 { label: 'All Client Entities', value: 'all' },
                 ...companies.map(c => ({ label: c.name, value: c.id }))
-              ]} 
+              ]}
             />
           </div>
         </div>
@@ -184,8 +184,8 @@ export default function DashboardPage() {
                 <TR key={form.id} className="group transition-all hover:bg-ns-light-blue/10">
                   <TD className="py-4">
                     <div className="flex flex-col">
-                      <button 
-                        className="text-sm font-bold text-ns-text group-hover:text-ns-blue transition-colors text-left" 
+                      <button
+                        className="text-sm font-bold text-ns-text group-hover:text-ns-blue transition-colors text-left"
                         onClick={() => handleEdit(form)}
                       >
                         {form.name}
@@ -207,7 +207,7 @@ export default function DashboardPage() {
                     </span>
                   </TD>
                   <TD className="text-center">
-                    <button 
+                    <button
                       onClick={() => openAssignModal(form)}
                       className="inline-flex items-center gap-1.5 px-2 py-1 rounded-sm bg-ns-navy/5 border border-ns-border hover:border-ns-blue hover:text-ns-blue transition-all"
                     >
@@ -260,19 +260,19 @@ export default function DashboardPage() {
             <h4 className="text-[10px] font-bold text-ns-blue uppercase tracking-widest mb-1">Authorization Context</h4>
             <p className="text-xs text-ns-navy font-bold">{getCompanyName(assignModal.companyId)}</p>
           </div>
-          
+
           <div className="space-y-3">
             <Label>Select Authorized Employees</Label>
             <div className="bg-ns-gray-bg border border-ns-border rounded-sm max-h-60 overflow-auto custom-scrollbar p-2 space-y-1">
               {getEmployeesForCompany(assignModal.companyId).map(emp => (
-                <label 
-                  key={emp.id} 
+                <label
+                  key={emp.id}
                   className={cn(
                     "flex items-center gap-3 p-3 rounded-sm border cursor-pointer transition-all",
                     selectedEmployees.includes(emp.id) ? "bg-white border-ns-blue shadow-sm" : "border-transparent opacity-60 hover:opacity-100"
                   )}
                 >
-                  <input 
+                  <input
                     type="checkbox"
                     className="w-4 h-4 rounded border-ns-border text-ns-blue focus:ring-ns-blue"
                     checked={selectedEmployees.includes(emp.id)}
@@ -301,13 +301,13 @@ export default function DashboardPage() {
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => { setIsCreateModalOpen(false); setCreateStep(1); }}
-        title={`Initialize Transaction Blueprint - Step ${createStep} of 3`}
+        title={`Initialize Transaction Form - Step ${createStep} of 3`}
         footer={
           <div className="flex justify-between w-full">
-            {createStep > 1 && <Button variant="ghost" size="sm" onClick={() => setCreateStep(createStep - 1 as any)}><ArrowLeft size={14} className="mr-2"/> Back</Button>}
+            {createStep > 1 && <Button variant="ghost" size="sm" onClick={() => setCreateStep(createStep - 1 as any)}><ArrowLeft size={14} className="mr-2" /> Back</Button>}
             <div className="flex gap-2 ml-auto">
               <Button variant="secondary" size="sm" onClick={() => setIsCreateModalOpen(false)}>Abort</Button>
-              {createStep === 1 && <Button size="sm" onClick={() => setCreateStep(2)} disabled={!newFormDetails.name}>Proceed <ChevronRight size={14} className="ml-1"/></Button>}
+              {createStep === 1 && <Button size="sm" onClick={() => setCreateStep(2)} disabled={!newFormDetails.name}>Proceed <ChevronRight size={14} className="ml-1" /></Button>}
               {createStep === 2 && creationMethod === 'scratch' && <Button size="sm" onClick={() => handleCreateSubmit()}>Finalize Initial View</Button>}
             </div>
           </div>
@@ -319,29 +319,29 @@ export default function DashboardPage() {
             <div className="space-y-6">
               <div>
                 <Label mandatory>Target Client Entity</Label>
-                <Select 
+                <Select
                   value={newFormDetails.customerId}
-                  onChange={(e) => setNewFormDetails({...newFormDetails, customerId: e.target.value})}
+                  onChange={(e) => setNewFormDetails({ ...newFormDetails, customerId: e.target.value })}
                   options={companies.map(c => ({ label: c.name, value: c.id }))}
                 />
               </div>
               <div>
                 <Label mandatory>Transaction Schema</Label>
-                <Select 
+                <Select
                   value={newFormDetails.transactionType}
-                  onChange={(e) => setNewFormDetails({...newFormDetails, transactionType: e.target.value as TransactionType})}
-                  options={Object.keys(catalogues).map(type => ({ 
-                    label: catalogues[type as TransactionType].name, 
-                    value: type 
+                  onChange={(e) => setNewFormDetails({ ...newFormDetails, transactionType: e.target.value as TransactionType })}
+                  options={Object.keys(catalogues).map(type => ({
+                    label: catalogues[type as TransactionType].name,
+                    value: type
                   }))}
                 />
               </div>
               <div>
                 <Label mandatory>Configuration Identifier</Label>
-                <Input 
-                  placeholder="e.g. Standard PO v2.0" 
+                <Input
+                  placeholder="e.g. Standard PO v2.0"
                   value={newFormDetails.name}
-                  onChange={(e) => setNewFormDetails({...newFormDetails, name: e.target.value})}
+                  onChange={(e) => setNewFormDetails({ ...newFormDetails, name: e.target.value })}
                   autoFocus
                 />
               </div>
@@ -349,7 +349,7 @@ export default function DashboardPage() {
           )}
           {createStep === 2 && (
             <div className="grid grid-cols-2 gap-4">
-              <button 
+              <button
                 onClick={() => setCreationMethod('scratch')}
                 className={cn("p-6 border-2 rounded-sm text-left transition-all", creationMethod === 'scratch' ? "border-ns-blue bg-ns-blue/5" : "border-ns-border")}
               >
@@ -357,7 +357,7 @@ export default function DashboardPage() {
                 <h4 className="font-bold text-sm">Blank Canvas</h4>
                 <p className="text-[10px] text-ns-text-muted mt-1 leading-relaxed">Initialize without predefined components.</p>
               </button>
-              <button 
+              <button
                 onClick={() => { setCreationMethod('template'); setCreateStep(3); }}
                 className={cn("p-6 border-2 rounded-sm text-left transition-all", creationMethod === 'template' ? "border-ns-blue bg-ns-blue/5" : "border-ns-border")}
               >

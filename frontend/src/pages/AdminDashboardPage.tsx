@@ -10,50 +10,62 @@ import {
   Activity,
   ArrowUpRight,
   Clock,
-  Briefcase
+  Briefcase,
+  ShieldCheck,
+  Building
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 
 export default function AdminDashboardPage() {
-  const { companies, users, forms, submissions, fetchCompanies, fetchUsers, fetchForms, fetchSubmissions } = useStore();
+  const { user, companies, users, forms, submissions, fetchCompanies, fetchUsers, fetchForms, fetchSubmissions } = useStore();
   const navigate = useNavigate();
 
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isClientAdmin = user?.role === 'client_admin';
+
   React.useEffect(() => {
-    fetchCompanies();
-    fetchUsers();
-    fetchForms();
-    fetchSubmissions();
-  }, [fetchCompanies, fetchUsers, fetchForms, fetchSubmissions]);
+    if (isSuperAdmin) {
+      fetchCompanies();
+      fetchUsers();
+      fetchForms();
+      fetchSubmissions();
+    } else if (isClientAdmin) {
+      fetchUsers(); // fetchUsers already filters or handles based on role in backend/store? 
+      // Actually fetchUsers in store calls GET /users which I updated to return company users for client admin.
+      fetchForms(user?.companyId);
+      fetchSubmissions(); // fetchSubmissions in store calls GET /submissions which I updated to scope by company.
+    }
+  }, [isSuperAdmin, isClientAdmin, user?.companyId, fetchCompanies, fetchUsers, fetchForms, fetchSubmissions]);
 
   // Statistics Calculation
   const stats = [
     {
-      label: 'Partner Companies',
-      value: companies.length,
+      label: isSuperAdmin ? 'Partner Companies' : 'My Entity',
+      value: isSuperAdmin ? companies.length : 1,
       icon: Building2,
       color: 'text-ns-blue',
       bg: 'bg-ns-blue/10',
-      trend: '+12%',
-      path: '/companies'
+      trend: isSuperAdmin ? '+12%' : 'Active',
+      path: isSuperAdmin ? '/companies' : '/profile'
     },
     {
-      label: 'Active Forms',
+      label: 'Active Protocols',
       value: forms.length,
       icon: FileText,
       color: 'text-ns-blue',
       bg: 'bg-ns-blue/10',
       trend: '+5%',
-      path: '/forms'
+      path: isSuperAdmin ? '/forms' : '/assign-forms'
     },
     {
-      label: 'Authorized Staff',
-      value: users.length,
+      label: isSuperAdmin ? 'Global Staff' : 'Entity Personnel',
+      value: isSuperAdmin ? users.length : users.filter(u => u.companyId === user?.companyId).length,
       icon: Users,
       color: 'text-ns-blue',
       bg: 'bg-ns-blue/10',
       trend: '+8%',
-      path: '/companies'
+      path: isSuperAdmin ? '/staff' : '/employees'
     },
     {
       label: 'Total Submissions',
@@ -73,16 +85,26 @@ export default function AdminDashboardPage() {
         <div className="flex justify-between items-end">
           <div>
             <div className="flex items-center gap-2 text-ns-blue mb-1">
-              <Activity size={16} className="animate-pulse" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Live Intelligence Protocol</span>
+              <ShieldCheck size={16} className="animate-pulse" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
+                {isSuperAdmin ? 'Global Intelligence Protocol' : 'Entity Command Protocol'}
+              </span>
             </div>
-            <h1 className="text-3xl font-black text-ns-text tracking-tight">Executive Overview</h1>
-            <p className="text-sm text-ns-text-muted mt-2 max-w-lg">Monitoring ecosystem health, corporate synchronization, and transaction lifecycle metrics.</p>
+            <h1 className="text-3xl font-black text-ns-text tracking-tight">
+              {isSuperAdmin ? 'Executive Overview' : `${user?.companyName || 'Entity'} Command Center`}
+            </h1>
+            <p className="text-sm text-ns-text-muted mt-2 max-w-lg">
+              {isSuperAdmin 
+                ? "Monitoring ecosystem health, corporate synchronization, and transaction lifecycle metrics."
+                : "Managing organizational workflows, employee authorization, and form processing synchronization."}
+            </p>
           </div>
           <div className="flex gap-2">
             <div className="px-4 py-2 bg-white border border-ns-border rounded-sm ns-panel-shadow flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-[10px] font-bold text-ns-text uppercase tracking-widest">System Operational</span>
+              <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+              <span className="text-[10px] font-bold text-ns-text uppercase tracking-widest">
+                {isSuperAdmin ? 'Cloud Infrastructure Secure' : 'Entity Access Authorized'}
+              </span>
             </div>
           </div>
         </div>
@@ -99,8 +121,11 @@ export default function AdminDashboardPage() {
                 <div className={cn("p-3 rounded-sm", stat.bg, stat.color)}>
                   <stat.icon size={20} />
                 </div>
-                <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <TrendingUp size={10} /> {stat.trend}
+                <span className={cn(
+                  "text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1",
+                  stat.trend.includes('%') ? "text-green-600 bg-green-50" : "text-ns-blue bg-ns-blue/5"
+                )}>
+                  {stat.trend.includes('%') && <TrendingUp size={10} />} {stat.trend}
                 </span>
               </div>
               <div className="space-y-1">
@@ -116,19 +141,19 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Bottom Detailed Sections */}
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Recent Forms */}
-          <div className="col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-[11px] font-black text-ns-text uppercase tracking-[0.2em] flex items-center gap-2">
                 <Briefcase size={14} className="text-ns-blue" />
-                Recent Transaction Layouts
+                {isSuperAdmin ? 'Global Transaction Templates' : 'Active Personnel Protocols'}
               </h3>
               <button
-                onClick={() => navigate('/forms')}
+                onClick={() => navigate(isSuperAdmin ? '/forms' : '/assign-forms')}
                 className="text-[10px] font-bold text-ns-blue hover:underline uppercase tracking-widest"
               >
-                View Repository
+                View All
               </button>
             </div>
             <div className="bg-white rounded-sm border border-ns-border ns-panel-shadow overflow-hidden">
@@ -141,19 +166,23 @@ export default function AdminDashboardPage() {
                       </div>
                       <div>
                         <p className="text-sm font-bold text-ns-text group-hover:text-ns-blue transition-colors">{form.name}</p>
-                        <p className="text-[10px] text-ns-text-muted font-medium uppercase tracking-wider">{form.transactionType.replace('_', ' ')} • ID: {form.id.substring(0, 8)}</p>
+                        <p className="text-[10px] text-ns-text-muted font-medium uppercase tracking-wider">
+                          {form.transactionType.replace('_', ' ')} • {isSuperAdmin ? `Entity: ${form.companyName || 'N/A'}` : `Assigned to ${form.assignedTo?.length || 0} users`}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-tighter">{new Date(form.createdAt).toLocaleDateString()}</p>
-                      <p className="text-[9px] text-gray-400 italic">Created by {form.createdBy}</p>
+                      <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-tighter">
+                        {form.createdAt ? new Date(form.createdAt).toLocaleDateString() : 'N/A'}
+                      </p>
+                      <p className="text-[9px] text-gray-400 italic">ID: {form.id.substring(0, 8)}</p>
                     </div>
                   </div>
                 ))}
                 {forms.length === 0 && (
                   <div className="p-12 text-center text-ns-text-muted flex flex-col items-center">
                     <Activity size={32} className="opacity-20 mb-3" />
-                    <p className="text-xs font-bold uppercase tracking-widest">No active forms</p>
+                    <p className="text-xs font-bold uppercase tracking-widest">No active forms detected</p>
                   </div>
                 )}
               </div>
@@ -171,17 +200,27 @@ export default function AdminDashboardPage() {
                 {submissions.slice(0, 6).map((sub, idx) => (
                   <div key={idx} className="relative pl-8">
                     <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-white border border-ns-border flex items-center justify-center z-10">
-                      <div className="w-2 h-2 rounded-full bg-ns-blue" />
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        sub.status === 'approved' ? 'bg-green-500' : sub.status === 'rejected' ? 'bg-red-500' : 'bg-ns-blue'
+                      )} />
                     </div>
-                    <p className="text-[11px] font-bold text-ns-text">Form Submission</p>
-                    <p className="text-[10px] text-ns-text-muted mt-0.5 leading-relaxed">
-                      New entry recorded for <span className="text-ns-navy font-bold">{sub.formName}</span>
+                    <p className="text-[11px] font-bold text-ns-text">
+                      {sub.status === 'approved' ? 'Sync Successful' : sub.status === 'rejected' ? 'Protocol Denied' : 'Submission Recorded'}
                     </p>
-                    <p className="text-[9px] text-ns-blue font-bold uppercase tracking-widest mt-2">Just Now</p>
+                    <p className="text-[10px] text-ns-text-muted mt-0.5 leading-relaxed">
+                      {sub.userName} submitted <span className="text-ns-navy font-bold">{sub.formName}</span>
+                    </p>
+                    <p className="text-[9px] text-ns-blue font-bold uppercase tracking-widest mt-2">
+                      {sub.submittedAt ? new Date(sub.submittedAt).toLocaleTimeString() : 'Recent'}
+                    </p>
                   </div>
                 ))}
                 {submissions.length === 0 && (
-                  <div className="opacity-40 italic text-xs py-10 text-center">No recent activity detected.</div>
+                  <div className="opacity-40 italic text-xs py-10 text-center flex flex-col items-center gap-2">
+                    <Clock size={24} />
+                    <span>No recent activity detected.</span>
+                  </div>
                 )}
               </div>
             </div>

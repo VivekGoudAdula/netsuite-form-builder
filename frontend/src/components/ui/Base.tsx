@@ -59,11 +59,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 Input.displayName = 'Input';
 
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  options: { label: string; value: string }[];
+  options?: { label: string; value: string }[];
 }
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, options, ...props }, ref) => {
+  ({ className, options, children, ...props }, ref) => {
     return (
       <select
         ref={ref}
@@ -73,11 +73,11 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         )}
         {...props}
       >
-        {options.map((opt) => (
+        {options ? options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>
-        ))}
+        )) : children}
       </select>
     );
   }

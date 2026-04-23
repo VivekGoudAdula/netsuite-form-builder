@@ -15,14 +15,21 @@ import AdminSubmissionsPage from './pages/AdminSubmissionsPage';
 import CataloguePage from './pages/CataloguePage';
 import MyApprovalsPage from './pages/MyApprovalsPage';
 import UserTransactionHub from './pages/UserTransactionHub';
+import StaffManagementPage from './pages/StaffManagementPage';
+import ProfileSettingsPage from './pages/ProfileSettingsPage';
 import { useStore } from './store/useStore';
 import { UserRole } from './types';
 
-function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: UserRole }) {
+function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: UserRole[] }) {
   const user = useStore((state) => state.user);
   if (!user) return <Navigate to="/" replace />;
-  if (role && user.role !== role) {
-    return <Navigate to={user.role === 'admin' ? '/dashboard' : '/customer-dashboard'} replace />;
+  
+  // Super Admin can access everything
+  if (user.role === 'super_admin') return <>{children}</>;
+  
+  if (roles && !roles.includes(user.role)) {
+    if (user.role === 'client_admin') return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/customer-dashboard" replace />;
   }
   return <>{children}</>;
 }
@@ -39,27 +46,21 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LoginPage />} />
         
-        {/* Admin Routes */}
+        {/* Shared Dashboard for Admins */}
         <Route 
           path="/dashboard" 
           element={
-            <ProtectedRoute role="admin">
+            <ProtectedRoute roles={['super_admin', 'client_admin']}>
               <AdminDashboardPage />
             </ProtectedRoute>
           } 
         />
-        <Route 
-          path="/forms" 
-          element={
-            <ProtectedRoute role="admin">
-              <FormsPage />
-            </ProtectedRoute>
-          } 
-        />
+
+        {/* Super Admin Only */}
         <Route 
           path="/companies" 
           element={
-            <ProtectedRoute role="admin">
+            <ProtectedRoute roles={['super_admin']}>
               <CompaniesPage />
             </ProtectedRoute>
           } 
@@ -67,39 +68,39 @@ export default function App() {
         <Route 
           path="/companies/:id" 
           element={
-            <ProtectedRoute role="admin">
+            <ProtectedRoute roles={['super_admin']}>
               <CompanyDetailsPage />
             </ProtectedRoute>
           } 
         />
         <Route 
-          path="/companies/:companyId/workflow" 
+          path="/staff" 
           element={
-            <ProtectedRoute role="admin">
-              <WorkflowManagementPage />
+            <ProtectedRoute roles={['super_admin']}>
+              <StaffManagementPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/forms" 
+          element={
+            <ProtectedRoute roles={['super_admin']}>
+              <FormsPage />
             </ProtectedRoute>
           } 
         />
         <Route 
           path="/templates" 
           element={
-            <ProtectedRoute role="admin">
+            <ProtectedRoute roles={['super_admin']}>
               <TemplatesPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/submissions" 
-          element={
-            <ProtectedRoute role="admin">
-              <AdminSubmissionsPage />
             </ProtectedRoute>
           } 
         />
         <Route 
           path="/catalogue/:type" 
           element={
-            <ProtectedRoute role="admin">
+            <ProtectedRoute roles={['super_admin']}>
               <CataloguePage />
             </ProtectedRoute>
           } 
@@ -107,7 +108,7 @@ export default function App() {
         <Route 
           path="/builder" 
           element={
-            <ProtectedRoute role="admin">
+            <ProtectedRoute roles={['super_admin']}>
               <BuilderPage />
             </ProtectedRoute>
           } 
@@ -115,25 +116,85 @@ export default function App() {
         <Route 
           path="/preview" 
           element={
-            <ProtectedRoute role="admin">
+            <ProtectedRoute roles={['super_admin']}>
               <PreviewPage />
             </ProtectedRoute>
           } 
         />
 
-        {/* Customer Routes */}
+        {/* Client Admin & Higher */}
+        <Route 
+          path="/employees" 
+          element={
+            <ProtectedRoute roles={['client_admin', 'super_admin']}>
+              <StaffManagementPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/assign-forms" 
+          element={
+            <ProtectedRoute roles={['client_admin']}>
+              <FormsPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/workflow" 
+          element={
+            <ProtectedRoute roles={['client_admin']}>
+              <WorkflowManagementPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/companies/:companyId/workflow" 
+          element={
+            <ProtectedRoute roles={['super_admin', 'client_admin']}>
+              <WorkflowManagementPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/submissions" 
+          element={
+            <ProtectedRoute roles={['super_admin', 'client_admin']}>
+              <AdminSubmissionsPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* All Users / Common */}
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute roles={['super_admin', 'client_admin', 'manager', 'user']}>
+              <ProfileSettingsPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* User Specific */}
         <Route 
           path="/customer-dashboard" 
           element={
-            <ProtectedRoute role="customer">
+            <ProtectedRoute roles={['user', 'manager']}>
               <CustomerDashboardPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/user/:type" 
+          element={
+            <ProtectedRoute roles={['user', 'manager']}>
+              <UserTransactionHub />
             </ProtectedRoute>
           } 
         />
         <Route 
           path="/fill/:id" 
           element={
-            <ProtectedRoute role="customer">
+            <ProtectedRoute roles={['user', 'manager']}>
               <FormFillPage />
             </ProtectedRoute>
           } 
@@ -141,21 +202,19 @@ export default function App() {
         <Route 
           path="/user/forms/:id/new" 
           element={
-            <ProtectedRoute role="customer">
+            <ProtectedRoute roles={['user', 'manager']}>
               <FormFillPage />
             </ProtectedRoute>
           } 
         />
         <Route 
-          path="/user/:type" 
+          path="/approvals" 
           element={
-            <ProtectedRoute role="customer">
-              <UserTransactionHub />
+            <ProtectedRoute roles={['user', 'manager', 'client_admin', 'super_admin']}>
+              <MyApprovalsPage />
             </ProtectedRoute>
           } 
         />
-
-
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -25,7 +25,8 @@ export default function CompanyDetailsPage() {
     email: '',
     employeeId: '',
     jobTitle: '',
-    password: 'password123'
+    password: 'password123',
+    role: 'user' as const
   });
   const [deleteUserId, setDeleteUserId] = React.useState<string | null>(null);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
@@ -66,14 +67,14 @@ export default function CompanyDetailsPage() {
       await addUser({
         name: newEmployee.name,
         email: newEmployee.email,
-        employeeId: newEmployee.employeeId,
+        empId: newEmployee.employeeId,
         jobTitle: newEmployee.jobTitle,
         password: newEmployee.password,
-        role: 'customer',
+        role: newEmployee.role,
         companyId: company.id
       });
 
-      setNewEmployee({ name: '', email: '', employeeId: '', jobTitle: '', password: 'password123' });
+      setNewEmployee({ name: '', email: '', employeeId: '', jobTitle: '', password: 'password123', role: 'user' });
       setErrorMsg(null);
       setIsModalOpen(false);
     } catch (err: any) {
@@ -158,6 +159,7 @@ export default function CompanyDetailsPage() {
                 <TH>Name / Employee ID</TH>
                 <TH>Email Address</TH>
                 <TH>Functional Role</TH>
+                <TH>Access Level</TH>
                 <TH className="text-right px-6">Administrative Controls</TH>
               </TR>
             </THead>
@@ -179,6 +181,15 @@ export default function CompanyDetailsPage() {
                   <TD>
                     <span className="text-[10px] bg-ns-gray-bg border border-ns-border px-2 py-1 rounded-sm font-bold text-ns-navy grayscale">
                       {emp.jobTitle || 'Unassigned'}
+                    </span>
+                  </TD>
+                  <TD>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                      emp.role === 'client_admin' ? 'bg-blue-100 text-blue-700' :
+                      emp.role === 'manager' ? 'bg-amber-100 text-amber-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {emp.role.replace('_', ' ')}
                     </span>
                   </TD>
                   <TD className="px-6 text-right">
@@ -267,6 +278,23 @@ export default function CompanyDetailsPage() {
                   onChange={(e) => setNewEmployee({...newEmployee, jobTitle: e.target.value})}
                 />
               </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label mandatory>Administrative Role</Label>
+              <Select 
+                value={newEmployee.role}
+                onChange={(e) => setNewEmployee({...newEmployee, role: e.target.value as any})}
+              >
+                <option value="user">Standard User</option>
+                <option value="manager">Company Manager</option>
+                <option value="client_admin">Client Administrator</option>
+              </Select>
+              <p className="text-[10px] text-ns-text-muted italic">
+                {newEmployee.role === 'client_admin' && "Client Admins have full control over this entity's workflows and forms."}
+                {newEmployee.role === 'manager' && "Managers can approve transactions within their designated hierarchy."}
+                {newEmployee.role === 'user' && "Standard users can submit forms and track their own transactions."}
+              </p>
             </div>
             
             <div className="space-y-2">

@@ -17,15 +17,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
         user_id: str = payload.get("userId")
-        role: str = payload.get("role")
         if user_id is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-        
-    # Fixed admin bypass check or DB check
-    if user_id == "admin":
-        return {"id": "admin", "role": "admin", "email": settings.ADMIN_EMAIL, "name": "Super Admin"}
         
     db = get_database()
     user = await db.users.find_one({"_id": ObjectId(user_id)})
@@ -35,10 +30,30 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any
     user["id"] = str(user["_id"])
     return user
 
-async def get_admin_user(current_user: Dict[str, Any] = Depends(get_current_user)):
-    if current_user["role"] != "admin":
+async def get_super_admin(current_user: Dict[str, Any] = Depends(get_current_user)):
+    if current_user["role"] != "super_admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="The user does not have enough privileges"
+            detail="Requires Super Admin role"
         )
+    return current_user
+
+async def get_client_admin(current_user: Dict[str, Any] = Depends(get_current_user)):
+    if current_user["role"] not in ["super_admin", "client_admin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Requires Client Admin or Super Admin role"
+        )
+    return current_user
+
+async def get_manager(current_user: Dict[str, Any] = Depends(get_current_user)):
+    if current_user["role"] not in ["super_admin", "client_admin", "manager"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Requires Manager, Client Admin or Super Admin role"
+        )
+    return current_user
+
+async def get_user(current_user: Dict[str, Any] = Depends(get_current_user)):
+    # All authenticated users can access user-level endpoints
     return current_user

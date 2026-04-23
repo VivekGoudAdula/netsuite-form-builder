@@ -23,14 +23,16 @@ export default function CustomerDashboardPage() {
     fetchMyForms();
   }, [fetchMyForms]);
 
-  const assignedForms = forms;
+  const assignedForms = React.useMemo(() => (forms || []).filter(f => !!f), [forms]);
 
   const getSubmissionStatus = (form: any) => {
+    if (!form) return 'not started';
     return form.status?.toLowerCase() || 'not started';
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
+    const s = status?.toLowerCase() || 'not started';
+    switch (s) {
       case 'submitted':
         return (
           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider border border-green-200">
@@ -115,7 +117,8 @@ export default function CustomerDashboardPage() {
               </TR>
             </THead>
             <TBody>
-              {assignedForms.map((form) => {
+              {(assignedForms || []).map((form) => {
+                if (!form || !form.id) return null;
                 const status = getSubmissionStatus(form);
                 const isSubmitted = status === 'submitted';
                 
@@ -127,14 +130,14 @@ export default function CustomerDashboardPage() {
                           <FileText size={18} />
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-ns-navy">{form.name}</p>
+                          <p className="text-sm font-bold text-ns-navy">{form.name || 'Untitled Form'}</p>
                           <p className="text-[10px] font-medium text-ns-text-muted uppercase tracking-tighter mt-0.5">Reference: SYS-{form.id.substring(0, 6).toUpperCase()}</p>
                         </div>
                       </div>
                     </TD>
                     <TD>
                       <span className="text-[10px] font-bold text-ns-navy/70 uppercase tracking-widest bg-ns-gray-bg px-2 py-1 rounded-xs">
-                        {catalogues[form.transactionType].name}
+                        {catalogues?.[form.transactionType as TransactionType]?.name || form.transactionType || 'Unknown'}
                       </span>
                     </TD>
                     <TD className="text-center">
@@ -150,7 +153,7 @@ export default function CustomerDashboardPage() {
                       )}
                     </TD>
                     <TD className="text-[11px] text-ns-text-muted font-semibold">
-                      {form.updatedAt}
+                      {form.updatedAt || 'N/A'}
                     </TD>
                     <TD className="px-6 text-right">
                       {status !== 'not started' ? (
@@ -177,7 +180,7 @@ export default function CustomerDashboardPage() {
               })}
               {assignedForms.length === 0 && (
                 <TR>
-                  <TD colSpan={5} className="py-24 text-center">
+                  <TD colSpan={6} className="py-24 text-center">
                     <div className="flex flex-col items-center max-w-sm mx-auto">
                       <div className="w-16 h-16 bg-ns-gray-bg rounded-full flex items-center justify-center text-ns-text-muted/40 mb-4 border border-dashed border-ns-border">
                         <AlertCircle size={32} />

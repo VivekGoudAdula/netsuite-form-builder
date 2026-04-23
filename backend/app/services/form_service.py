@@ -208,6 +208,27 @@ class FormService:
         return {"message": f"Successfully assigned {len(valid_user_ids)} users to form"}
 
     @staticmethod
+    async def get_all_forms_for_admin(company_id: Optional[str] = None, transaction_type: Optional[str] = None) -> List[Dict[str, Any]]:
+        db = get_database()
+        query = {}
+        if company_id:
+            query["companyId"] = company_id
+        if transaction_type:
+            query["transactionType"] = transaction_type
+
+        forms = []
+        async for form in db.forms.find(query):
+            form_id = str(form["_id"])
+            forms.append({
+                "id": form_id,
+                "name": f"{form['name']} (Admin View)",
+                "transactionType": form["transactionType"],
+                "lastUsed": "N/A",
+                "updatedAt": form.get("updatedAt", form.get("createdAt")).strftime("%Y-%m-%d %H:%M:%S") if isinstance(form.get("updatedAt", form.get("createdAt")), datetime) else "N/A"
+            })
+        return forms
+
+    @staticmethod
     async def get_forms_for_user(user_id: str, transaction_type: Optional[str] = None) -> List[Dict[str, Any]]:
         db = get_database()
         
@@ -248,13 +269,16 @@ class FormService:
         return forms
 
     @staticmethod
-    async def get_form_for_user(form_id: str, user_id: str) -> Dict[str, Any]:
+    async def get_form_for_user(form_id: str, user: Dict[str, Any]) -> Dict[str, Any]:
         db = get_database()
+        user_id = user["id"]
+        role = user.get("role")
         
-        form = await db.forms.find_one({
-            "_id": ObjectId(form_id),
-            "assignedTo": user_id
-        })
+        query = {"_id": ObjectId(form_id)}
+        if role != "super_admin":
+            query["assignedTo"] = user_id
+            
+        form = await db.forms.find_one(query)
         
         if not form:
             raise HTTPException(
@@ -306,15 +330,19 @@ class FormService:
         if not form:
             raise HTTPException(status_code=404, detail="Form not found")
             
-        if user_id not in form.get("assignedTo", []):
+        # Bypass assignment check for Super Admin
+        if user.get("role") != "super_admin" and user_id not in form.get("assignedTo", []):
             raise HTTPException(
                 status_code=403, 
                 detail="Access denied. You are not assigned to this form."
             )
             
+        # Use form's companyId as context for Super Admins or missing companyId
+        effective_company_id = form.get("companyId") if user.get("role") == "super_admin" or not company_id else company_id
+
         # STEP 2: Fetch workflow
         workflow = await db.workflows.find_one({
-            "companyId": company_id
+            "companyId": effective_company_id
         })
 
         if not workflow:

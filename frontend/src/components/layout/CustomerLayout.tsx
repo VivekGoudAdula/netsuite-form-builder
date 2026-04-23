@@ -13,17 +13,20 @@ import {
   CreditCard,
   ArrowUpRight,
   Search,
-  Settings
+  Settings,
+  CheckCircle,
+  Clock,
+  UserCircle
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export default function CustomerLayout({ children }: { children: React.ReactNode }) {
-  const { user, logout, companies } = useStore();
+  const { user, logout, companies = [] } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [isExpanded, setIsExpanded] = React.useState(false);
 
-  const company = companies.find(c => c.id === user?.companyId);
+  const company = user?.companyId ? (companies || []).find(c => c.id === user.companyId) : null;
 
   const handleLogout = () => {
     logout();
@@ -36,6 +39,8 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
     { name: 'Sales Orders', icon: TrendingUp, path: '/user/so' },
     { name: 'Accounts Payable', icon: CreditCard, path: '/user/ap' },
     { name: 'Accounts Receivable', icon: ArrowUpRight, path: '/user/ar' },
+    { name: 'Approvals', icon: CheckCircle, path: '/approvals' },
+    { name: 'Profile', icon: UserCircle, path: '/profile' },
   ];
 
   return (
@@ -98,7 +103,39 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
           )}>
             Transactions
           </div>
-          {menuItems.slice(1).map((item) => {
+          {menuItems.slice(1, 5).map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.name}
+                to={item.path}
+                className={cn(
+                   "flex items-center rounded-sm text-sm font-semibold transition-all group/item whitespace-nowrap overflow-hidden relative",
+                   isExpanded ? "px-3 py-2.5 gap-3" : "px-0 py-3 justify-center gap-0",
+                  isActive 
+                    ? "bg-ns-blue text-white shadow-lg shadow-ns-blue/20" 
+                    : "text-white/60 hover:text-white hover:bg-white/5"
+                )}
+                title={!isExpanded ? item.name : ""}
+              >
+                <item.icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-white" : "text-white/40 group-hover/item:text-white")} />
+                <span className={cn(
+                  "transition-all duration-300 origin-left overflow-hidden",
+                  isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
+                )}>
+                  {item.name}
+                </span>
+              </Link>
+            );
+          })}
+
+          <div className={cn(
+            "pt-6 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] px-3 mb-4 transition-all duration-300 whitespace-nowrap overflow-hidden",
+            isExpanded ? "opacity-100" : "opacity-0"
+          )}>
+            Account
+          </div>
+          {menuItems.slice(5).map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link
@@ -135,9 +172,31 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
               isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
             )}>
               <span className="text-xs font-bold text-white truncate">{user?.name}</span>
-              <span className="text-[10px] text-white/40 font-semibold uppercase tracking-wider truncate">{user?.jobTitle}</span>
+              <span className="text-[10px] text-white/40 font-semibold uppercase tracking-wider truncate">
+                {user?.role === 'super_admin' ? 'System Overlord' : 
+                 user?.role === 'client_admin' ? 'Entity Admin' :
+                 user?.role === 'manager' ? 'Protocol Manager' : 'Operational User'}
+              </span>
             </div>
           </div>
+          {(user?.role === 'super_admin' || user?.role === 'client_admin') && (
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className={cn(
+                "w-full flex items-center justify-center transition-all rounded-sm border border-ns-blue/30 bg-ns-blue/10 hover:bg-ns-blue/20 mb-2",
+                isExpanded ? "gap-2 py-2 px-4 shadow-inner" : "gap-0 py-3 px-0 border-none"
+              )}
+              title={!isExpanded ? "Admin Dashboard" : ""}
+            >
+              <Settings size={14} className="text-ns-blue" />
+              <span className={cn(
+                "text-[10px] font-bold text-ns-blue transition-all duration-300 overflow-hidden uppercase tracking-widest",
+                isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
+              )}>
+                Admin Control
+              </span>
+            </button>
+          )}
           <button 
             onClick={handleLogout}
             className={cn(
@@ -164,7 +223,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
           <div className="flex items-center gap-4 flex-1">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-ns-gray-bg rounded-sm border border-ns-border">
               <Building size={14} className="text-ns-blue" />
-              <span className="text-xs font-bold text-ns-navy">{company?.name || 'Authorized Entity'}</span>
+              <span className="text-xs font-bold text-ns-navy">{user?.companyName || 'Authorized Entity'}</span>
             </div>
             <div className="relative max-w-xs w-full ml-4">
               <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
@@ -183,12 +242,12 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
             </button>
             <div className="h-4 w-[1px] bg-ns-border" />
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest leading-none">External Protocol</span>
+              <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest leading-none">Operational Protocol</span>
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             </div>
-            <button className="text-ns-text-muted hover:text-ns-navy transition-colors">
+            <Link to="/profile" className="text-ns-text-muted hover:text-ns-navy transition-colors">
               <Settings size={18} />
-            </button>
+            </Link>
           </div>
         </header>
 

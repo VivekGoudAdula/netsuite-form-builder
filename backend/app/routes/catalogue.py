@@ -5,6 +5,7 @@ from bson import ObjectId
 from ..database import get_database
 from ..schemas.catalogue import CatalogueFieldCreate, CatalogueFieldUpdate, CatalogueFieldResponse
 from ..services.catalogue_service import CatalogueService
+from ..utils.deps import get_current_user, get_super_admin
 
 router = APIRouter(prefix="/catalogue", tags=["Field Catalogue"])
 
@@ -15,18 +16,27 @@ def serialize_doc(doc):
     return doc
 
 @router.get("/", response_model=List[CatalogueFieldResponse])
-async def get_catalogue(type: Optional[str] = Query(None)):
+async def get_catalogue(
+    type: Optional[str] = Query(None),
+    current_user: dict = Depends(get_current_user)
+):
     db = get_database()
     fields = await CatalogueService.get_fields(db, type)
     return [serialize_doc(f) for f in fields]
 
 @router.get("/{transaction_type}/grouped")
-async def get_grouped_catalogue(transaction_type: str):
+async def get_grouped_catalogue(
+    transaction_type: str,
+    current_user: dict = Depends(get_current_user)
+):
     db = get_database()
     return await CatalogueService.get_grouped_catalogue(db, transaction_type)
 
 @router.post("/", response_model=CatalogueFieldResponse, status_code=status.HTTP_201_CREATED)
-async def create_catalogue_field(field_data: CatalogueFieldCreate):
+async def create_catalogue_field(
+    field_data: CatalogueFieldCreate,
+    current_admin: dict = Depends(get_super_admin)
+):
     db = get_database()
     
     # Validation: internalId must be unique per transactionType
@@ -53,7 +63,10 @@ async def create_catalogue_field(field_data: CatalogueFieldCreate):
     return serialize_doc(created_field)
 
 @router.post("/bulk-import")
-async def bulk_import(fields: List[Dict[str, Any]]):
+async def bulk_import(
+    fields: List[Dict[str, Any]],
+    current_admin: dict = Depends(get_super_admin)
+):
     db = get_database()
     # Basic mapping/validation
     processed_fields = []
@@ -66,7 +79,11 @@ async def bulk_import(fields: List[Dict[str, Any]]):
     return {"message": f"Successfully imported {len(processed_fields)} fields"}
 
 @router.put("/{id}", response_model=CatalogueFieldResponse)
-async def update_catalogue_field(id: str, field_data: CatalogueFieldUpdate):
+async def update_catalogue_field(
+    id: str, 
+    field_data: CatalogueFieldUpdate,
+    current_admin: dict = Depends(get_super_admin)
+):
     db = get_database()
     
     if not ObjectId.is_valid(id):
@@ -87,7 +104,10 @@ async def update_catalogue_field(id: str, field_data: CatalogueFieldUpdate):
     return serialize_doc(updated_field)
 
 @router.delete("/{id}")
-async def delete_catalogue_field(id: str):
+async def delete_catalogue_field(
+    id: str,
+    current_admin: dict = Depends(get_super_admin)
+):
     db = get_database()
     
     if not ObjectId.is_valid(id):

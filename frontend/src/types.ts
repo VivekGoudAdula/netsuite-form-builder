@@ -76,18 +76,19 @@ export interface Tab {
 
 export type TransactionType = 'purchase_order' | 'sales_order' | 'accounts_payable' | 'accounts_receivable';
 
-export type UserRole = 'admin' | 'customer';
+export type UserRole = 'super_admin' | 'client_admin' | 'manager' | 'user';
 
 export interface User {
   id: string;
   name: string;
   email: string;
   role: UserRole;
-  companyId?: string; // If customer
-  companyName?: string; // Add company name for dashboard display
-  password?: string; // Mock password
+  companyId?: string;
+  companyName?: string;
   jobTitle?: string;
   employeeId?: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface Company {
@@ -215,6 +216,10 @@ export interface AppState {
   // Company & User Actions
   addCompany: (name: string) => Promise<void>;
   deleteCompany: (id: string) => Promise<void>;
-  addUser: (user: Omit<User, 'id'>) => Promise<void>;
+  addUser: (user: Omit<User, 'id' | 'isActive' | 'createdAt'> & { password?: string }) => Promise<void>;
+  updateUserStatus: (userId: string, isActive: boolean) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>;
+  forgotPassword: (email: string) => Promise<boolean>;
+  resetPassword: (token: string, newPassword: string) => Promise<boolean>;
 }
