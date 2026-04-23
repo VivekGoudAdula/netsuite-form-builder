@@ -167,7 +167,8 @@ export default function StaffManagementPage() {
           <thead>
             <tr className="bg-ns-gray-bg border-b border-ns-border">
               <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">Personnel</th>
-              <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">Role & Entity</th>
+              <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">Professional Role</th>
+              <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">System Access</th>
               <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">Status</th>
               <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">Joined</th>
               <th className="px-6 py-4 text-right"></th>
@@ -195,27 +196,42 @@ export default function StaffManagementPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
+                    <p className="text-sm font-bold text-ns-navy">{u.jobTitle || 'N/A'}</p>
+                    <p className="text-[10px] text-ns-text-muted font-mono uppercase tracking-tighter">{u.empId || 'No ID'}</p>
+                  </td>
+                  <td className="px-6 py-4">
                     <div className="flex flex-col gap-1.5">
                       {getRoleBadge(u.role)}
-                      <div className="flex items-center gap-1 text-[10px] text-ns-text-muted font-semibold uppercase tracking-wider">
-                        <Building size={10} />
-                        {u.companyName || 'Global'}
-                      </div>
+                      {currentUser?.role === 'super_admin' && (
+                        <div className="flex items-center gap-1 text-[10px] text-ns-text-muted font-semibold uppercase tracking-wider">
+                          <Building size={10} />
+                          {u.companyName || 'Global'}
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <button 
-                      onClick={() => currentUser?.role === 'super_admin' && updateUserStatus(u.id, !u.isActive)}
-                      disabled={currentUser?.role !== 'super_admin' || u.id === currentUser.id}
+                    <div 
+                      onClick={() => (currentUser?.role === 'super_admin' || currentUser?.role === 'client_admin') && u.id !== currentUser.id && updateUserStatus(u.id, !u.isActive)}
                       className={cn(
-                        "flex items-center gap-2 text-xs font-bold transition-all",
-                        u.isActive ? "text-green-600" : "text-red-500",
-                        currentUser?.role === 'super_admin' && u.id !== currentUser.id ? "cursor-pointer hover:opacity-80" : "cursor-default"
+                        "relative inline-flex h-5 w-10 items-center rounded-full transition-all duration-300 ease-in-out cursor-pointer",
+                        u.isActive ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]" : "bg-slate-300",
+                        u.id === currentUser.id && "opacity-50 cursor-not-allowed"
                       )}
                     >
-                      {u.isActive ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
-                      {u.isActive ? 'Active' : 'Disabled'}
-                    </button>
+                      <span
+                        className={cn(
+                          "inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-all duration-300 ease-in-out shadow-sm",
+                          u.isActive ? "translate-x-5.5" : "translate-x-1"
+                        )}
+                      />
+                    </div>
+                    <span className={cn(
+                      "ml-3 text-[10px] font-black uppercase tracking-widest",
+                      u.isActive ? "text-emerald-600" : "text-slate-400"
+                    )}>
+                      {u.isActive ? 'Enabled' : 'Disabled'}
+                    </span>
                   </td>
                   <td className="px-6 py-4">
                     <p className="text-xs text-ns-text-muted font-medium">
@@ -320,35 +336,46 @@ export default function StaffManagementPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-ns-navy uppercase tracking-widest mb-1">Assigned Role</label>
-                  <select
-                    value={newUserRole}
-                    onChange={(e) => setNewUserRole(e.target.value as UserRole)}
-                    className="w-full px-3 py-2 bg-ns-gray-bg border border-ns-border rounded-sm text-sm focus:outline-none focus:border-ns-blue font-bold"
-                  >
-                    <option value="user">User</option>
-                    <option value="manager">Manager</option>
-                    <option value="client_admin">Client Admin</option>
-                    <option value="super_admin">Super Admin</option>
-                  </select>
-                </div>
+                {currentUser?.role === 'super_admin' ? (
+                  <>
+                    <div>
+                      <label className="block text-[10px] font-bold text-ns-navy uppercase tracking-widest mb-1">Assigned Role</label>
+                      <select
+                        value={newUserRole}
+                        onChange={(e) => setNewUserRole(e.target.value as UserRole)}
+                        className="w-full px-3 py-2 bg-ns-gray-bg border border-ns-border rounded-sm text-sm focus:outline-none focus:border-ns-blue font-bold"
+                      >
+                        <option value="user">User</option>
+                        <option value="manager">Manager</option>
+                        <option value="client_admin">Client Admin</option>
+                        <option value="super_admin">Super Admin</option>
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-ns-navy uppercase tracking-widest mb-1">Entity Association</label>
-                  <select
-                    disabled={newUserRole === 'super_admin'}
-                    required={newUserRole !== 'super_admin'}
-                    value={newUserCompany}
-                    onChange={(e) => setNewUserCompany(e.target.value)}
-                    className="w-full px-3 py-2 bg-ns-gray-bg border border-ns-border rounded-sm text-sm focus:outline-none focus:border-ns-blue disabled:opacity-50"
-                  >
-                    <option value="">Select Entity...</option>
-                    {companies.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-ns-navy uppercase tracking-widest mb-1">Entity Association</label>
+                      <select
+                        disabled={newUserRole === 'super_admin'}
+                        required={newUserRole !== 'super_admin'}
+                        value={newUserCompany}
+                        onChange={(e) => setNewUserCompany(e.target.value)}
+                        className="w-full px-3 py-2 bg-ns-gray-bg border border-ns-border rounded-sm text-sm focus:outline-none focus:border-ns-blue disabled:opacity-50"
+                      >
+                        <option value="">Select Entity...</option>
+                        {companies.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                ) : (
+                  <div className="md:col-span-2">
+                    <div className="p-3 bg-ns-blue/5 border border-ns-blue/10 rounded-sm">
+                      <p className="text-[10px] font-bold text-ns-blue uppercase tracking-[0.2em] mb-1">Authorization Context</p>
+                      <p className="text-xs text-ns-navy font-semibold">Adding to <span className="underline">{currentUser?.companyName || 'Your Entity'}</span></p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 border-t border-ns-border flex justify-end gap-3">

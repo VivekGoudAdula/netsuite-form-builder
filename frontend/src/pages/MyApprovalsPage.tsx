@@ -4,13 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../components/layout/AdminLayout';
 import CustomerLayout from '../components/layout/CustomerLayout';
 import { Button } from '../components/ui/Base';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  User, 
-  FileText, 
-  Building2, 
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  User,
+  FileText,
+  Building2,
   ChevronRight,
   AlertCircle
 } from 'lucide-react';
@@ -27,10 +27,7 @@ export default function MyApprovalsPage() {
   }, [fetchPendingApprovals]);
 
   React.useEffect(() => {
-    if (user?.role === 'super_admin') {
-      navigate('/dashboard');
-      return;
-    }
+    // Allow Super Admin to view the page if they navigate here
     loadApprovals();
   }, [loadApprovals, user, navigate]);
 
@@ -54,7 +51,7 @@ export default function MyApprovalsPage() {
     }
   };
 
-  const Layout = user?.role === 'admin' ? AdminLayout : CustomerLayout;
+  const Layout = (user?.role === 'super_admin' || user?.role === 'client_admin') ? AdminLayout : CustomerLayout;
 
   return (
     <Layout>
@@ -89,7 +86,7 @@ export default function MyApprovalsPage() {
                 <div className="flex flex-col md:flex-row">
                   {/* Status Sidebar */}
                   <div className="md:w-2 bg-ns-blue" />
-                  
+
                   <div className="flex-1 p-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div className="space-y-1">
@@ -118,15 +115,15 @@ export default function MyApprovalsPage() {
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <Button 
-                          variant="secondary" 
+                        <Button
+                          variant="secondary"
                           className="border-red-200 text-red-600 hover:bg-red-50 gap-2 h-11 px-6 font-bold"
                           onClick={() => handleReject(submission.id)}
                         >
                           <XCircle size={18} />
                           Reject
                         </Button>
-                        <Button 
+                        <Button
                           className="bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20 gap-2 h-11 px-8 font-bold"
                           onClick={() => handleApprove(submission.id)}
                         >
@@ -138,20 +135,20 @@ export default function MyApprovalsPage() {
 
                     <div className="mt-6 pt-6 border-t border-ns-border flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                         <div className="flex -space-x-2">
-                            {submission.approvals?.find(l => l.level === submission.currentLevel)?.approvers.map((a, i) => (
-                              <div 
-                                key={a.userId} 
-                                className="w-8 h-8 rounded-full border-2 border-white bg-ns-gray-bg flex items-center justify-center text-[10px] font-bold text-ns-navy ring-1 ring-ns-border"
-                                title={a.name}
-                              >
-                                {a.name.substring(0, 1)}
-                              </div>
-                            ))}
-                         </div>
-                         <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">
-                            Shared Approval Level
-                         </span>
+                        <div className="flex -space-x-2">
+                          {submission.approvals?.find(l => l.level === submission.currentLevel)?.approvers.map((a, i) => (
+                            <div
+                              key={a.userId}
+                              className="w-8 h-8 rounded-full border-2 border-white bg-ns-gray-bg flex items-center justify-center text-[10px] font-bold text-ns-navy ring-1 ring-ns-border"
+                              title={a.name}
+                            >
+                              {a.name.substring(0, 1)}
+                            </div>
+                          ))}
+                        </div>
+                        <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">
+                          Shared Approval Level
+                        </span>
                       </div>
                       <button className="text-[10px] font-bold text-ns-blue uppercase tracking-widest hover:underline flex items-center gap-1">
                         <FileText size={12} />

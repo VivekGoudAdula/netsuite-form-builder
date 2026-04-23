@@ -39,12 +39,12 @@ export default function TemplatesPage() {
     if (!selectedTemplate) return;
 
     await createForm(
-      formDetails.name, 
-      formDetails.customerId, 
+      formDetails.name,
+      formDetails.customerId,
       selectedTemplate.transactionType,
       selectedTemplate.tabs
     );
-    
+
     setIsUseModalOpen(false);
     navigate('/builder');
   };
@@ -78,22 +78,22 @@ export default function TemplatesPage() {
                         {catalogues[template.transactionType].name}
                       </span>
                       <span className="text-[10px] text-ns-text-muted font-mono tracking-tighter">
-                        {template.tabs.length} TABS • {template.tabs.reduce((acc, tab) => 
-                          acc + 
-                          tab.fieldGroups.reduce((acc2, grp) => acc2 + grp.fields.length, 0) + 
-                          (tab.itemSublist?.length || 0) + 
+                        {template.tabs.length} TABS • {template.tabs.reduce((acc, tab) =>
+                          acc +
+                          tab.fieldGroups.reduce((acc2, grp) => acc2 + grp.fields.length, 0) +
+                          (tab.itemSublist?.length || 0) +
                           (tab.expenseSublist?.length || 0)
-                        , 0)} FIELDS
+                          , 0)} FIELDS
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
-              
+
               <p className="text-sm text-ns-text-muted leading-relaxed mb-6 flex-1">
                 {template.description}
               </p>
-              
+
               <div className="flex items-center justify-between mt-auto pt-4 border-t border-ns-border">
                 <div className="flex gap-2">
                   {template.tags.map(tag => (
@@ -126,27 +126,27 @@ export default function TemplatesPage() {
           <div className="p-4 bg-ns-blue/5 border border-ns-blue/10 rounded-sm mb-4">
             <h4 className="text-[10px] font-bold text-ns-blue uppercase tracking-widest mb-1">Source Blueprint</h4>
             <div className="flex items-center gap-2">
-              <FileCode size={14} className="text-ns-navy"/>
+              <FileCode size={14} className="text-ns-navy" />
               <p className="text-xs text-ns-navy font-bold">{selectedTemplate?.name}</p>
             </div>
           </div>
 
           <div>
             <Label mandatory>Target Client Entity</Label>
-            <Select 
+            <Select
               value={formDetails.customerId}
-              onChange={(e) => setFormDetails({...formDetails, customerId: e.target.value})}
+              onChange={(e) => setFormDetails({ ...formDetails, customerId: e.target.value })}
               options={companies.map(c => ({ label: c.name, value: c.id }))}
             />
             <p className="text-[10px] text-ns-text-muted mt-1 italic">The initialized form will be isolated to this entity.</p>
           </div>
-          
+
           <div>
             <Label mandatory>Configuration Identifier</Label>
-            <Input 
-              placeholder="e.g. Acme Corp Purchase Order" 
+            <Input
+              placeholder="e.g. Acme Corp Purchase Order"
               value={formDetails.name}
-              onChange={(e) => setFormDetails({...formDetails, name: e.target.value})}
+              onChange={(e) => setFormDetails({ ...formDetails, name: e.target.value })}
               autoFocus
             />
           </div>

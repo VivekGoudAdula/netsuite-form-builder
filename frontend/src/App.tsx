@@ -13,10 +13,10 @@ import CustomerDashboardPage from './pages/CustomerDashboardPage';
 import FormFillPage from './pages/FormFillPage';
 import AdminSubmissionsPage from './pages/AdminSubmissionsPage';
 import CataloguePage from './pages/CataloguePage';
-import MyApprovalsPage from './pages/MyApprovalsPage';
 import UserTransactionHub from './pages/UserTransactionHub';
 import StaffManagementPage from './pages/StaffManagementPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import { useStore } from './store/useStore';
 import { UserRole } from './types';
 
@@ -45,6 +45,7 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         
         {/* Shared Dashboard for Admins */}
         <Route 
@@ -204,14 +205,6 @@ export default function App() {
           element={
             <ProtectedRoute roles={['user', 'manager']}>
               <FormFillPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/approvals" 
-          element={
-            <ProtectedRoute roles={['user', 'manager', 'client_admin', 'super_admin']}>
-              <MyApprovalsPage />
             </ProtectedRoute>
           } 
         />

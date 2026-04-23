@@ -78,9 +78,21 @@ export default function WorkflowManagementPage() {
   if (!company && !isLoading) {
     return (
       <AdminLayout>
-        <div className="text-center py-20">
-          <p className="text-ns-text-muted">Entity not found.</p>
-          <Button variant="secondary" onClick={() => navigate('/companies')} className="mt-4">Return to Directory</Button>
+        <div className="text-center py-20 flex flex-col items-center justify-center space-y-4">
+          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-500">
+            <AlertCircle size={32} />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-ns-navy">Entity Context Not Resolved</h2>
+            <p className="text-ns-text-muted mt-1 max-w-xs mx-auto">We could not identify the organizational entity for this workflow configuration.</p>
+          </div>
+          <Button 
+            variant="secondary" 
+            onClick={() => navigate(isSuperAdmin ? '/companies' : '/dashboard')} 
+            className="mt-2"
+          >
+            Return to {isSuperAdmin ? 'Directory' : 'Dashboard'}
+          </Button>
         </div>
       </AdminLayout>
     );

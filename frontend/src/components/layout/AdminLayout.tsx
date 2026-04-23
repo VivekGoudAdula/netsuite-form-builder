@@ -48,7 +48,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Assign Forms', icon: FileText, path: '/assign-forms' },
     { name: 'Workflow', icon: GitBranch, path: '/workflow' },
     { name: 'Submissions', icon: Database, path: '/submissions' },
-    { name: 'Approvals', icon: CheckCircle, path: '/approvals' },
     { name: 'Profile', icon: UserCircle, path: '/profile' },
   ];
 
@@ -165,24 +164,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </span>
             </div>
           </div>
-          {user?.role !== 'super_admin' && (
-            <button
-              onClick={() => navigate('/customer-dashboard')}
-              className={cn(
-                "w-full flex items-center justify-center transition-all rounded-sm border border-ns-blue/30 bg-ns-blue/10 hover:bg-ns-blue/20 mb-2",
-                isExpanded ? "gap-2 py-2 px-4 shadow-inner" : "gap-0 py-3 px-0 border-none"
-              )}
-              title={!isExpanded ? "Customer View" : ""}
-            >
-              <UserCircle size={14} className="text-ns-blue" />
-              <span className={cn(
-                "text-[10px] font-bold text-ns-blue transition-all duration-300 overflow-hidden uppercase tracking-widest",
-                isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
-              )}>
-                Customer View
-              </span>
-            </button>
-          )}
           <button
             onClick={handleLogout}
             className={cn(
@@ -225,13 +206,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="h-4 w-[1px] bg-ns-border" />
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest leading-none">
-                {user?.role === 'super_admin' ? 'Super Admin' : 'Entity Admin'}
+                {user?.role === 'super_admin' ? 'Super Admin' : 'Client Admin'}
               </span>
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             </div>
-            <Link to="/profile" className="text-ns-text-muted hover:text-ns-navy transition-colors">
-              <Settings size={18} />
-            </Link>
+            {user?.role === 'super_admin' && (
+              <Link to="/profile" className="text-ns-text-muted hover:text-ns-navy transition-colors">
+                <Settings size={18} />
+              </Link>
+            )}
           </div>
         </header>
 

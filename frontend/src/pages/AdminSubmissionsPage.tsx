@@ -7,7 +7,7 @@ import { Button, Input, Select, Label } from '../components/ui/Base';
 import { cn } from '../lib/utils';
 
 export default function AdminSubmissionsPage() {
-  const { submissions, forms, companies, users, fetchSubmissions, fetchCompanies, fetchUsers, retrySubmission, isLoading } = useStore();
+  const { user, submissions, forms, companies, users, fetchSubmissions, fetchCompanies, fetchUsers, retrySubmission, isLoading } = useStore();
   const [searchTerm, setSearchTerm] = React.useState('');
   const [selectedSubmissionId, setSelectedSubmissionId] = React.useState<string | null>(null);
 
@@ -41,7 +41,11 @@ export default function AdminSubmissionsPage() {
               <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Transaction Audit log</span>
             </div>
             <h1 className="text-3xl font-bold text-ns-text">Incoming Data Entries</h1>
-            <p className="text-sm text-ns-text-muted mt-1">Review finalized submissions from customer environments across all entities.</p>
+            <p className="text-sm text-ns-text-muted mt-1">
+              {user?.role === 'super_admin' 
+                ? 'Review finalized submissions from customer environments across all entities.' 
+                : 'Review finalized submissions from customer environments within your organizational scope.'}
+            </p>
           </div>
         </div>
 
