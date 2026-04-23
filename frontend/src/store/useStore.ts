@@ -846,4 +846,38 @@ export const useStore = create<AppState>((set, get) => ({
       set({ error: err.message, isLoading: false });
     }
   },
+
+  fetchPendingApprovals: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get('submissions/pending-approvals');
+      set({ isLoading: false });
+      return response.data;
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+      return [];
+    }
+  },
+
+  approveSubmission: async (submissionId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await api.post(`workflows/${submissionId}/approve`);
+      set({ isLoading: false });
+    } catch (err: any) {
+      set({ error: err.response?.data?.detail || err.message, isLoading: false });
+      throw err;
+    }
+  },
+
+  rejectSubmission: async (submissionId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await api.post(`workflows/${submissionId}/reject`);
+      set({ isLoading: false });
+    } catch (err: any) {
+      set({ error: err.response?.data?.detail || err.message, isLoading: false });
+      throw err;
+    }
+  },
 }));

@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from ..schemas.workflow import CreateWorkflowRequest, WorkflowResponse
 from ..services.workflow_service import create_or_update_workflow, get_workflow_by_company
-from ..utils.deps import get_admin_user
+from ..services.workflow_engine import approve_submission, reject_submission
+from ..utils.deps import get_admin_user, get_current_user
 
 router = APIRouter(prefix="/workflows", tags=["Workflows"])
 
@@ -26,3 +27,25 @@ async def get_workflow(
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found for this company")
     return workflow
+
+@router.post("/{submissionId}/approve")
+async def approve(
+    submissionId: str,
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        await approve_submission(submissionId, current_user)
+        return {"message": "Approved successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/{submissionId}/reject")
+async def reject(
+    submissionId: str,
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        await reject_submission(submissionId, current_user)
+        return {"message": "Rejected successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

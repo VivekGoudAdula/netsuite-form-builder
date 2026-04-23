@@ -479,3 +479,33 @@ class FormService:
             "status": update_data["status"],
             "netsuiteId": update_data.get("netsuiteId")
         }
+
+    @staticmethod
+    async def get_pending_approvals(user_id: str) -> List[Dict[str, Any]]:
+        db = get_database()
+        
+        # Find submissions where status is pending
+        query = {
+            "status": "pending"
+        }
+        
+        submissions = []
+        async for sub in db.submissions.find(query):
+            # Check if user is an approver in the CURRENT level
+            current_level = sub.get("currentLevel")
+            level_data = next((l for l in sub["approvals"] if l["level"] == current_level), None)
+            
+            if not level_data:
+                continue
+                
+            is_current_approver = any(
+                a["userId"] == user_id and a["status"] == "pending"
+                for a in level_data["approvers"]
+            )
+            
+            if is_current_approver:
+                sub["id"] = str(sub["_id"])
+                del sub["_id"]
+                submissions.append(sub)
+                
+        return submissions

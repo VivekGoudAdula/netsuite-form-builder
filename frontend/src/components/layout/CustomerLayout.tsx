@@ -28,6 +28,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   const menuItems = [
     { name: 'Dashboard', icon: Home, path: '/customer-dashboard' },
     { name: 'My Assignments', icon: FileText, path: '/customer-dashboard' },
+    { name: 'My Approvals', icon: CheckCircle, path: '/my-approvals' },
   ];
 
   return (

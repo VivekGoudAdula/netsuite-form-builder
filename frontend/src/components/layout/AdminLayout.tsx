@@ -15,7 +15,8 @@ import {
   ShoppingCart,
   Tag,
   CreditCard,
-  Receipt
+  Receipt,
+  CheckCircle
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -36,6 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Forms', icon: FileText, path: '/forms' },
     { name: 'Templates', icon: Library, path: '/templates' },
     { name: 'Submissions', icon: Database, path: '/submissions' },
+    { name: 'My Approvals', icon: CheckCircle, path: '/my-approvals' },
   ];
 
   return (

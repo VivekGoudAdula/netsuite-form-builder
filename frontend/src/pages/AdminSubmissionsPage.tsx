@@ -1,14 +1,15 @@
 import * as React from 'react';
 import { useStore } from '../store/useStore';
 import AdminLayout from '../components/layout/AdminLayout';
-import { Table, THead, TBody, TR, TH, TD } from '../components/ui/Complex';
-import { Database, Search, FileJson, Calendar, Building2, User } from 'lucide-react';
+import { Table, THead, TBody, TR, TH, TD, Modal } from '../components/ui/Complex';
+import { Database, Search, FileJson, Calendar, Building2, User, FileText, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { Button, Input, Select, Label } from '../components/ui/Base';
 import { cn } from '../lib/utils';
 
 export default function AdminSubmissionsPage() {
   const { submissions, forms, companies, users, fetchSubmissions, fetchCompanies, fetchUsers, retrySubmission, isLoading } = useStore();
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [selectedSubmissionId, setSelectedSubmissionId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     fetchSubmissions();
@@ -64,7 +65,8 @@ export default function AdminSubmissionsPage() {
               <TH>Submission Protocol</TH>
                <TH>Source Entity</TH>
                <TH>Submitted By</TH>
-               <TH>NetSuite Status</TH>
+               <TH>Workflow Status</TH>
+               <TH>Approval Level</TH>
                <TH>Timestamp</TH>
                <TH className="text-right px-6">Administrative Actions</TH>
             </TR>
@@ -99,17 +101,40 @@ export default function AdminSubmissionsPage() {
                     <div className="flex flex-col gap-1">
                       <span className={cn(
                         "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider inline-block w-fit",
-                        sub.status === 'submitted' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                        sub.status === 'submitted' || sub.status === 'approved' ? "bg-green-100 text-green-700" : 
+                        sub.status === 'rejected' ? "bg-red-100 text-red-700" :
+                        sub.status === 'pending' ? "bg-amber-100 text-amber-700" :
+                        "bg-gray-100 text-gray-700"
                       )}>
-                        {sub.status === 'submitted' ? 'Synchronized' : 'Sync Failed'}
+                        {sub.status === 'submitted' ? 'Synchronized' : sub.status}
                       </span>
                       {sub.netsuiteId && (
-                        <span className="text-[9px] font-mono text-ns-text-muted">ID: {sub.netsuiteId}</span>
+                        <span className="text-[9px] font-mono text-ns-text-muted">NS ID: {sub.netsuiteId}</span>
                       )}
                       {sub.errorMessage && (
                         <span className="text-[9px] text-red-500 italic truncate max-w-[150px]">{sub.errorMessage}</span>
                       )}
                     </div>
+                 </TD>
+                 <TD>
+                    {sub.status === 'pending' ? (
+                       <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-ns-navy bg-ns-navy/5 px-2 py-0.5 rounded-sm">L{sub.currentLevel}</span>
+                          <div className="flex -space-x-1.5">
+                             {sub.approvals?.find((l: any) => l.level === sub.currentLevel)?.approvers.map((a: any) => (
+                                <div 
+                                   key={a.userId} 
+                                   className="w-5 h-5 rounded-full border border-white bg-ns-blue text-white flex items-center justify-center text-[8px] font-bold shadow-sm"
+                                   title={a.name}
+                                >
+                                   {a.name[0]}
+                                </div>
+                             ))}
+                          </div>
+                       </div>
+                    ) : (
+                       <span className="text-[10px] font-bold text-ns-text-muted uppercase opacity-40">Workflow Terminal</span>
+                    )}
                  </TD>
                  <TD>
                    <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-ns-text-muted opacity-80">
@@ -128,8 +153,8 @@ export default function AdminSubmissionsPage() {
                           Retry Sync <Database size={12} />
                         </Button>
                       )}
-                      <Button variant="ghost" size="sm" className="h-8 px-3 gap-2 text-[10px] font-bold uppercase tracking-widest text-ns-blue hover:bg-ns-blue hover:text-white transition-all">
-                        View Payload <FileJson size={12} />
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedSubmissionId(sub.id)} className="h-8 px-3 gap-2 text-[10px] font-bold uppercase tracking-widest text-ns-blue hover:bg-ns-blue hover:text-white transition-all">
+                        View Details <FileText size={12} />
                       </Button>
                     </div>
                  </TD>
@@ -148,6 +173,98 @@ export default function AdminSubmissionsPage() {
             )}
           </TBody>
         </Table>
+
+        {/* Detail Modal */}
+        <Modal
+          isOpen={!!selectedSubmissionId}
+          onClose={() => setSelectedSubmissionId(null)}
+          title="Submission Workflow Details"
+          className="max-w-xl"
+          footer={
+             <Button variant="secondary" size="sm" onClick={() => setSelectedSubmissionId(null)}>Close</Button>
+          }
+        >
+          {(() => {
+            const activeSub = submissions.find(s => s.id === selectedSubmissionId);
+            if (!activeSub) return null;
+            
+            return (
+              <div className="space-y-6">
+                <div className="bg-ns-gray-bg p-4 rounded-sm border border-ns-border flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-ns-text-muted">Target Blueprint</p>
+                    <p className="font-bold text-ns-navy">{activeSub.formName || 'Unknown'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-ns-text-muted">Status</p>
+                    <p className="font-bold text-ns-blue uppercase text-sm tracking-wide">{activeSub.status}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-bold text-ns-navy mb-4 border-b border-ns-border pb-2">Approval Hierarchy</h4>
+                  <div className="space-y-4">
+                    {activeSub.approvals?.map((level: any) => (
+                      <div key={level.level} className="flex gap-4">
+                        <div className="flex flex-col items-center">
+                           <div className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-sm ring-4 ring-white",
+                              level.level < (activeSub.currentLevel || 99) || activeSub.status === 'approved' || activeSub.status === 'submitted'
+                                 ? "bg-green-100 text-green-700" 
+                                 : level.level === activeSub.currentLevel && activeSub.status === 'pending'
+                                    ? "bg-ns-blue text-white"
+                                    : level.level === activeSub.currentLevel && activeSub.status === 'rejected'
+                                       ? "bg-red-100 text-red-700"
+                                       : "bg-gray-100 text-gray-400"
+                           )}>
+                              {level.level < (activeSub.currentLevel || 99) || activeSub.status === 'approved' || activeSub.status === 'submitted' ? <CheckCircle2 size={16} /> : 
+                               level.level === activeSub.currentLevel && activeSub.status === 'rejected' ? <XCircle size={16} /> :
+                               level.level}
+                           </div>
+                           {level.level !== activeSub.approvals?.length && (
+                              <div className={cn("w-[2px] h-full my-1 rounded-full", level.level < (activeSub.currentLevel || 99) ? "bg-green-200" : "bg-gray-100")} />
+                           )}
+                        </div>
+                        <div className="flex-1 pb-4">
+                           <p className="text-xs font-bold text-ns-navy mb-2">Level {level.level} Approvers</p>
+                           <div className="space-y-2">
+                             {level.approvers.map((approver: any) => (
+                                <div key={approver.userId} className="bg-white border border-ns-border rounded-sm p-3 flex justify-between items-center shadow-sm">
+                                   <div className="flex items-center gap-2">
+                                      <div className="w-6 h-6 rounded-full bg-ns-gray-bg flex items-center justify-center text-[10px] font-bold text-ns-navy">
+                                         {approver.name[0]}
+                                      </div>
+                                      <span className="text-sm font-semibold text-ns-text">{approver.name}</span>
+                                   </div>
+                                   <div className="flex items-center gap-2">
+                                      {approver.status === 'approved' ? (
+                                        <span className="text-xs font-bold text-green-600 flex items-center gap-1"><CheckCircle2 size={14} /> Approved</span>
+                                      ) : approver.status === 'rejected' ? (
+                                        <span className="text-xs font-bold text-red-600 flex items-center gap-1"><XCircle size={14} /> Rejected</span>
+                                      ) : (
+                                        <span className="text-xs font-bold text-ns-text-muted flex items-center gap-1"><Clock size={14} /> Pending</span>
+                                      )}
+                                      {approver.actionAt && (
+                                        <span className="text-[9px] text-ns-text-muted ml-2">{new Date(approver.actionAt).toLocaleString()}</span>
+                                      )}
+                                   </div>
+                                </div>
+                             ))}
+                           </div>
+                        </div>
+                      </div>
+                    ))}
+                    {(!activeSub.approvals || activeSub.approvals.length === 0) && (
+                      <div className="p-8 text-center text-ns-text-muted bg-ns-gray-bg rounded-sm">
+                        <p className="text-xs uppercase font-bold tracking-widest">No approval workflow assigned</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </Modal>
       </div>
     </AdminLayout>
   );

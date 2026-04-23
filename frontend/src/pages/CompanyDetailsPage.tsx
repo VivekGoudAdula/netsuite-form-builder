@@ -23,7 +23,7 @@ export default function CompanyDetailsPage() {
   const [newEmployee, setNewEmployee] = React.useState({
     name: '',
     email: '',
-    empId: '',
+    employeeId: '',
     jobTitle: '',
     password: 'password123'
   });
@@ -47,14 +47,14 @@ export default function CompanyDetailsPage() {
     await addUser({
       name: newEmployee.name,
       email: newEmployee.email,
-      empId: newEmployee.empId,
+      employeeId: newEmployee.employeeId,
       jobTitle: newEmployee.jobTitle,
       password: newEmployee.password,
       role: 'customer',
       companyId: company.id
     });
 
-    setNewEmployee({ name: '', email: '', empId: '', jobTitle: '', password: 'password123' });
+    setNewEmployee({ name: '', email: '', employeeId: '', jobTitle: '', password: 'password123' });
     setIsModalOpen(false);
   };
 
@@ -142,7 +142,7 @@ export default function CompanyDetailsPage() {
                   <TD className="py-4">
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-ns-text">{emp.name}</span>
-                      <span className="text-[10px] text-ns-text-muted font-mono tracking-tighter uppercase">ID: {emp.empId || 'N/A'}</span>
+                      <span className="text-[10px] text-ns-text-muted font-mono tracking-tighter uppercase">ID: {emp.employeeId || 'N/A'}</span>
                     </div>
                   </TD>
                   <TD>
@@ -221,8 +221,8 @@ export default function CompanyDetailsPage() {
                 <Label>Employee Serial ID</Label>
                 <Input 
                   placeholder="e.g. EMP-2024-001" 
-                  value={newEmployee.empId}
-                  onChange={(e) => setNewEmployee({...newEmployee, empId: e.target.value})}
+                  value={newEmployee.employeeId}
+                  onChange={(e) => setNewEmployee({...newEmployee, employeeId: e.target.value})}
                 />
               </div>
               <div className="space-y-2">

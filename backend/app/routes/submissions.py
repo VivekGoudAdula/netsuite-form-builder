@@ -15,6 +15,13 @@ async def get_submissions(
     """Retrieve all form submissions with optional filtering (Admin only)."""
     return await FormService.get_all_submissions(status=status, company_id=companyId)
 
+@router.get("/pending-approvals")
+async def get_pending_approvals(
+    current_user: dict = Depends(get_current_user)
+):
+    """Retrieve submissions waiting for the current user's approval."""
+    return await FormService.get_pending_approvals(current_user["id"])
+
 @router.post("/{id}/retry")
 async def retry_submission(
     id: str,

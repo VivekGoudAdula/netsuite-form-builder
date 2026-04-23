@@ -11,7 +11,7 @@ import AdminLayout from '../components/layout/AdminLayout';
 export default function DashboardPage() {
   const { 
     forms, user, logout, deleteForm, cloneForm, setCurrentForm, 
-    catalogues, companies, users, createForm, templates, assignUsers,
+    catalogues, companies, users, createForm, templates, assignForm,
     fetchForms, fetchCompanies, fetchUsers, isLoading 
   } = useStore();
   const navigate = useNavigate();
@@ -88,7 +88,7 @@ export default function DashboardPage() {
 
   const handleSaveAssignment = async () => {
     if (assignModal.formId) {
-      await assignUsers(assignModal.formId, selectedEmployees);
+      await assignForm(assignModal.formId, selectedEmployees);
       setAssignModal({ ...assignModal, isOpen: false });
     }
   };

@@ -13,6 +13,7 @@ import CustomerDashboardPage from './pages/CustomerDashboardPage';
 import FormFillPage from './pages/FormFillPage';
 import AdminSubmissionsPage from './pages/AdminSubmissionsPage';
 import CataloguePage from './pages/CataloguePage';
+import MyApprovalsPage from './pages/MyApprovalsPage';
 import { useStore } from './store/useStore';
 import { UserRole } from './types';
 
@@ -133,6 +134,15 @@ export default function App() {
           element={
             <ProtectedRoute role="customer">
               <FormFillPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/my-approvals" 
+          element={
+            <ProtectedRoute>
+              <MyApprovalsPage />
             </ProtectedRoute>
           } 
         />

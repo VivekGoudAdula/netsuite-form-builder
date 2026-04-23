@@ -96,6 +96,19 @@ export interface Company {
   createdAt: string;
 }
 
+export interface Approval {
+  userId: string;
+  name: string;
+  status: 'pending' | 'approved' | 'rejected';
+  actionAt: string | null;
+}
+
+export interface WorkflowLevel {
+  level: number;
+  status: 'pending' | 'approved' | 'rejected';
+  approvers: Approval[];
+}
+
 export interface Submission {
   id: string;
   formId: string;
@@ -103,8 +116,11 @@ export interface Submission {
   userName?: string;
   formName?: string;
   companyId: string;
-  status: 'Not Started' | 'Submitted' | 'failed' | 'submitted';
+  status: 'pending' | 'approved' | 'rejected' | 'failed' | 'submitted';
+  currentLevel?: number;
+  approvals?: WorkflowLevel[];
   submittedAt?: string;
+  netsuiteAt?: string;
   netsuiteId?: string;
   errorMessage?: string;
 }
@@ -120,6 +136,7 @@ export interface CustomForm {
   updatedAt: string;
   source: FormSource;
   status?: string;    // e.g., 'Submitted', 'Draft', 'In Progress'
+  currentLevel?: number;
   templateId?: string;
   assignedTo?: string[]; // Array of employee user IDs
 }
@@ -165,6 +182,7 @@ export interface AppState {
   fetchCompanies: () => Promise<void>;
   fetchUsers: () => Promise<void>;
   fetchForms: (companyId?: string) => Promise<void>;
+  fetchFormById: (id: string) => Promise<void>;
   fetchMyForms: () => Promise<void>;
   fetchMyFormDetails: (formId: string) => Promise<CustomForm | null>;
   fetchSubmissions: () => Promise<void>;
@@ -176,9 +194,12 @@ export interface AppState {
   updateForm: (id: string, updates: Partial<CustomForm>) => Promise<void>;
   deleteForm: (id: string) => Promise<void>;
   cloneForm: (id: string, targetCompanyId?: string, newName?: string) => Promise<void>;
-  assignUsers: (formId: string, userIds: string[]) => Promise<void>;
+  assignForm: (formId: string, userIds: string[]) => Promise<void>;
   submitForm: (formId: string, values: Record<string, any>) => Promise<void>;
   retrySubmission: (submissionId: string) => Promise<void>;
+  fetchPendingApprovals: () => Promise<Submission[]>;
+  approveSubmission: (submissionId: string) => Promise<void>;
+  rejectSubmission: (submissionId: string) => Promise<void>;
   
   // UI Actions
   setActiveTabId: (id: string) => void;
