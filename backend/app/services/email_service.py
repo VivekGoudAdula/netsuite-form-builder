@@ -77,3 +77,32 @@ def generate_email_html(form_name, user_name, transaction_type, submitted_at, su
         </div>
     </div>
     """
+
+def generate_reset_password_html(reset_url):
+    return f"""
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); color: #333;">
+        <div style="background: linear-gradient(135deg, #1a237e 0%, #283593 100%); padding: 30px; text-align: center; border-bottom: 1px solid #e0e0e0;">
+            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: 0.5px;">Security Protocol</h1>
+            <p style="color: rgba(255,255,255,0.7); margin-top: 5px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">NetSuite Form Bridge</p>
+        </div>
+        <div style="padding: 40px; background-color: #ffffff;">
+            <p style="font-size: 16px; line-height: 1.6;">Hello,</p>
+            <p style="font-size: 16px; line-height: 1.6;">A password reset has been requested for your personnel account. Please use the secure link below to establish a new security key.</p>
+            
+            <div style="text-align: center; margin-top: 30px; margin-bottom: 40px;">
+                <a href="{reset_url}" style="padding: 15px 35px; background-color: #1a237e; color: white; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 4px 6px rgba(26, 35, 126, 0.2);">
+                    RESET SECURITY KEY
+                </a>
+            </div>
+            
+            <p style="font-size: 13px; color: #718096; line-height: 1.6; background-color: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #edf2f7;">
+                <b>Security Notice:</b> This link will expire in 1 hour. If you did not initiate this request, please contact your system administrator immediately and ensure your account is secured.
+            </p>
+            
+            <p style="font-size: 12px; color: #a0aec0; text-align: center; line-height: 1.5; border-top: 1px solid #edf2f7; padding-top: 20px; margin-top: 30px;">
+                <b>System: NetSuite-ERP Integration Core</b><br>
+                This is an automated security notification.
+            </p>
+        </div>
+    </div>
+    """

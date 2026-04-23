@@ -88,7 +88,16 @@ async def forgot_password(data: ForgotPassword):
         }}
     )
     
-    # In a real app, send email here
+    # Send actual email
+    from ..services.email_service import send_email, generate_reset_password_html
+    import os
+    
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    reset_url = f"{frontend_url}/reset-password?token={token}"
+    
+    html = generate_reset_password_html(reset_url)
+    await send_email(data.email, "Personnel Account Security Reset", html)
+    
     print(f"DEBUG: Password reset token for {data.email}: {token}")
     
     return {"message": "If an account exists with this email, a reset link has been sent."}

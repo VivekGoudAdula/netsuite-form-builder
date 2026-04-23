@@ -373,6 +373,8 @@ class FormService:
                     {
                         "userId": u["userId"],
                         "name": u["name"],
+                        "email": u.get("email"),
+                        "role": u.get("role"),
                         "status": "pending",
                         "actionAt": None
                     }

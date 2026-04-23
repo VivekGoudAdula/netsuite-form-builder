@@ -54,7 +54,7 @@ async def get_form_by_id(formId: str, current_user: dict = Depends(get_current_u
     
     # Permission check
     if current_user["role"] != "super_admin":
-        if form["customerId"] != current_user.get("companyId"):
+        if form["companyId"] != current_user.get("companyId"):
             raise HTTPException(status_code=403, detail="Not authorized for this company's forms")
             
     return form
@@ -100,7 +100,7 @@ async def assign_users_to_form(
     """Assign specific users to a form configuration (Client Admin only)."""
     form = await FormService.get_form_by_id(formId)
     
-    if current_admin["role"] == "client_admin" and form["customerId"] != current_admin["companyId"]:
+    if current_admin["role"] == "client_admin" and form["companyId"] != current_admin["companyId"]:
         raise HTTPException(status_code=403, detail="Not authorized for this company's forms")
 
     return await FormService.assign_users_to_form(
@@ -125,7 +125,7 @@ async def get_assigned_users(
     """List all users assigned to a specific form (Client Admin only)."""
     form = await FormService.get_form_by_id(formId)
     
-    if current_admin["role"] == "client_admin" and form["customerId"] != current_admin["companyId"]:
+    if current_admin["role"] == "client_admin" and form["companyId"] != current_admin["companyId"]:
         raise HTTPException(status_code=403, detail="Not authorized for this company's forms")
         
     return await FormService.get_assigned_users(formId)

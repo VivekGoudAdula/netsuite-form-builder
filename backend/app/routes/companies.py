@@ -4,7 +4,7 @@ from bson import ObjectId
 from datetime import datetime
 from ..schemas.company import CompanyCreate, CompanyUpdate, CompanyOut
 from ..database import get_database
-from ..utils.deps import get_super_admin
+from ..utils.deps import get_super_admin, get_client_admin
 from ..services.activity import log_activity
 
 router = APIRouter(prefix="/companies", tags=["Companies"])
@@ -34,10 +34,17 @@ async def create_company(
     return new_company
 
 @router.get("", response_model=List[CompanyOut])
-async def list_companies(current_admin: dict = Depends(get_super_admin)):
+async def list_companies(current_user: dict = Depends(get_client_admin)):
     db = get_database()
     companies = []
-    async for company in db.companies.find():
+    
+    query = {}
+    if current_user["role"] == "client_admin":
+        if not current_user.get("companyId"):
+            return []
+        query = {"_id": ObjectId(current_user["companyId"])}
+        
+    async for company in db.companies.find(query):
         company["id"] = str(company["_id"])
         companies.append(company)
     return companies

@@ -38,13 +38,29 @@ async def trigger_workflow_level(submission: Dict[str, Any]):
     
     db = get_database()
     for approver in approvers:
-        # Fetch user email from DB
-        user_doc = await db.users.find_one({"_id": ObjectId(approver["userId"])})
-        if not user_doc or not user_doc.get("email"):
+        # Fetch user email from DB with robustness for ID types
+        user_id = approver["userId"]
+        user_doc = None
+        
+        try:
+            # Try as ObjectId first
+            user_doc = await db.users.find_one({"_id": ObjectId(user_id)})
+        except:
+            # Fallback to string ID
+            user_doc = await db.users.find_one({"_id": user_id})
+            
+        to_email = None
+        if user_doc and user_doc.get("email"):
+            to_email = user_doc["email"]
+        elif approver.get("email"):
+            # Fallback to email stored in the submission
+            to_email = approver["email"]
+            
+        if not to_email:
             print(f"Warning: Skipping email for {approver['name']} - No email found.")
             continue
             
-        to_email = user_doc["email"]
+        to_email = to_email # Redundant but keeps flow
 
         approve_token = generate_action_token(
             submission["_id"], approver["userId"], "approve"
