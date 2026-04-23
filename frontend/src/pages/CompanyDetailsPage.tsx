@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore';
 import AdminLayout from '../components/layout/AdminLayout';
 import { Button, Input, Select, Label } from '../components/ui/Base';
 import { Table, THead, TBody, TR, TH, TD, Modal, ConfirmModal } from '../components/ui/Complex';
-import { Users, Plus, Mail, IdCard, Briefcase, Trash2, ArrowLeft, Shield } from 'lucide-react';
+import { Users, Plus, Mail, IdCard, Briefcase, Trash2, ArrowLeft, Shield, AlertCircle } from 'lucide-react';
 
 export default function CompanyDetailsPage() {
   const { id } = useParams();
@@ -28,6 +28,8 @@ export default function CompanyDetailsPage() {
     password: 'password123'
   });
   const [deleteUserId, setDeleteUserId] = React.useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [isAdding, setIsAdding] = React.useState(false);
 
   if (!company) {
     return (
@@ -40,22 +42,45 @@ export default function CompanyDetailsPage() {
     );
   }
 
+  const validateEmail = (email: string) => {
+    return String(email)
+      .toLowerCase()
+      .match(
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+      );
+  };
+
   const handleAddEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEmployee.name || !newEmployee.email) return;
 
-    await addUser({
-      name: newEmployee.name,
-      email: newEmployee.email,
-      employeeId: newEmployee.employeeId,
-      jobTitle: newEmployee.jobTitle,
-      password: newEmployee.password,
-      role: 'customer',
-      companyId: company.id
-    });
+    if (!validateEmail(newEmployee.email)) {
+      setErrorMsg("Invalid corporate email format.");
+      return;
+    }
 
-    setNewEmployee({ name: '', email: '', employeeId: '', jobTitle: '', password: 'password123' });
-    setIsModalOpen(false);
+    setErrorMsg(null);
+    setIsAdding(true);
+
+    try {
+      await addUser({
+        name: newEmployee.name,
+        email: newEmployee.email,
+        employeeId: newEmployee.employeeId,
+        jobTitle: newEmployee.jobTitle,
+        password: newEmployee.password,
+        role: 'customer',
+        companyId: company.id
+      });
+
+      setNewEmployee({ name: '', email: '', employeeId: '', jobTitle: '', password: 'password123' });
+      setErrorMsg(null);
+      setIsModalOpen(false);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to onboard employee.");
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   return (
@@ -186,15 +211,24 @@ export default function CompanyDetailsPage() {
           title="Personnel Onboarding"
           footer={
             <>
-              <Button variant="secondary" size="sm" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button size="sm" onClick={handleAddEmployee} disabled={!newEmployee.name || !newEmployee.email}>Synchronize User Identity</Button>
+              <Button variant="secondary" size="sm" onClick={() => { setIsModalOpen(false); setErrorMsg(null); }}>Cancel</Button>
+              <Button size="sm" onClick={handleAddEmployee} disabled={!newEmployee.name || !newEmployee.email || isAdding}>
+                {isAdding ? 'Synchronizing...' : 'Synchronize User Identity'}
+              </Button>
             </>
           }
         >
           <form className="space-y-5" onSubmit={handleAddEmployee}>
-            <div className="p-3 bg-amber-50 border border-amber-200 text-[11px] text-amber-800 rounded-sm italic">
-              Generating new user identity automatically activates Corporate Dashboard access for this entity.
-            </div>
+            {errorMsg ? (
+              <div className="p-3 bg-red-50 border border-red-200 text-[11px] text-red-600 rounded-sm font-bold flex items-center gap-2">
+                <AlertCircle size={14} />
+                {errorMsg}
+              </div>
+            ) : (
+              <div className="p-3 bg-amber-50 border border-amber-200 text-[11px] text-amber-800 rounded-sm italic">
+                Generating new user identity automatically activates Corporate Dashboard access for this entity.
+              </div>
+            )}
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

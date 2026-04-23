@@ -25,26 +25,54 @@ async def send_email(to_email, subject, html_content):
     except Exception as e:
         print(f"Failed to send email: {e}")
 
-def generate_email_html(form_name, user_name, approve_url, reject_url):
+def generate_email_html(form_name, user_name, transaction_type, submitted_at, submission_id, level, approve_url, reject_url):
     return f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-bottom: 1px solid #e0e0e0;">
-            <h2 style="margin: 0; color: #333;">Form Approval Required</h2>
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); color: #333;">
+        <div style="background: linear-gradient(135deg, #1a237e 0%, #283593 100%); padding: 30px; text-align: center; border-bottom: 1px solid #e0e0e0;">
+            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: 0.5px;">Level {level} Approval</h1>
+            <p style="color: rgba(255,255,255,0.7); margin-top: 5px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">NetSuite Form Builder</p>
         </div>
-        <div style="padding: 20px; background-color: #ffffff;">
-            <p style="font-size: 16px; color: #555;">Hello,</p>
-            <p style="font-size: 16px; color: #555;"><b>{user_name}</b> has submitted a new form: <b>{form_name}</b>.</p>
-            <p style="font-size: 16px; color: #555;">Please review the submission and take appropriate action by clicking one of the buttons below.</p>
-            <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
-                <a href="{approve_url}" style="padding: 12px 24px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px; display: inline-block;">
-                    Approve
+        <div style="padding: 40px; background-color: #ffffff;">
+            <p style="font-size: 16px; line-height: 1.6;">Hello,</p>
+            <p style="font-size: 16px; line-height: 1.6;">A new <b>{form_name}</b> requires your authorization at Level {level}.</p>
+            
+            <div style="background-color: #f8f9fa; border-radius: 8px; padding: 25px; margin: 30px 0; border: 1px solid #edf2f7;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #718096; font-size: 13px; font-weight: 600; text-transform: uppercase;">By</td>
+                        <td style="padding: 8px 0; font-weight: 600; color: #1a202c; text-align: right;">{user_name}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #718096; font-size: 13px; font-weight: 600; text-transform: uppercase;">Entity ID</td>
+                        <td style="padding: 8px 0; font-family: monospace; color: #1a202c; text-align: right;">{submission_id}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #718096; font-size: 13px; font-weight: 600; text-transform: uppercase;">Type</td>
+                        <td style="padding: 8px 0; font-weight: 600; color: #1a202c; text-align: right; text-transform: capitalize;">{transaction_type.replace('_', ' ')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #718096; font-size: 13px; font-weight: 600; text-transform: uppercase;">Submitted</td>
+                        <td style="padding: 8px 0; font-weight: 600; color: #1a202c; text-align: right;">{submitted_at}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <p style="font-size: 14px; color: #4a5568; font-weight: 600; text-align: center; margin-bottom: 20px;">
+                Decision Required: Shared Approval Level
+            </p>
+            
+            <div style="text-align: center; margin-top: 10px; margin-bottom: 40px;">
+                <a href="{approve_url}" style="padding: 15px 35px; background-color: #38a169; color: white; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 14px; margin-right: 15px; display: inline-block; box-shadow: 0 4px 6px rgba(56, 161, 105, 0.2);">
+                    APPROVE
                 </a>
-                <a href="{reject_url}" style="padding: 12px 24px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-                    Reject
+                <a href="{reject_url}" style="padding: 15px 35px; background-color: #e53e3e; color: white; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 4px 6px rgba(229, 62, 62, 0.2);">
+                    REJECT
                 </a>
             </div>
-            <p style="font-size: 14px; color: #888; text-align: center; margin-top: 30px;">
-                These links are secure and will expire. Do not share them.
+            
+            <p style="font-size: 12px; color: #a0aec0; text-align: center; line-height: 1.5; border-top: 1px solid #edf2f7; padding-top: 20px;">
+                Links expire in 30 mins. Clicking these will automatically process your decision.<br>
+                <b>System: NetSuite-ERP Integration Core</b>
             </p>
         </div>
     </div>

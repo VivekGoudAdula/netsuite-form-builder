@@ -31,7 +31,7 @@ async def get_forms(
 @router.get("/my", response_model=List[MyFormResponse])
 async def get_my_forms(current_user: dict = Depends(get_current_user)):
     """Fetch forms assigned to the current employee/customer."""
-    return await FormService.get_forms_for_user(str(current_user.get("_id")))
+    return await FormService.get_forms_for_user(current_user["id"])
 
 @router.get("/{formId}", response_model=FormResponse)
 async def get_form_by_id(formId: str, current_user: dict = Depends(get_current_user)):
@@ -89,7 +89,7 @@ async def get_my_form_details(
     current_user: dict = Depends(get_current_user)
 ):
     """Fetch detailed structure of an assigned form."""
-    return await FormService.get_form_for_user(formId, str(current_user.get("_id")))
+    return await FormService.get_form_for_user(formId, current_user["id"])
 
 @router.get("/{formId}/assigned-users", response_model=List[str])
 async def get_assigned_users(

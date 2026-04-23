@@ -26,7 +26,7 @@ export default function CustomerDashboardPage() {
   const assignedForms = forms;
 
   const getSubmissionStatus = (form: any) => {
-    return form.status?.toLowerCase() || 'pending';
+    return form.status?.toLowerCase() || 'not started';
   };
 
   const getStatusBadge = (status: string) => {

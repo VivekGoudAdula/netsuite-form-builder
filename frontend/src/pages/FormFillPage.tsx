@@ -64,9 +64,13 @@ export default function FormFillPage() {
 
   if (!form) return <div>Form not found or access denied.</div>;
 
-  if (form.status !== 'Not Started' || submissionResult) {
+  const isAlreadySubmitted = form.status && 
+    form.status.toLowerCase() !== 'not started' && 
+    form.status.toLowerCase() !== 'draft';
+
+  if (isAlreadySubmitted || submissionResult) {
     const status = submissionResult?.status || form.status;
-    const currentLevel = submissionResult?.currentLevel || 1;
+    const currentLevel = submissionResult?.currentLevel || form.currentLevel || 1;
 
     return (
       <CustomerLayout>

@@ -200,6 +200,8 @@ const mapBackendForm = (form: any): CustomForm => ({
   updatedAt: form.updatedAt,
   source: form.source || 'scratch',
   assignedTo: form.assignedTo || [],
+  currentLevel: form.currentLevel,
+  status: form.status,
   tabs: form.structure?.tabs?.map((t: any) => {
     const mapFields = (fields: any[]) => fields?.map((f: any) => ({
       id: f.fieldId,

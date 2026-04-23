@@ -36,7 +36,16 @@ async def trigger_workflow_level(submission: Dict[str, Any]):
     from .token_service import generate_action_token
     from .email_service import send_email, generate_email_html
     
+    db = get_database()
     for approver in approvers:
+        # Fetch user email from DB
+        user_doc = await db.users.find_one({"_id": ObjectId(approver["userId"])})
+        if not user_doc or not user_doc.get("email"):
+            print(f"Warning: Skipping email for {approver['name']} - No email found.")
+            continue
+            
+        to_email = user_doc["email"]
+
         approve_token = generate_action_token(
             submission["_id"], approver["userId"], "approve"
         )
@@ -50,15 +59,25 @@ async def trigger_workflow_level(submission: Dict[str, Any]):
 
         form_name = submission.get("formName", "Form Submission")
         user_name = submission.get("userName", "A user")
+        transaction_type = submission.get("transactionType", "Unknown")
+        submitted_at = submission.get("submittedAt")
+        if isinstance(submitted_at, datetime):
+            submitted_at = submitted_at.strftime("%Y-%m-%d %H:%M:%S UTC")
+        else:
+            submitted_at = str(submitted_at)
 
         html = generate_email_html(
             form_name,
             user_name,
+            transaction_type,
+            submitted_at,
+            str(submission["_id"]),
+            current_level,
             approve_url,
             reject_url
         )
 
-        await send_email(approver["email"], "Approval Required", html)
+        await send_email(to_email, "Approval Required", html)
 
 async def approve_submission(submission_id: str, user: Dict[str, Any]):
     db = get_database()
