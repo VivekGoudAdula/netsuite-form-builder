@@ -6,6 +6,7 @@ from ..database import get_database
 from ..schemas.form import FormCreate, FormUpdate, CloneFormRequest, AssignUsersRequest, FormSubmissionRequest
 from .activity import log_activity
 from .mock_netsuite_service import send_to_netsuite_mock
+from .workflow_engine import trigger_workflow_level
 
 class FormService:
     @staticmethod
@@ -219,16 +220,17 @@ class FormService:
             submission = await db.submissions.find_one({"formId": form_id, "userId": user_id})
             
             status = "Not Started"
+            current_level = None
             if submission:
-                # Map internal status to display status
-                db_status = submission.get("status", "submitted")
-                status = "Submitted" if db_status == "submitted" else "Failed"
+                status = submission.get("status", "pending")
+                current_level = submission.get("currentLevel")
             
             forms.append({
                 "id": form_id,
                 "name": form["name"],
                 "transactionType": form["transactionType"],
                 "status": status,
+                "currentLevel": current_level,
                 "updatedAt": form.get("updatedAt", form.get("createdAt")).strftime("%Y-%m-%d %H:%M:%S") if isinstance(form.get("updatedAt", form.get("createdAt")), datetime) else "N/A"
             })
             
@@ -257,6 +259,14 @@ class FormService:
             
         form["id"] = str(form["_id"])
         
+        # Inject submission status if exists
+        submission = await db.submissions.find_one({"formId": form_id, "userId": user_id})
+        if submission:
+            form["status"] = submission.get("status", "pending")
+            form["currentLevel"] = submission.get("currentLevel")
+        else:
+            form["status"] = "Not Started"
+
         await log_activity(
             user_id, 
             "VIEW_FORM", 
@@ -284,95 +294,111 @@ class FormService:
     async def submit_form(form_id: str, user: Dict[str, Any], values: Dict[str, Any]) -> Dict[str, Any]:
         db = get_database()
         user_id = user["id"]
+        company_id = user["companyId"]
         
-        # 1. Verify form exists and get its details
+        # STEP 1: Validate form + assignment (already exists in original but I'll refactor for the new logic)
         form = await db.forms.find_one({"_id": ObjectId(form_id)})
         if not form:
             raise HTTPException(status_code=404, detail="Form not found")
             
-        # 2. Verify user is assigned to the form
         if user_id not in form.get("assignedTo", []):
             raise HTTPException(
                 status_code=403, 
                 detail="Access denied. You are not assigned to this form."
             )
             
-        # 3. Prevent duplicate submissions
+        # Check for existing submission
         existing = await db.submissions.find_one({"formId": form_id, "userId": user_id})
         if existing:
             raise HTTPException(
                 status_code=400, 
-                detail="Form already submitted. Duplicate submissions are not allowed."
+                detail="Form already submitted and is currently in approval workflow."
             )
             
-        # 4. Validate mandatory fields
-        # Iterate through tabs -> fieldGroups -> fields AND sublists to find mandatory ones
-        mandatory_fields = []
-        for tab in form.get("structure", {}).get("tabs", []):
-            # Check standard field groups
-            for group in tab.get("fieldGroups", []):
-                for field in group.get("fields", []):
-                    if field.get("mandatory"):
-                        mandatory_fields.append(field["fieldId"])
-            
-            # Check item sublist
-            for field in tab.get("itemSublist", []):
-                if field.get("mandatory"):
-                    mandatory_fields.append(field["fieldId"])
-            
-            # Check expense sublist
-            for field in tab.get("expenseSublist", []):
-                if field.get("mandatory"):
-                    mandatory_fields.append(field["fieldId"])
-                        
-        missing_fields = [fid for fid in mandatory_fields if fid not in values or not values[fid]]
-        if missing_fields:
+        # STEP 2: Fetch workflow
+        workflow = await db.workflows.find_one({
+            "companyId": company_id
+        })
+
+        if not workflow:
             raise HTTPException(
-                status_code=400, 
-                detail=f"Mandatory fields missing: {', '.join(missing_fields)}"
+                status_code=400,
+                detail="Workflow not configured for this company. Please contact admin."
             )
-            
-        # 5. Integrated Mock NetSuite Service
-        ns_response = await send_to_netsuite_mock(values)
-        
-        # 6. Store submission metadata
+
+        if not workflow.get("levels") or len(workflow["levels"]) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Workflow must have at least 1 level defined."
+            )
+
+        # STEP 3: Build approvals structure
+        approvals = []
+        for level in workflow["levels"]:
+            if not level.get("approvers"):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Workflow level {level.get('level')} has no approvers."
+                )
+                
+            approvals.append({
+                "level": level["level"],
+                "status": "pending",
+                "approvers": [
+                    {
+                        "userId": u["userId"],
+                        "name": u["name"],
+                        "status": "pending",
+                        "actionAt": None
+                    }
+                    for u in level["approvers"]
+                ]
+            })
+
+        # STEP 4: Create submission
         submission = {
             "formId": form_id,
-            "formName": form.get("name"),
-            "userId": user_id,
-            "userName": user.get("name"),
-            "companyId": user.get("companyId") or form.get("companyId"),
-            "transactionType": form.get("transactionType"),
-            "status": "submitted" if ns_response["success"] else "failed",
+            "formName": form["name"],
+
+            "userId": user["id"],
+            "userName": user["name"],
+
+            "companyId": form["companyId"],
+            "transactionType": form["transactionType"],
+
+            "status": "pending",
+            "currentLevel": 1,
+
+            "workflowId": str(workflow["_id"]),
+
+            "approvals": approvals,
+
             "submittedAt": datetime.utcnow()
         }
-        
-        if ns_response["success"]:
-            submission["netsuiteId"] = ns_response["netsuiteId"]
-            activity_action = "SUBMISSION_SUCCESS"
-        else:
-            submission["errorMessage"] = ns_response["error"]
-            activity_action = "SUBMISSION_FAILED"
-        
+
+        # STEP 5: Save
         result = await db.submissions.insert_one(submission)
-        
-        # 7. Log activity
+        submission["_id"] = result.inserted_id
+
+        # STEP 6: Activity Log
         await log_activity(
-            user_id, 
-            activity_action, 
-            entity_id=form_id, 
-            entity_type="FORM",
+            user["id"],
+            "SUBMIT_FORM_WORKFLOW",
+            entity_id=str(result.inserted_id),
+            entity_type="SUBMISSION",
             metadata={
-                "transactionType": form.get("transactionType"),
-                "netsuiteId": submission.get("netsuiteId")
+                "formName": form["name"],
+                "companyId": form["companyId"]
             }
         )
-        
+
+        # STEP 7: Trigger Level 1 (placeholder for now)
+        await trigger_workflow_level(submission)
+
         return {
-            "message": "Form submission processed",
-            "status": submission["status"],
-            "netsuiteId": submission.get("netsuiteId"),
-            "error": submission.get("errorMessage")
+            "message": "Submitted for approval",
+            "status": "pending",
+            "currentLevel": 1
         }
 
     @staticmethod

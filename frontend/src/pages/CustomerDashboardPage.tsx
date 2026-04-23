@@ -30,17 +30,23 @@ export default function CustomerDashboardPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'submitted':
         return (
           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider border border-green-200">
             <CheckCircle2 size={10} /> Submitted
           </div>
         );
-      case 'progress':
+      case 'pending':
         return (
           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wider border border-amber-200">
-            <Clock size={10} /> In Progress
+            <Clock size={10} /> Pending
+          </div>
+        );
+      case 'failed':
+        return (
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold uppercase tracking-wider border border-red-200">
+            <AlertCircle size={10} /> Failed
           </div>
         );
       default:
@@ -111,7 +117,8 @@ export default function CustomerDashboardPage() {
               <TR>
                 <TH>Transaction Profile</TH>
                 <TH>Classification</TH>
-                <TH className="text-center">Workflow Status</TH>
+                <TH className="text-center">Status</TH>
+                <TH className="text-center">Current Level</TH>
                 <TH>Last Synchronized</TH>
                 <TH className="text-right px-6">Directives</TH>
               </TR>
@@ -142,18 +149,27 @@ export default function CustomerDashboardPage() {
                     <TD className="text-center">
                       {getStatusBadge(status)}
                     </TD>
+                    <TD className="text-center">
+                      {form.currentLevel ? (
+                        <span className="text-[11px] font-bold text-ns-blue bg-ns-blue/5 px-2 py-0.5 rounded-sm border border-ns-blue/10">
+                          Level {form.currentLevel}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-ns-text-muted italic">N/A</span>
+                      )}
+                    </TD>
                     <TD className="text-[11px] text-ns-text-muted font-semibold">
                       {form.updatedAt}
                     </TD>
                     <TD className="px-6 text-right">
-                      {isSubmitted ? (
+                      {status !== 'not started' ? (
                          <Button 
                             variant="secondary" 
                             size="sm" 
                             className="h-9 px-4 gap-2 text-[11px] opacity-60 cursor-not-allowed"
                             disabled
                           >
-                            <CheckCircle2 size={14} /> Submitted
+                            <CheckCircle2 size={14} /> Already Submitted
                           </Button>
                       ) : (
                         <Button 

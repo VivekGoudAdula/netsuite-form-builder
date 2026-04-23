@@ -534,10 +534,11 @@ export const useStore = create<AppState>((set, get) => ({
   submitForm: async (formId, values) => {
     set({ isLoading: true, error: null });
     try {
-      await api.post(`forms/${formId}/submit`, { values });
+      const response = await api.post(`forms/${formId}/submit`, { values });
       set({ isLoading: false });
       // Clear forms to trigger refetch of status
       get().fetchMyForms();
+      return response.data;
     } catch (err: any) {
       set({ error: err.response?.data?.detail || 'Submission failed', isLoading: false });
       throw err;
