@@ -19,10 +19,18 @@ async def send_email(to_email, subject, html_content):
     msg["To"] = to_email
 
     try:
-        # Port 587 with STARTTLS is generally more compatible with cloud environments like Render
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.set_debuglevel(1) # Enable debug output for clearer logs in production
-            server.starttls() # Secure the connection
+        # Force IPv4 to avoid [Errno 101] Network is unreachable issues on some cloud providers
+        import socket
+        
+        # Resolve to IPv4 specifically
+        addr_info = socket.getaddrinfo("smtp.gmail.com", 587, socket.AF_INET, socket.SOCK_STREAM)
+        target_ip = addr_info[0][4][0]
+        
+        with smtplib.SMTP(target_ip, 587) as server:
+            server.set_debuglevel(1)
+            server.ehlo() # Identify ourselves
+            server.starttls() # Upgrade to TLS
+            server.ehlo() # Re-identify after TLS
             server.login(SMTP_EMAIL, SMTP_PASSWORD)
             server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
     except Exception as e:
