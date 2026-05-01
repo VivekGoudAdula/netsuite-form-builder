@@ -19,11 +19,17 @@ async def send_email(to_email, subject, html_content):
     msg["To"] = to_email
 
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        # Port 587 with STARTTLS is generally more compatible with cloud environments like Render
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.set_debuglevel(1) # Enable debug output for clearer logs in production
+            server.starttls() # Secure the connection
             server.login(SMTP_EMAIL, SMTP_PASSWORD)
             server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
     except Exception as e:
         print(f"Failed to send email: {e}")
+        # Log more details if possible
+        if hasattr(e, 'args'):
+            print(f"Error args: {e.args}")
 
 def generate_email_html(form_name, user_name, transaction_type, submitted_at, submission_id, level, approve_url, reject_url):
     return f"""
