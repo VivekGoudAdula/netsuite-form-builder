@@ -178,7 +178,7 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
                       ...(selectedField.dataSource || { type: 'static' }), 
                       type: e.target.value as 'static' | 'api',
                       apiConfig: (e.target.value === 'api' && !selectedField.dataSource?.apiConfig) 
-                        ? { url: '/mock/customers', method: 'GET', labelKey: 'name', valueKey: 'id' }
+                        ? { url: '/api/netsuite/employees', method: 'GET', labelKey: 'label', valueKey: 'value' }
                         : selectedField.dataSource?.apiConfig
                     } 
                   })}
@@ -207,7 +207,7 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
                           apiConfig: { ...(selectedField.dataSource?.apiConfig || { method: 'GET', labelKey: 'name', valueKey: 'id' }), url: e.target.value } 
                         } 
                       })}
-                      placeholder="/mock/customers"
+                      placeholder="/api/netsuite/employees"
                       className="bg-white"
                     />
                   </div>

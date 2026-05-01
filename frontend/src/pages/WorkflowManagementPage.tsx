@@ -60,10 +60,12 @@ export default function WorkflowManagementPage() {
           if (existingWorkflow) {
             setWorkflowName(existingWorkflow.name);
             setLevels(existingWorkflow.levels);
+            showNotification('Existing approval strategy loaded', 'success');
+          } else {
+            showNotification('No active workflow found. Starting fresh configuration.', 'info');
           }
         } catch (err) {
-          // Workflow might not exist yet, which is fine
-          console.log('No existing workflow found or error fetching it');
+          showNotification('Ready for initial workflow configuration.', 'info');
         }
       } catch (error) {
         showNotification('Failed to load workflow data', 'error');

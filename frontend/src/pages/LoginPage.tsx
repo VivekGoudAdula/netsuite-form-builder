@@ -9,8 +9,8 @@ export default function LoginPage() {
   const { login, user, isLoading, error: storeError, forgotPassword } = useStore();
   
   // Login State
-  const [email, setEmail] = React.useState('admin@netsuiteform.com');
-  const [password, setPassword] = React.useState('Admin@123');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
   
   // Forgot Password State
   const [isForgotMode, setIsForgotMode] = React.useState(false);

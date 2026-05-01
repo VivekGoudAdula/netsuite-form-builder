@@ -18,7 +18,7 @@ from app.config import settings
 MONGO_URI = settings.MONGO_URI
 DB_NAME = settings.DB_NAME
 
-def create_field(internal_id, label, type, trans_type="purchase_order", section="body", sub_section=None, group="Primary Information", tab="Main", required=False, nlapi=False, ds=None, help_text=None):
+def create_field(internal_id, label, type, trans_type="purchase_order", section="body", sub_section=None, group="Primary Information", tab="Main", required=False, nlapi=False, ds=None, help_text=None, default_value=""):
     field = {
         "internalId": internal_id,
         "label": label,
@@ -34,6 +34,7 @@ def create_field(internal_id, label, type, trans_type="purchase_order", section=
         "displayOrder": 100,
         "origin": "system",
         "helpText": help_text,
+        "defaultValue": default_value,
         "createdAt": datetime.now(timezone.utc),
         "updatedAt": datetime.now(timezone.utc)
     }
@@ -44,33 +45,33 @@ def create_field(internal_id, label, type, trans_type="purchase_order", section=
 # SECURE PO FIELDS (Strictly following the 77-field Body list + Sublists)
 PO_FIELDS = [
     # --- PRIMARY INFORMATION (TAB: MAIN) ---
-    create_field("customform", "Custom Form", "select", group="Primary Information", tab="Main", required=True, ds={"type": "api", "apiConfig": {"url": "/mock/custom-forms", "method": "GET", "labelKey": "name", "valueKey": "id"}}),
-    create_field("entity", "Vendor", "select", group="Primary Information", tab="Main", required=True, ds={"type": "api", "apiConfig": {"url": "/mock/vendors", "method": "GET", "labelKey": "name", "valueKey": "id"}}),
+    create_field("customform", "Custom Form", "select", group="Primary Information", tab="Main", required=True),
+    create_field("entity", "Vendor", "select", group="Primary Information", tab="Main", required=True),
     create_field("otherrefnum", "Vendor #", "text", group="Primary Information", tab="Main"),
-    create_field("employee", "Employee", "select", group="Primary Information", tab="Main", ds={"type": "api", "apiConfig": {"url": "/mock/employees", "method": "GET", "labelKey": "name", "valueKey": "id"}}),
+    create_field("employee", "Employee", "select", group="Primary Information", tab="Main", ds={"type": "api", "apiConfig": {"url": "/api/netsuite/employees", "method": "GET", "labelKey": "label", "valueKey": "value"}}),
     create_field("trandate", "Date", "date", group="Primary Information", tab="Main", required=True),
     create_field("tranid", "PO #", "text", group="Primary Information", tab="Main"),
     create_field("duedate", "Receive By", "date", group="Primary Information", tab="Main"),
     create_field("memo", "Memo", "text", group="Primary Information", tab="Main", nlapi=True),
-    create_field("approvalstatus", "Approval Status", "select", group="Primary Information", tab="Main", ds={"type": "api", "apiConfig": {"url": "/mock/approval-status", "method": "GET", "labelKey": "name", "valueKey": "id"}}),
-    create_field("nextapprover", "Next Approver", "select", group="Primary Information", tab="Main", ds={"type": "api", "apiConfig": {"url": "/mock/employees", "method": "GET", "labelKey": "name", "valueKey": "id"}}),
+    create_field("approvalstatus", "Approval Status", "select", group="Primary Information", tab="Main", ds={"type": "static", "options": [{"label": "Pending Approval", "value": "1"}, {"label": "Approved", "value": "2"}, {"label": "Rejected", "value": "3"}]}, default_value="1"),
+    create_field("nextapprover", "Next Approver", "select", group="Primary Information", tab="Main"),
     create_field("supervisorapproval", "Supervisor Approval", "checkbox", group="Primary Information", tab="Main"),
     create_field("message", "Vendor Message", "textarea", group="Primary Information", tab="Main"),
     create_field("email", "Email", "emails", group="Primary Information", tab="Main", nlapi=True),
     create_field("tobeemailed", "To Be E-mailed", "checkbox", group="Primary Information", tab="Main"),
     create_field("tobefaxed", "To Be Faxed", "checkbox", group="Primary Information", tab="Main"),
     create_field("tobeprinted", "To Be Printed", "checkbox", group="Primary Information", tab="Main", nlapi=True),
-    create_field("createdfrom", "Created From", "select", group="Primary Information", tab="Main", ds={"type": "api", "apiConfig": {"url": "/mock/transactions", "method": "GET", "labelKey": "name", "valueKey": "id"}}),
+    create_field("createdfrom", "Created From", "select", group="Primary Information", tab="Main"),
 
     # --- CLASSIFICATION (TAB: MAIN) ---
-    create_field("subsidiary", "Subsidiary", "select", group="Classification", tab="Main", ds={"type": "api", "apiConfig": {"url": "/mock/subsidiaries", "method": "GET", "labelKey": "name", "valueKey": "id"}}),
-    create_field("department", "Department", "select", group="Classification", tab="Main", ds={"type": "api", "apiConfig": {"url": "/mock/departments", "method": "GET", "labelKey": "name", "valueKey": "id"}}),
-    create_field("class", "Class", "select", group="Classification", tab="Main", ds={"type": "api", "apiConfig": {"url": "/mock/classifications", "method": "GET", "labelKey": "name", "valueKey": "id"}}),
-    create_field("location", "Location", "select", group="Classification", tab="Main", ds={"type": "api", "apiConfig": {"url": "/mock/locations", "method": "GET", "labelKey": "name", "valueKey": "id"}}),
+    create_field("subsidiary", "Subsidiary", "select", group="Classification", tab="Main"),
+    create_field("department", "Department", "select", group="Classification", tab="Main"),
+    create_field("class", "Class", "select", group="Classification", tab="Main"),
+    create_field("location", "Location", "select", group="Classification", tab="Main"),
 
     # --- SHIPPING (TAB: SHIPPING) ---
     create_field("shipdate", "Ship Date", "date", group="Shipping", tab="Shipping"),
-    create_field("shipmethod", "Ship Via", "select", group="Shipping", tab="Shipping", ds={"type": "api", "apiConfig": {"url": "/mock/shipping-methods", "method": "GET", "labelKey": "name", "valueKey": "id"}}),
+    create_field("shipmethod", "Ship Via", "select", group="Shipping", tab="Shipping"),
     create_field("shipto", "Ship To", "select", group="Shipping", tab="Shipping", help_text="Select the customer you are shipping this order to."),
     create_field("shipaddress", "Ship To", "address", group="Shipping", tab="Shipping"),
     create_field("shippingaddress", "Shipping Address Summary", "summary", group="Shipping", tab="Shipping"),
@@ -124,8 +125,8 @@ PO_FIELDS = [
     create_field("entitynexus", "Nexus", "select", group="Tax Details", tab="Tax Details", help_text="Entity Nexus mapping"),
 
     # --- SYSTEM INFORMATION (TAB: MAIN / HIDDEN) ---
-    create_field("status", "Status", "text", group="System Information", tab="Main"),
-    create_field("statusRef", "Status Reference", "text", group="System Information", tab="Main"),
+    create_field("status", "Status", "select", group="System Information", tab="Main", ds={"type": "static", "options": [{"label": "Pending Approval", "value": "1"}, {"label": "Approved", "value": "2"}, {"label": "Rejected", "value": "3"}]}, default_value="1"),
+    create_field("statusRef", "Status Reference", "select", group="System Information", tab="Main", ds={"type": "static", "options": [{"label": "Pending Approval", "value": "1"}, {"label": "Approved", "value": "2"}, {"label": "Rejected", "value": "3"}]}, default_value="1"),
     create_field("orderstatus", "Order Status", "text", group="System Information", tab="Main"),
     create_field("source", "Source", "text", group="System Information", tab="Main"),
     create_field("externalid", "ExternalId", "text", group="System Information", tab="Main"),

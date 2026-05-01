@@ -145,7 +145,7 @@ export default function FormsPage() {
           </THead>
           <TBody>
             {filteredForms.map((form) => {
-              const company = companies.find(c => c.id === form.companyId);
+              const company = companies.find(c => c.id === form.customerId);
               return (
                 <TR key={form.id} className="group transition-all hover:bg-ns-light-blue/10">
                   <TD className="py-4">

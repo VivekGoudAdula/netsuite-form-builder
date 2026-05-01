@@ -6,6 +6,7 @@ from ..database import get_database
 from ..schemas.form import FormCreate, FormUpdate, CloneFormRequest, AssignUsersRequest, FormSubmissionRequest
 from .activity import log_activity
 from .mock_netsuite_service import send_to_netsuite_mock
+from .netsuite_service import send_to_netsuite
 from .workflow_engine import trigger_workflow_level
 
 class FormService:
@@ -503,19 +504,33 @@ class FormService:
         if submission["status"] == "submitted":
             raise HTTPException(status_code=400, detail="Submission already successfully processed")
             
-        ns_response = await send_to_netsuite_mock({}) # Payload is empty as we don't store values
+        payload = {
+            "firstname": submission.get("values", {}).get("firstName", ""),
+            "lastname": submission.get("values", {}).get("lastName", ""),
+            "email": submission.get("values", {}).get("email", ""),
+            "subsidiary": 1,
+            "submissionId": submission_id,
+            "formName": submission.get("formName")
+        }
+        
+        ns_response = send_to_netsuite(payload)
+        
+        # In our service, success is determined by status field
+        is_success = ns_response.get("status") == "success"
         
         update_data = {
-            "status": "submitted" if ns_response["success"] else "failed",
+            "status": "submitted" if is_success else "failed",
             "updatedAt": datetime.utcnow()
         }
         
-        if ns_response["success"]:
-            update_data["netsuiteId"] = ns_response["netsuiteId"]
+        if is_success:
+            update_data["netsuiteId"] = ns_response.get("netsuiteId")
             update_data["errorMessage"] = None
+            update_data["netsuiteResponse"] = ns_response
             activity_action = "RETRY_SUBMISSION_SUCCESS"
         else:
-            update_data["errorMessage"] = ns_response["error"]
+            update_data["errorMessage"] = ns_response.get("message", "Unknown NetSuite error")
+            update_data["netsuiteResponse"] = ns_response
             activity_action = "RETRY_SUBMISSION_FAILED"
             
         await db.submissions.update_one(

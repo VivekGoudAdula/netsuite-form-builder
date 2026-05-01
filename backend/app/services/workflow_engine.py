@@ -3,6 +3,7 @@ from datetime import datetime
 from bson import ObjectId
 from ..database import get_database
 from .activity import log_activity
+from .netsuite_service import send_to_netsuite
 import os
 from dotenv import load_dotenv
 
@@ -151,6 +152,23 @@ async def approve_submission(submission_id: str, user: Dict[str, Any]):
     else:
         submission["status"] = "approved"
         # Trigger NetSuite (Phase 5)
+        payload = {
+            "firstname": submission.get("values", {}).get("firstName", ""),
+            "lastname": submission.get("values", {}).get("lastName", ""),
+            "email": submission.get("values", {}).get("email", ""),
+            "subsidiary": 1,
+            "submissionId": submission_id,
+            "formName": submission.get("formName")
+        }
+        
+        ns_response = send_to_netsuite(payload)
+        
+        if ns_response.get("status") == "success":
+            submission["status"] = "submitted"
+            submission["netsuiteResponse"] = ns_response
+        else:
+            submission["status"] = "failed"
+            submission["netsuiteError"] = ns_response.get("message")
         
     await db.submissions.update_one(
         {"_id": ObjectId(submission_id)},
@@ -158,7 +176,9 @@ async def approve_submission(submission_id: str, user: Dict[str, Any]):
             "$set": {
                 "approvals": submission["approvals"],
                 "currentLevel": submission["currentLevel"],
-                "status": submission["status"]
+                "status": submission["status"],
+                "netsuiteResponse": submission.get("netsuiteResponse"),
+                "netsuiteError": submission.get("netsuiteError")
             }
         }
     )

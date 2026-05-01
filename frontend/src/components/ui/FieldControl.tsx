@@ -65,11 +65,6 @@ export function FieldControl({
           const baseUrl = 'http://localhost:8000'; // Target the backend
           let url = dataSource.apiConfig.url;
           
-          // Fix legacy or incorrect mock URLs that lack the /api prefix
-          if (url.startsWith('/mock/')) {
-            url = `/api${url}`;
-          }
-          
           const response = await fetch(`${baseUrl}${url}`);
           const data = await response.json();
           

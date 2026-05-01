@@ -8,6 +8,17 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "supersecretkey"
     JWT_EXPIRE_MINUTES: int = 60
 
+    NETSUITE_BASE_URL: str = "https://6738288-sb1.restlets.api.netsuite.com"
+    NETSUITE_GET_SCRIPT: str = "customscript_rg_get_rest_pai"
+    NETSUITE_POST_SCRIPT: str = "customscript_rg_post_rest_pai"
+    NETSUITE_DEPLOY: str = "1"
+
+    NETSUITE_CONSUMER_KEY: str = ""
+    NETSUITE_CONSUMER_SECRET: str = ""
+    NETSUITE_TOKEN: str = ""
+    NETSUITE_TOKEN_SECRET: str = ""
+    NETSUITE_REALM: str = "6738288_SB1"
+
     class Config:
         env_file = str(Path(__file__).parent.parent.parent / ".env")
         extra = "ignore"

@@ -16,9 +16,11 @@ import {
   ToggleRight,
   Trash2,
   Lock,
-  Plus
+  Plus,
+  AlertCircle
 } from 'lucide-react';
 import { UserRole, User } from '../types';
+import { cn } from '../lib/utils';
 
 export default function StaffManagementPage() {
   const { user: currentUser, users, fetchUsers, companies, fetchCompanies, addUser, deleteUser, updateUserStatus } = useStore();
@@ -36,6 +38,7 @@ export default function StaffManagementPage() {
   const [newUserEmpId, setNewUserEmpId] = React.useState('');
   const [newUserJobTitle, setNewUserJobTitle] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     fetchUsers();
@@ -59,6 +62,7 @@ export default function StaffManagementPage() {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setErrorMsg(null);
     try {
       await addUser({
         name: newUserName,
@@ -71,8 +75,9 @@ export default function StaffManagementPage() {
       });
       setIsAddModalOpen(false);
       resetForm();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setErrorMsg(err.message || 'Failed to authorize personnel.');
     } finally {
       setIsSubmitting(false);
     }
@@ -86,6 +91,7 @@ export default function StaffManagementPage() {
     setNewUserCompany('');
     setNewUserEmpId('');
     setNewUserJobTitle('');
+    setErrorMsg(null);
   };
 
   const getRoleBadge = (role: UserRole) => {
@@ -197,7 +203,7 @@ export default function StaffManagementPage() {
                   </td>
                   <td className="px-6 py-4">
                     <p className="text-sm font-bold text-ns-navy">{u.jobTitle || 'N/A'}</p>
-                    <p className="text-[10px] text-ns-text-muted font-mono uppercase tracking-tighter">{u.empId || 'No ID'}</p>
+                    <p className="text-[10px] text-ns-text-muted font-mono uppercase tracking-tighter">{u.employeeId || 'No ID'}</p>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1.5">
@@ -268,12 +274,19 @@ export default function StaffManagementPage() {
                 <UserPlus size={18} className="text-ns-blue" />
                 New Personnel Authorization
               </h3>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-ns-text-muted hover:text-ns-navy">
+              <button onClick={() => { setIsAddModalOpen(false); setErrorMsg(null); }} className="text-ns-text-muted hover:text-ns-navy">
                 <XCircle size={20} />
               </button>
             </div>
             
             <form onSubmit={handleAddUser} className="p-6 space-y-4">
+              {errorMsg && (
+                <div className="p-3 bg-red-50 border border-red-200 text-[11px] text-red-600 rounded-sm font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                  <AlertCircle size={14} />
+                  {errorMsg}
+                </div>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <label className="block text-[10px] font-bold text-ns-navy uppercase tracking-widest mb-1">Full Name</label>
@@ -381,7 +394,7 @@ export default function StaffManagementPage() {
               <div className="pt-4 border-t border-ns-border flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
+                  onClick={() => { setIsAddModalOpen(false); setErrorMsg(null); }}
                   className="px-4 py-2 text-xs font-bold text-ns-text-muted hover:text-ns-navy uppercase tracking-widest"
                 >
                   Cancel
@@ -400,8 +413,4 @@ export default function StaffManagementPage() {
       )}
     </AdminLayout>
   );
-}
-
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(' ');
 }
