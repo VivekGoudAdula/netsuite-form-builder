@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { sortItemSublistFields } from '../lib/netsuiteMasterData';
+import { buildItemRowAutoFill } from '../lib/itemAutoFill';
+import type { ItemOption } from '../types';
 import {
   buildSubmissionValues,
   findLineItemsMissingHsnWhenTaxSet,
@@ -115,6 +117,25 @@ export default function FormFillPage() {
 
   const handleInputChange = (fieldId: string, value: any) => {
     setFormValues(prev => ({ ...prev, [fieldId]: value }));
+  };
+
+  const handleItemSublistChange = (
+    tabItemSublist: typeof form.tabs[0]['itemSublist'],
+    rowIndex: number,
+    fieldId: string,
+    value: any,
+    item?: ItemOption,
+  ) => {
+    const key = itemSublistRowKey(rowIndex, fieldId);
+    if (fieldId.toLowerCase() === 'item' && item) {
+      setFormValues(prev => {
+        const next = { ...prev, [key]: value };
+        const updates = buildItemRowAutoFill(item, tabItemSublist || [], rowIndex);
+        return { ...next, ...updates };
+      });
+      return;
+    }
+    handleInputChange(key, value);
   };
 
   const handleSubmit = async () => {
@@ -325,7 +346,8 @@ export default function FormFillPage() {
                                   key={field.id}
                                   className={cn(
                                     'px-2 py-2 align-top',
-                                    field.dataSource?.type === 'netsuite_hsn'
+                                    field.dataSource?.type === 'netsuite_hsn' ||
+                                    field.dataSource?.type === 'netsuite_item_live'
                                       ? 'min-w-[280px]'
                                       : 'min-w-[120px]',
                                   )}
@@ -334,7 +356,26 @@ export default function FormFillPage() {
                                     fieldId={field.id}
                                     fieldType={field.type}
                                     value={formValues[itemSublistRowKey(0, field.id)]}
-                                    onChange={(val) => handleInputChange(itemSublistRowKey(0, field.id), val)}
+                                    onChange={val =>
+                                      handleItemSublistChange(
+                                        tab.itemSublist,
+                                        0,
+                                        field.id,
+                                        val,
+                                      )
+                                    }
+                                    onItemMasterSelect={
+                                      field.id.toLowerCase() === 'item'
+                                        ? item =>
+                                            handleItemSublistChange(
+                                              tab.itemSublist,
+                                              0,
+                                              field.id,
+                                              item.internalId,
+                                              item,
+                                            )
+                                        : undefined
+                                    }
                                     label={field.label}
                                     dataSource={field.dataSource}
                                     preview={false}

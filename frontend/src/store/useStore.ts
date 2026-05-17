@@ -15,6 +15,10 @@ import {
   HSNSyncSummary,
   LocationRow,
   LocationSyncSummary,
+  TaxNatureOption,
+  ClassOption,
+  AccountOption,
+  ItemOption,
 } from '../types';
 import { getCurrencies, syncCurrencies as postSyncCurrencies } from '../services/currencyService';
 import {
@@ -27,13 +31,33 @@ import {
   searchLocations as searchLocationsApi,
   syncLocations as postSyncLocations,
 } from '../services/locationService';
+import {
+  fetchTaxNature as getTaxNatureLive,
+  searchTaxNature as searchTaxNatureApi,
+} from '../services/taxNatureService';
+import {
+  fetchClasses as getClassesPage,
+  searchClasses as searchClassesApi,
+} from '../services/classService';
+import {
+  fetchAccounts as getAccountsPage,
+  searchAccounts as searchAccountsApi,
+} from '../services/accountService';
+import {
+  fetchItems as getItemsPage,
+  searchItems as searchItemsApi,
+} from '../services/itemService';
 import { isEmployeesApiUrl } from '../lib/fieldDataSourceOptions';
 import {
-  createHsnLineItemField,
-  isHsnLineFieldId,
+  isDedicatedHsnFieldId,
   NETSUITE_HSN_DATA_SOURCE,
   NETSUITE_LOCATION_DATA_SOURCE,
-  applyLocationFieldDataSource,
+  NETSUITE_TAX_NATURE_DATA_SOURCE,
+  NETSUITE_DEPARTMENT_DATA_SOURCE,
+  NETSUITE_CLASS_DATA_SOURCE,
+  NETSUITE_ACCOUNT_DATA_SOURCE,
+  NETSUITE_ITEM_DATA_SOURCE,
+  applyFormFieldDataSource,
   sortItemSublistFields,
 } from '../lib/netsuiteMasterData';
 
@@ -73,7 +97,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
   purchase_order: { 
     name: 'Purchase Order', 
     tabs: ['Main', 'Shipping', 'Billing', 'Tax Details', 'Items'], 
-    fieldGroups: ['Primary Information', 'Classification', 'Shipping', 'Billing', 'Tax Details', 'System Information', 'Line Items', 'Expenses'], 
+    fieldGroups: ['Primary Information', 'Classification', 'Shipping', 'Billing', 'Tax Details', 'India Tax Information', 'System Information', 'Line Items', 'Expenses'], 
     fields: [
       // --- PRIMARY INFORMATION ---
       mapNetSuiteField('customform', 'Custom Form', 'select', 'Primary Information', 'Main', true, 'body', null),
@@ -102,8 +126,30 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
 
       // --- CLASSIFICATION ---
       mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null),
-      mapNetSuiteField('department', 'Department', 'select', 'Classification', 'Main', false, 'body', null),
-      mapNetSuiteField('class', 'Class', 'select', 'Classification', 'Main', false, 'body', null),
+      mapNetSuiteField(
+        'department',
+        'Department',
+        'select',
+        'Classification',
+        'Main',
+        false,
+        'body',
+        null,
+        { ...NETSUITE_DEPARTMENT_DATA_SOURCE },
+        'NetSuite department (Classification)',
+      ),
+      mapNetSuiteField(
+        'class',
+        'Class',
+        'select',
+        'Classification',
+        'Main',
+        false,
+        'body',
+        null,
+        { ...NETSUITE_CLASS_DATA_SOURCE },
+        'NetSuite class (Classification)',
+      ),
       mapNetSuiteField(
         'location',
         'Location',
@@ -179,6 +225,18 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
       // --- TAX DETAILS ---
       mapNetSuiteField('nexus', 'Nexus', 'select', 'Tax Details', 'Tax Details', false, 'body', null),
       mapNetSuiteField('entitynexus', 'Nexus Reference', 'select', 'Tax Details', 'Tax Details', false, 'body', null),
+      mapNetSuiteField(
+        'taxnature',
+        'India Tax Nature',
+        'select',
+        'India Tax Information',
+        'Tax Details',
+        false,
+        'body',
+        null,
+        { ...NETSUITE_TAX_NATURE_DATA_SOURCE },
+        'India GST tax nature classification from NetSuite',
+      ),
 
       // --- SYSTEM INFO ---
       mapNetSuiteField('status', 'Status', 'select', 'System Information', 'Main', false, 'body', null, { type: 'static', options: [{ label: 'Pending Approval', value: '1' }, { label: 'Approved', value: '2' }, { label: 'Rejected', value: '3' }] }),
@@ -189,11 +247,24 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
       mapNetSuiteField('createddate', 'Created Date', 'datetime', 'System Information', 'Main'),
       mapNetSuiteField('lastmodifieddate', 'Last Modified Date', 'datetime', 'System Information', 'Main'),
 
-      // --- ITEMS (SUBLIST) — HSN is item-level tax classification only ---
-      mapNetSuiteField('item', 'Item', 'select', 'Line Items', 'Items', true, 'sublist', 'item'),
+      // --- ITEMS (SUBLIST) — Tax Code uses live NetSuite HSN master lookup ---
       mapNetSuiteField(
-        'hsncode',
-        'HSN Code',
+        'item',
+        'Item',
+        'select',
+        'Line Items',
+        'Items',
+        true,
+        'sublist',
+        'item',
+        { ...NETSUITE_ITEM_DATA_SOURCE },
+        'NetSuite item (live lookup)',
+      ),
+      mapNetSuiteField('quantity', 'Quantity', 'float', 'Line Items', 'Items', true, 'sublist', 'item'),
+      mapNetSuiteField('rate', 'Rate', 'currency', 'Line Items', 'Items', true, 'sublist', 'item'),
+      mapNetSuiteField(
+        'taxcode',
+        'Tax Code',
         'select',
         'Line Items',
         'Items',
@@ -201,25 +272,56 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
         'sublist',
         'item',
         { ...NETSUITE_HSN_DATA_SOURCE },
-        'GST / item tax classification from NetSuite HSN master',
+        'HSN / tax classification from NetSuite (live lookup)',
       ),
-      mapNetSuiteField('quantity', 'Quantity', 'float', 'Line Items', 'Items', true, 'sublist', 'item'),
-      mapNetSuiteField('rate', 'Rate', 'currency', 'Line Items', 'Items', true, 'sublist', 'item'),
-      mapNetSuiteField('taxcode', 'Tax Code', 'select', 'Line Items', 'Items', false, 'sublist', 'item'),
       mapNetSuiteField('amount', 'Amount', 'currency', 'Line Items', 'Items', true, 'sublist', 'item'),
       mapNetSuiteField('units', 'Units', 'select', 'Line Items', 'Items', false, 'sublist', 'item'),
       mapNetSuiteField('description', 'Description', 'text', 'Line Items', 'Items', false, 'sublist', 'item'),
+      mapNetSuiteField('gstrate', 'GST Rate', 'text', 'Line Items', 'Items', false, 'sublist', 'item'),
       mapNetSuiteField('taxrate1', 'Tax Rate', 'percent', 'Line Items', 'Items', false, 'sublist', 'item'),
       mapNetSuiteField('taxamount1', 'Tax Amount', 'currency', 'Line Items', 'Items', false, 'sublist', 'item'),
       mapNetSuiteField('expectedreceivedate', 'Expected Receipt Date', 'date', 'Line Items', 'Items', false, 'sublist', 'item'),
 
       // --- EXPENSES (SUBLIST) ---
       mapNetSuiteField('category', 'Category', 'select', 'Expenses', 'Items', false, 'sublist', 'expense'),
-      mapNetSuiteField('account', 'Account', 'select', 'Expenses', 'Items', true, 'sublist', 'expense'),
+      mapNetSuiteField(
+        'account',
+        'Account',
+        'select',
+        'Expenses',
+        'Items',
+        true,
+        'sublist',
+        'expense',
+        { ...NETSUITE_ACCOUNT_DATA_SOURCE },
+        'NetSuite GL account (expense line)',
+      ),
       mapNetSuiteField('amount_expense', 'Amount', 'currency', 'Expenses', 'Items', true, 'sublist', 'expense'),
       mapNetSuiteField('memo_expense', 'Memo', 'text', 'Expenses', 'Items', false, 'sublist', 'expense'),
-      mapNetSuiteField('department_expense', 'Department', 'select', 'Expenses', 'Items', false, 'sublist', 'expense'),
-      mapNetSuiteField('class_expense', 'Class', 'select', 'Expenses', 'Items', false, 'sublist', 'expense'),
+      mapNetSuiteField(
+        'department_expense',
+        'Department',
+        'select',
+        'Expenses',
+        'Items',
+        false,
+        'sublist',
+        'expense',
+        { ...NETSUITE_DEPARTMENT_DATA_SOURCE },
+        'NetSuite department (expense line)',
+      ),
+      mapNetSuiteField(
+        'class_expense',
+        'Class',
+        'select',
+        'Expenses',
+        'Items',
+        false,
+        'sublist',
+        'expense',
+        { ...NETSUITE_CLASS_DATA_SOURCE },
+        'NetSuite class (expense line)',
+      ),
       mapNetSuiteField(
         'location_expense',
         'Location',
@@ -245,7 +347,18 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
       mapNetSuiteField('trandate', 'Date', 'date', 'Primary Information', 'Main', true),
       mapNetSuiteField('tranid', 'Order #', 'text', 'Primary Information', 'Main'),
       mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null),
-      mapNetSuiteField('item', 'Item', 'select', 'Line Items', 'Items', true, 'sublist', 'item'),
+      mapNetSuiteField(
+        'item',
+        'Item',
+        'select',
+        'Line Items',
+        'Items',
+        true,
+        'sublist',
+        'item',
+        { ...NETSUITE_ITEM_DATA_SOURCE },
+        'NetSuite item (live lookup)',
+      ),
       mapNetSuiteField('quantity', 'Quantity', 'float', 'Line Items', 'Items', true, 'sublist', 'item'),
     ] 
   },
@@ -267,7 +380,18 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
     fields: [
       mapNetSuiteField('entity', 'Customer', 'select', 'Primary Information', 'Main', true, 'body', null),
       mapNetSuiteField('trandate', 'Date', 'date', 'Primary Information', 'Main', true),
-      mapNetSuiteField('item', 'Item', 'select', 'Line Items', 'Items', true, 'sublist', 'item'),
+      mapNetSuiteField(
+        'item',
+        'Item',
+        'select',
+        'Line Items',
+        'Items',
+        true,
+        'sublist',
+        'item',
+        { ...NETSUITE_ITEM_DATA_SOURCE },
+        'NetSuite item (live lookup)',
+      ),
     ] 
   },
 };
@@ -325,6 +449,76 @@ function normalizeFieldDataSource(ds: any): any {
       },
     };
   }
+  if (ds.type === 'netsuite_tax_nature_live') {
+    return {
+      type: 'netsuite_tax_nature_live',
+      endpoint: ds.endpoint || 'tax-nature/search',
+      apiConfig: {
+        method: 'GET',
+        labelKey: 'name',
+        valueKey: 'name',
+        searchKey: 'name',
+        ...ds.apiConfig,
+        url: ds.apiConfig?.url || 'tax-nature/search',
+      },
+    };
+  }
+  if (ds.type === 'netsuite_department') {
+    return {
+      type: 'netsuite_department',
+      endpoint: ds.endpoint || 'departments/',
+      apiConfig: {
+        method: 'GET',
+        labelKey: 'name',
+        valueKey: 'internalId',
+        searchKey: 'name',
+        ...ds.apiConfig,
+        url: ds.apiConfig?.url || 'departments/',
+      },
+    };
+  }
+  if (ds.type === 'netsuite_class_live') {
+    return {
+      type: 'netsuite_class_live',
+      endpoint: ds.endpoint || 'classes/',
+      apiConfig: {
+        method: 'GET',
+        labelKey: 'name',
+        valueKey: 'internalId',
+        searchKey: 'name',
+        ...ds.apiConfig,
+        url: ds.apiConfig?.url || 'classes/',
+      },
+    };
+  }
+  if (ds.type === 'netsuite_account_live') {
+    return {
+      type: 'netsuite_account_live',
+      endpoint: ds.endpoint || 'accounts/search',
+      apiConfig: {
+        method: 'GET',
+        labelKey: 'name',
+        valueKey: 'internalId',
+        searchKey: 'name',
+        ...ds.apiConfig,
+        url: ds.apiConfig?.url || 'accounts/search',
+      },
+    };
+  }
+  if (ds.type === 'netsuite_item_live') {
+    return {
+      type: 'netsuite_item_live',
+      endpoint: ds.endpoint || 'items/search',
+      apiConfig: {
+        method: 'GET',
+        labelKey: 'displayName',
+        valueKey: 'internalId',
+        searchKey: 'displayName',
+        ...ds.apiConfig,
+        url: ds.apiConfig?.url || 'items/search',
+      },
+    };
+  }
   if (ds.type === 'api' && isEmployeesApiUrl(ds.apiConfig?.url)) {
     return {
       type: 'netsuite_employees',
@@ -340,18 +534,15 @@ function normalizeFieldDataSource(ds: any): any {
   return ds;
 }
 
-function ensurePoItemSublistHsn(tabs: Tab[], transactionType: TransactionType): Tab[] {
+/** Drop duplicate legacy HSN column when Tax Code already carries HSN lookup. */
+function normalizePoItemSublist(tabs: Tab[], transactionType: TransactionType): Tab[] {
   if (transactionType !== 'purchase_order') return tabs;
   return tabs.map(tab => {
     if (tab.name !== 'Items' || !tab.itemSublist?.length) return tab;
-    let list = tab.itemSublist;
-    if (!list.some(f => isHsnLineFieldId(f.id))) {
-      const itemIdx = list.findIndex(f => f.id === 'item');
-      const hsn = createHsnLineItemField();
-      const next = [...list];
-      next.splice(itemIdx >= 0 ? itemIdx + 1 : 0, 0, hsn);
-      list = next;
-    }
+    const hasTaxCode = tab.itemSublist.some(f => f.id.toLowerCase() === 'taxcode');
+    const list = tab.itemSublist
+      .filter(f => !(hasTaxCode && isDedicatedHsnFieldId(f.id)))
+      .map(f => applyFormFieldDataSource(f));
     return { ...tab, itemSublist: sortItemSublistFields(list) };
   });
 }
@@ -362,7 +553,7 @@ const mapBackendForm = (form: any): CustomForm => {
     form.structure?.tabs?.map((t: any) => {
       const mapFields = (fields: any[]): Field[] =>
         fields?.map((f: any) =>
-          applyLocationFieldDataSource({
+          applyFormFieldDataSource({
             id: f.fieldId,
             label: f.label,
             visible: f.visible,
@@ -407,7 +598,7 @@ const mapBackendForm = (form: any): CustomForm => {
   assignedTo: form.assignedTo || [],
   currentLevel: form.currentLevel,
   status: form.status,
-  tabs: ensurePoItemSublistHsn(tabs, form.transactionType),
+  tabs: normalizePoItemSublist(tabs, form.transactionType),
 };
 };
 
@@ -559,6 +750,20 @@ export const useStore = create<AppState>((set, get) => ({
   locationListPage: 1,
   locationListLimit: 50,
   loadingLocations: false,
+  taxNatureOptions: [] as TaxNatureOption[],
+  loadingTaxNature: false,
+  classOptions: [] as ClassOption[],
+  loadingClasses: false,
+  accountOptions: [] as AccountOption[],
+  accountListCount: 0,
+  accountListPage: 1,
+  accountListLimit: 50,
+  loadingAccounts: false,
+  itemOptions: [] as ItemOption[],
+  itemListCount: 0,
+  itemListPage: 1,
+  itemListLimit: 50,
+  loadingItems: false,
   isLoading: false,
   error: null,
   activeTabId: '',
@@ -1072,6 +1277,173 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
+  fetchTaxNature: async () => {
+    set({ loadingTaxNature: true, error: null });
+    try {
+      const res = await getTaxNatureLive();
+      set({
+        taxNatureOptions: res.success ? res.data ?? [] : [],
+        loadingTaxNature: false,
+        error: res.success ? null : res.message || 'Unable to fetch tax nature data',
+      });
+    } catch (err: any) {
+      set({
+        taxNatureOptions: [],
+        error: err.response?.data?.detail || err.message,
+        loadingTaxNature: false,
+      });
+    }
+  },
+
+  searchTaxNature: async (q: string) => {
+    try {
+      return await searchTaxNatureApi(q);
+    } catch {
+      return [];
+    }
+  },
+
+  fetchClasses: async (opts) => {
+    set({ loadingClasses: true, error: null });
+    try {
+      const res = await getClassesPage({
+        page: opts?.page ?? 1,
+        limit: opts?.limit ?? 200,
+        search: opts?.search,
+        subsidiary: opts?.subsidiary,
+      });
+      const options: ClassOption[] = (res.data ?? []).map(row => ({
+        internalId: row.internalId,
+        name: row.name,
+        subsidiary: row.subsidiary ?? '',
+      }));
+      set({
+        classOptions: res.success ? options : [],
+        loadingClasses: false,
+        error: res.success ? null : 'Unable to fetch classes',
+      });
+    } catch (err: any) {
+      set({
+        classOptions: [],
+        error: err.response?.data?.detail || err.message,
+        loadingClasses: false,
+      });
+    }
+  },
+
+  searchClasses: async (q: string, limit = 50, subsidiary?: string) => {
+    try {
+      const rows = await searchClassesApi(q, limit, subsidiary);
+      return rows.map(row => ({
+        internalId: row.internalId,
+        name: row.name,
+        subsidiary: row.subsidiary ?? '',
+      }));
+    } catch {
+      return [];
+    }
+  },
+
+  fetchAccounts: async (opts) => {
+    set({ loadingAccounts: true, error: null });
+    try {
+      const page = opts?.page ?? 1;
+      const limit = opts?.limit ?? 50;
+      const res = await getAccountsPage({ page, limit, search: opts?.search });
+      const options: AccountOption[] = (res.data ?? []).map(row => ({
+        internalId: row.internalId,
+        number: row.number,
+        name: row.name,
+        type: row.type ?? '',
+        generalratetype: row.generalratetype ?? '',
+        cashflowratetype: row.cashflowratetype ?? '',
+      }));
+      set({
+        accountOptions: res.success ? options : [],
+        accountListCount: res.count ?? 0,
+        accountListPage: page,
+        accountListLimit: limit,
+        loadingAccounts: false,
+        error: res.success ? null : res.message || 'Unable to fetch account data',
+      });
+    } catch (err: any) {
+      set({
+        accountOptions: [],
+        accountListCount: 0,
+        error: err.response?.data?.detail || err.message,
+        loadingAccounts: false,
+      });
+    }
+  },
+
+  searchAccounts: async (q: string, page = 1, limit = 50) => {
+    try {
+      const res = await searchAccountsApi(q, page, limit);
+      return (res.data ?? []).map(row => ({
+        internalId: row.internalId,
+        number: row.number,
+        name: row.name,
+        type: row.type ?? '',
+        generalratetype: row.generalratetype ?? '',
+        cashflowratetype: row.cashflowratetype ?? '',
+      }));
+    } catch {
+      return [];
+    }
+  },
+
+  fetchItems: async (opts) => {
+    set({ loadingItems: true, error: null });
+    try {
+      const page = opts?.page ?? 1;
+      const limit = opts?.limit ?? 50;
+      const res = await getItemsPage({ page, limit, search: opts?.search });
+      const options: ItemOption[] = (res.data ?? []).map(row => ({
+        internalId: row.internalId,
+        displayName: row.displayName,
+        itemCategory: row.itemCategory ?? '',
+        department: row.department ?? '',
+        className: row.className ?? '',
+        location: row.location ?? '',
+        hsnCode: row.hsnCode ?? '',
+        gstRate: row.gstRate ?? '',
+      }));
+      set({
+        itemOptions: res.success ? options : [],
+        itemListCount: res.count ?? 0,
+        itemListPage: page,
+        itemListLimit: limit,
+        loadingItems: false,
+        error: res.success ? null : res.message || 'Unable to fetch item data',
+      });
+    } catch (err: any) {
+      set({
+        itemOptions: [],
+        itemListCount: 0,
+        error: err.response?.data?.detail || err.message,
+        loadingItems: false,
+      });
+    }
+  },
+
+  searchItems: async (q: string, page = 1, limit = 50) => {
+    try {
+      const res = await searchItemsApi(q, page, limit);
+      return (res.data ?? []).map(row => ({
+        internalId: row.internalId,
+        displayName: row.displayName,
+        itemCategory: row.itemCategory ?? '',
+        department: row.department ?? '',
+        className: row.className ?? '',
+        location: row.location ?? '',
+        hsnCode: row.hsnCode ?? '',
+        gstRate: row.gstRate ?? '',
+      }));
+    } catch {
+      return [];
+    }
+  },
+
   setActiveTabId: (id: string) => set({ activeTabId: id }),
   setSelectedFieldId: (id: string | null) => set({ selectedFieldId: id }),
 
@@ -1122,15 +1494,15 @@ export const useStore = create<AppState>((set, get) => ({
             };
             targetTab.fieldGroups.push(targetGroup);
           }
-          targetGroup.fields.push(applyLocationFieldDataSource({ ...field }));
+          targetGroup.fields.push(applyFormFieldDataSource({ ...field }));
         } else if (field.section === 'sublist') {
           if (field.subSection === 'item') {
             if (!targetTab.itemSublist) targetTab.itemSublist = [];
-            targetTab.itemSublist.push(applyLocationFieldDataSource({ ...field }));
+            targetTab.itemSublist.push(applyFormFieldDataSource({ ...field }));
             targetTab.itemSublist = sortItemSublistFields(targetTab.itemSublist);
           } else if (field.subSection === 'expense') {
             if (!targetTab.expenseSublist) targetTab.expenseSublist = [];
-            targetTab.expenseSublist.push(applyLocationFieldDataSource({ ...field }));
+            targetTab.expenseSublist.push(applyFormFieldDataSource({ ...field }));
           }
         }
       }
@@ -1194,15 +1566,15 @@ export const useStore = create<AppState>((set, get) => ({
           };
           targetTab.fieldGroups.push(targetGroup);
         }
-        targetGroup.fields.push(applyLocationFieldDataSource({ ...field }));
+        targetGroup.fields.push(applyFormFieldDataSource({ ...field }));
       } else if (field.section === 'sublist') {
         if (field.subSection === 'item') {
           if (!targetTab.itemSublist) targetTab.itemSublist = [];
-          targetTab.itemSublist.push(applyLocationFieldDataSource({ ...field }));
+          targetTab.itemSublist.push(applyFormFieldDataSource({ ...field }));
           targetTab.itemSublist = sortItemSublistFields(targetTab.itemSublist);
         } else if (field.subSection === 'expense') {
           if (!targetTab.expenseSublist) targetTab.expenseSublist = [];
-          targetTab.expenseSublist.push(applyLocationFieldDataSource({ ...field }));
+          targetTab.expenseSublist.push(applyFormFieldDataSource({ ...field }));
         }
       }
     }

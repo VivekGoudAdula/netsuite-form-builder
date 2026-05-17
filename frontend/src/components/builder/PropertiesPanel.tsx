@@ -32,7 +32,17 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
               ? 'NetSuite Employees (current)'
               : resolved === 'netsuite_location'
                 ? 'NetSuite Locations (current)'
-                : `${resolved} (current)`;
+                : resolved === 'netsuite_tax_nature_live'
+                  ? 'NetSuite India Tax Nature (current)'
+                  : resolved === 'netsuite_department'
+                    ? 'NetSuite Departments (current)'
+                    : resolved === 'netsuite_class_live'
+                      ? 'NetSuite Classes (current)'
+                      : resolved === 'netsuite_account_live'
+                        ? 'NetSuite Accounts (current)'
+                        : resolved === 'netsuite_item_live'
+                          ? 'NetSuite Items (current)'
+                          : `${resolved} (current)`;
     return [...base, { label: legacy, value: resolved }];
   }, [
     selectedField?.id,
@@ -220,7 +230,12 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
                       | 'netsuite_currency'
                       | 'netsuite_hsn'
                       | 'netsuite_employees'
-                      | 'netsuite_location';
+                      | 'netsuite_location'
+                      | 'netsuite_tax_nature_live'
+                      | 'netsuite_department'
+                      | 'netsuite_class_live'
+                      | 'netsuite_account_live'
+                      | 'netsuite_item_live';
                     if (v === 'static') {
                       handleUpdate({
                         dataSource: {
@@ -285,6 +300,86 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
                             labelKey: 'name',
                             valueKey: 'internalId',
                             searchKey: 'name',
+                          },
+                        },
+                      });
+                      return;
+                    }
+                    if (v === 'netsuite_tax_nature_live') {
+                      handleUpdate({
+                        dataSource: {
+                          type: 'netsuite_tax_nature_live',
+                          endpoint: 'tax-nature/search',
+                          apiConfig: {
+                            url: 'tax-nature/search',
+                            method: 'GET',
+                            labelKey: 'name',
+                            valueKey: 'name',
+                            searchKey: 'name',
+                          },
+                        },
+                      });
+                      return;
+                    }
+                    if (v === 'netsuite_department') {
+                      handleUpdate({
+                        dataSource: {
+                          type: 'netsuite_department',
+                          endpoint: 'departments/',
+                          apiConfig: {
+                            url: 'departments/',
+                            method: 'GET',
+                            labelKey: 'name',
+                            valueKey: 'internalId',
+                            searchKey: 'name',
+                          },
+                        },
+                      });
+                      return;
+                    }
+                    if (v === 'netsuite_class_live') {
+                      handleUpdate({
+                        dataSource: {
+                          type: 'netsuite_class_live',
+                          endpoint: 'classes/',
+                          apiConfig: {
+                            url: 'classes/',
+                            method: 'GET',
+                            labelKey: 'name',
+                            valueKey: 'internalId',
+                            searchKey: 'name',
+                          },
+                        },
+                      });
+                      return;
+                    }
+                    if (v === 'netsuite_account_live') {
+                      handleUpdate({
+                        dataSource: {
+                          type: 'netsuite_account_live',
+                          endpoint: 'accounts/search',
+                          apiConfig: {
+                            url: 'accounts/search',
+                            method: 'GET',
+                            labelKey: 'name',
+                            valueKey: 'internalId',
+                            searchKey: 'name',
+                          },
+                        },
+                      });
+                      return;
+                    }
+                    if (v === 'netsuite_item_live') {
+                      handleUpdate({
+                        dataSource: {
+                          type: 'netsuite_item_live',
+                          endpoint: 'items/search',
+                          apiConfig: {
+                            url: 'items/search',
+                            method: 'GET',
+                            labelKey: 'displayName',
+                            valueKey: 'internalId',
+                            searchKey: 'displayName',
                           },
                         },
                       });

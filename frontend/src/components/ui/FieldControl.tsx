@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { createPortal } from 'react-dom';
 import {
   ChevronDown,
   Calendar,
@@ -8,541 +7,73 @@ import {
   FileText,
   RefreshCcw,
   AlertCircle,
-  Loader2,
-  Zap,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import api from '../../api/client';
 import {
+  formatClassOptionLabel,
+  formatClassOptionTitle,
+  formatDepartmentOptionLabel,
+  formatDepartmentOptionTitle,
   formatHsnOptionLabel,
   formatLocationOptionLabel,
+  formatLocationOptionTitle,
+  isAccountFieldId,
+  isItemLineFieldId,
+  isClassFieldId,
+  isDepartmentFieldId,
+  isHsnFetchFieldId,
   isLocationFieldId,
+  isTaxNatureFieldId,
+  NETSUITE_ACCOUNT_DATA_SOURCE,
+  NETSUITE_ITEM_DATA_SOURCE,
+  NETSUITE_CLASS_DATA_SOURCE,
+  NETSUITE_DEPARTMENT_DATA_SOURCE,
+  NETSUITE_HSN_DATA_SOURCE,
   NETSUITE_LOCATION_DATA_SOURCE,
+  NETSUITE_TAX_NATURE_DATA_SOURCE,
 } from '../../lib/netsuiteMasterData';
-import type { DataSource } from '../../types';
+import { AccountAsyncSelect } from './AccountAsyncSelect';
+import { ItemAsyncSelect } from './ItemAsyncSelect';
+import type { DataSource, ItemOption } from '../../types';
 
 const OPTIONS_CACHE_TTL_MS = 5 * 60 * 1000;
 const optionsCache = new Map<string, { at: number; opts: { label: string; value: string }[] }>();
 
-function HSNAsyncSelect({
-  value,
-  onChange,
-  disabled,
-  preview,
-  label,
-  className,
-  dataSource,
-}: {
-  value?: any;
-  onChange?: (value: any) => void;
-  disabled?: boolean;
-  preview?: boolean;
-  label?: string;
-  className?: string;
-  dataSource?: DataSource;
-}) {
-  const searchPath =
-    dataSource?.apiConfig?.url?.replace(/^\//, '').replace(/^api\//, '') || 'hsn-codes/search';
-  const wrapRef = React.useRef<HTMLDivElement>(null);
-  const panelRef = React.useRef<HTMLUListElement>(null);
-  const [open, setOpen] = React.useState(false);
-  const [input, setInput] = React.useState('');
-  const [results, setResults] = React.useState<
-    { internalId: string; name: string; hsncode: string; hsndescription?: string }[]
-  >([]);
-  const [loading, setLoading] = React.useState(false);
-  const [searchErr, setSearchErr] = React.useState<string | null>(null);
-  const [panelRect, setPanelRect] = React.useState<{
-    top: number;
-    left: number;
-    width: number;
-  } | null>(null);
-
-  const updatePanelPosition = React.useCallback(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setPanelRect({
-      top: rect.bottom + 4,
-      left: rect.left,
-      width: Math.max(rect.width, 280),
-    });
-  }, []);
-
-  React.useLayoutEffect(() => {
-    if (!open) return;
-    updatePanelPosition();
-    const onScrollOrResize = () => updatePanelPosition();
-    window.addEventListener('resize', onScrollOrResize);
-    window.addEventListener('scroll', onScrollOrResize, true);
-    return () => {
-      window.removeEventListener('resize', onScrollOrResize);
-      window.removeEventListener('scroll', onScrollOrResize, true);
-    };
-  }, [open, updatePanelPosition]);
-
-  React.useEffect(() => {
-    const onDoc = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (wrapRef.current?.contains(t) || panelRef.current?.contains(t)) return;
-      setOpen(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, []);
-
-  React.useEffect(() => {
-    if (preview || !value) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await api.get(
-          `hsn-codes/lookup/by-internal/${encodeURIComponent(String(value))}`,
-        );
-        if (!cancelled && res.data) setInput(formatHsnOptionLabel(res.data));
-      } catch {
-        if (!cancelled) setInput(String(value));
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [value, preview]);
-
-  React.useEffect(() => {
-    if (preview || !open) return;
-    const q = input.trim();
-    let cancelled = false;
-
-    const load = async () => {
-      setLoading(true);
-      setSearchErr(null);
-      try {
-        const res = await api.get(searchPath, { params: { q: q || '', limit: 50 } });
-        if (!cancelled) {
-          setResults(Array.isArray(res.data?.data) ? res.data.data : []);
-        }
-      } catch {
-        if (!cancelled) {
-          setSearchErr('Failed to load from NetSuite');
-          setResults([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    const delay = q ? 300 : 0;
-    const t = window.setTimeout(() => void load(), delay);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(t);
-    };
-  }, [input, open, preview, searchPath]);
-
-  if (preview) {
-    return (
-      <div
-        className={cn(
-          'h-9 border border-ns-border rounded-sm px-3 flex items-center bg-white text-[12px] text-gray-400',
-          className,
-        )}
-      >
-        — HSN Code —
-      </div>
-    );
-  }
-
-  const dropdownPanel =
-    open && !disabled && panelRect
-      ? createPortal(
-          <ul
-            ref={panelRef}
-            role="listbox"
-            className="max-h-60 overflow-y-auto overflow-x-hidden rounded-sm border border-ns-border bg-white text-[12px] shadow-2xl ring-1 ring-black/5"
-            style={{
-              position: 'fixed',
-              top: panelRect.top,
-              left: panelRect.left,
-              width: panelRect.width,
-              zIndex: 10000,
-            }}
-          >
-            {!input.trim() && !loading && results.length === 0 && (
-              <li className="px-3 py-2.5 text-ns-text-muted text-[11px]">
-                {searchErr
-                  ? 'Could not load from NetSuite'
-                  : 'No HSN codes returned — check NetSuite RESTlet'}
-              </li>
-            )}
-            {!input.trim() && !loading && results.length > 0 && (
-              <li className="px-3 py-2.5 text-ns-text-muted text-[11px] border-b border-ns-border/50">
-                Type to filter, or pick from the list
-              </li>
-            )}
-            {input.trim() && loading && (
-              <li className="px-3 py-2.5 text-ns-text-muted text-[11px] flex items-center gap-2">
-                <Loader2 size={12} className="animate-spin text-ns-blue shrink-0" />
-                Searching…
-              </li>
-            )}
-            {searchErr && (
-              <li className="px-3 py-2.5 text-red-600 text-[11px]">{searchErr}</li>
-            )}
-            {input.trim() && !loading && !searchErr && results.length === 0 && (
-              <li className="px-3 py-2.5 text-ns-text-muted text-[11px]">No matches</li>
-            )}
-            {results.map(row => (
-              <li key={row.internalId}>
-                <button
-                  type="button"
-                  className="w-full text-left px-3 py-2.5 hover:bg-ns-light-blue/40 border-b border-ns-border/50 last:border-0"
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => {
-                    onChange?.(row.internalId);
-                    setInput(formatHsnOptionLabel(row));
-                    setOpen(false);
-                  }}
-                >
-                  <div className="font-medium text-ns-navy text-[11px] leading-snug whitespace-normal break-words">
-                    {formatHsnOptionLabel(row)}
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>,
-          document.body,
-        )
-      : null;
-
-  return (
-    <div ref={wrapRef} className={cn('relative min-w-[220px]', className)}>
-      <div className="relative flex items-center">
-        <input
-          type="text"
-          className={cn(
-            'w-full h-9 border border-ns-border rounded-sm pl-3 pr-9 text-[12px] text-ns-text bg-white',
-            'focus:outline-none focus:border-ns-blue focus:ring-2 focus:ring-ns-blue/10',
-            open && 'border-ns-blue ring-2 ring-ns-blue/10',
-            disabled && 'bg-gray-50 text-gray-400 cursor-not-allowed',
-            searchErr && 'border-red-300',
-          )}
-          value={input}
-          onChange={e => {
-            setInput(e.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => {
-            setOpen(true);
-            updatePanelPosition();
-          }}
-          placeholder="Search HSN…"
-          disabled={disabled}
-          aria-label={label}
-          aria-expanded={open}
-          aria-autocomplete="list"
-          autoComplete="off"
-        />
-        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-ns-blue">
-          {loading ? (
-            <Loader2 size={14} className="animate-spin" aria-hidden />
-          ) : (
-            <ChevronDown
-              size={14}
-              className={cn('transition-transform', open && 'rotate-180')}
-              aria-hidden
-            />
-          )}
-        </div>
-      </div>
-
-      {dropdownPanel}
-    </div>
-  );
-}
-
-function LocationAsyncSelect({
-  value,
-  onChange,
-  disabled,
-  preview,
-  label,
-  className,
-  dataSource,
-  subsidiaryFilter,
-  showBadge = true,
-}: {
-  value?: any;
-  onChange?: (value: any) => void;
-  disabled?: boolean;
-  preview?: boolean;
-  label?: string;
-  className?: string;
-  dataSource?: DataSource;
-  subsidiaryFilter?: string;
-  showBadge?: boolean;
-}) {
-  const searchPath =
-    dataSource?.apiConfig?.url?.replace(/^\//, '').replace(/^api\//, '') || 'locations/search';
-  const wrapRef = React.useRef<HTMLDivElement>(null);
-  const panelRef = React.useRef<HTMLUListElement>(null);
-  const [open, setOpen] = React.useState(false);
-  const [input, setInput] = React.useState('');
-  const [results, setResults] = React.useState<
-    { internalId: string; name: string; subsidiary?: string }[]
-  >([]);
-  const [loading, setLoading] = React.useState(false);
-  const [searchErr, setSearchErr] = React.useState<string | null>(null);
-  const [retryKey, setRetryKey] = React.useState(0);
-  const [panelRect, setPanelRect] = React.useState<{
-    top: number;
-    left: number;
-    width: number;
-  } | null>(null);
-
-  const updatePanelPosition = React.useCallback(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setPanelRect({
-      top: rect.bottom + 4,
-      left: rect.left,
-      width: Math.max(rect.width, 300),
-    });
-  }, []);
-
-  React.useLayoutEffect(() => {
-    if (!open) return;
-    updatePanelPosition();
-    const onScrollOrResize = () => updatePanelPosition();
-    window.addEventListener('resize', onScrollOrResize);
-    window.addEventListener('scroll', onScrollOrResize, true);
-    return () => {
-      window.removeEventListener('resize', onScrollOrResize);
-      window.removeEventListener('scroll', onScrollOrResize, true);
-    };
-  }, [open, updatePanelPosition]);
-
-  React.useEffect(() => {
-    const onDoc = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (wrapRef.current?.contains(t) || panelRef.current?.contains(t)) return;
-      setOpen(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, []);
-
-  React.useEffect(() => {
-    if (preview || !value) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await api.get(
-          `locations/lookup/by-internal/${encodeURIComponent(String(value))}`,
-        );
-        if (!cancelled && res.data) setInput(formatLocationOptionLabel(res.data));
-      } catch {
-        if (!cancelled) setInput(String(value));
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [value, preview]);
-
-  React.useEffect(() => {
-    if (preview || !open) return;
-    const q = input.trim();
-    let cancelled = false;
-
-    const loadList = async () => {
-      setLoading(true);
-      setSearchErr(null);
-      try {
-        if (q) {
-          const res = await api.get(searchPath, {
-            params: {
-              q,
-              limit: 50,
-              subsidiary: subsidiaryFilter || undefined,
-            },
-          });
-          if (!cancelled) {
-            setResults(Array.isArray(res.data?.data) ? res.data.data : []);
-          }
-        } else {
-          const res = await api.get('locations/', {
-            params: {
-              limit: 50,
-              page: 1,
-              subsidiary: subsidiaryFilter || undefined,
-            },
-          });
-          if (!cancelled) {
-            setResults(Array.isArray(res.data?.data) ? res.data.data : []);
-          }
-        }
-      } catch {
-        if (!cancelled) {
-          setSearchErr('Failed to load locations');
-          setResults([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    const delay = q ? 300 : 0;
-    const t = window.setTimeout(() => void loadList(), delay);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(t);
-    };
-  }, [input, open, preview, searchPath, subsidiaryFilter, retryKey]);
-
-  if (preview) {
-    return (
-      <div
-        className={cn(
-          'h-9 border border-ns-border rounded-sm px-3 flex items-center bg-white text-[12px] text-gray-400',
-          className,
-        )}
-      >
-        — Location —
-      </div>
-    );
-  }
-
-  const dropdownPanel =
-    open && !disabled && panelRect
-      ? createPortal(
-          <ul
-            ref={panelRef}
-            role="listbox"
-            className="max-h-60 overflow-y-auto overflow-x-hidden rounded-sm border border-ns-border bg-white text-[12px] shadow-2xl ring-1 ring-black/5"
-            style={{
-              position: 'fixed',
-              top: panelRect.top,
-              left: panelRect.left,
-              width: panelRect.width,
-              zIndex: 10000,
-            }}
-          >
-            {!input.trim() && !loading && results.length === 0 && (
-              <li className="px-3 py-2.5 text-ns-text-muted text-[11px]">
-                {searchErr
-                  ? 'Could not load from NetSuite — check OAuth settings and try again'
-                  : 'No locations returned from NetSuite — verify RESTlet credentials'}
-              </li>
-            )}
-            {!input.trim() && !loading && results.length > 0 && (
-              <li className="px-3 py-2.5 text-ns-text-muted text-[11px] border-b border-ns-border/50">
-                Type to filter, or pick from the list below
-              </li>
-            )}
-            {input.trim() && loading && (
-              <li className="px-3 py-2.5 text-ns-text-muted text-[11px] flex items-center gap-2">
-                <Loader2 size={12} className="animate-spin text-ns-blue shrink-0" />
-                Searching…
-              </li>
-            )}
-            {searchErr && (
-              <li className="px-3 py-2.5 text-red-600 text-[11px] flex items-center justify-between gap-2">
-                <span>{searchErr}</span>
-                <button
-                  type="button"
-                  className="text-ns-blue font-semibold flex items-center gap-1"
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => setRetryKey(k => k + 1)}
-                >
-                  <RefreshCcw size={12} />
-                  Retry
-                </button>
-              </li>
-            )}
-            {input.trim() && !loading && !searchErr && results.length === 0 && (
-              <li className="px-3 py-2.5 text-ns-text-muted text-[11px]">No matches</li>
-            )}
-            {results.map(row => (
-              <li key={row.internalId}>
-                <button
-                  type="button"
-                  className="w-full text-left px-3 py-2.5 hover:bg-ns-light-blue/40 border-b border-ns-border/50 last:border-0"
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => {
-                    onChange?.(row.internalId);
-                    setInput(formatLocationOptionLabel(row));
-                    setOpen(false);
-                  }}
-                >
-                  <div className="font-medium text-ns-navy text-[11px] leading-snug whitespace-normal break-words">
-                    {formatLocationOptionLabel(row)}
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>,
-          document.body,
-        )
-      : null;
-
-  return (
-    <div ref={wrapRef} className={cn('relative min-w-[240px]', className)}>
-      {showBadge && (
-        <span className="absolute -top-2 right-0 z-10 inline-flex items-center gap-0.5 rounded-sm bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 uppercase tracking-wide">
-          <Zap size={9} className="text-amber-600" aria-hidden />
-          NetSuite Powered
-        </span>
-      )}
-      <div className="relative flex items-center">
-        <input
-          type="text"
-          className={cn(
-            'w-full h-9 border border-ns-border rounded-sm pl-3 pr-9 text-[12px] text-ns-text bg-white',
-            'focus:outline-none focus:border-ns-blue focus:ring-2 focus:ring-ns-blue/10',
-            open && 'border-ns-blue ring-2 ring-ns-blue/10',
-            disabled && 'bg-gray-50 text-gray-400 cursor-not-allowed',
-            searchErr && 'border-red-300',
-          )}
-          value={input}
-          onChange={e => {
-            setInput(e.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => {
-            setOpen(true);
-            updatePanelPosition();
-          }}
-          placeholder="Search location…"
-          disabled={disabled}
-          aria-label={label}
-          aria-expanded={open}
-          aria-autocomplete="list"
-          autoComplete="off"
-        />
-        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-ns-blue">
-          {loading ? (
-            <Loader2 size={14} className="animate-spin" aria-hidden />
-          ) : (
-            <ChevronDown
-              size={14}
-              className={cn('transition-transform', open && 'rotate-180')}
-              aria-hidden
-            />
-          )}
-        </div>
-      </div>
-      {dropdownPanel}
-    </div>
-  );
-}
 
 function normalizeApiPath(raw: string): string {
   let p = (raw || '').trim();
   if (p.startsWith('/')) p = p.slice(1);
   if (p.startsWith('api/')) p = p.slice(4);
   return p;
+}
+
+async function fetchMasterDataListPages(
+  listPath: string,
+  mapRow: (row: Record<string, unknown>) => { label: string; value: string; title?: string },
+  pageLimit = 200,
+): Promise<{ label: string; value: string; title?: string }[]> {
+  const path = normalizeApiPath(listPath);
+  const url = path.endsWith('/') ? path : `${path}/`;
+  const out: { label: string; value: string; title?: string }[] = [];
+  let page = 1;
+  for (;;) {
+    const res = await api.get(url, { params: { page, limit: pageLimit } });
+    const body = res.data;
+    const rows = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : null;
+    if (!rows) {
+      throw new Error('API response is not a list');
+    }
+    const total = typeof body?.count === 'number' ? body.count : rows.length;
+    for (const row of rows) {
+      const mapped = mapRow(row as Record<string, unknown>);
+      if (mapped.value) out.push(mapped);
+    }
+    if (rows.length < pageLimit || out.length >= total) break;
+    page += 1;
+    if (page > 100) break;
+  }
+  return out;
 }
 
 function remoteOptionsCacheKey(ds: any): string | null {
@@ -553,8 +84,20 @@ function remoteOptionsCacheKey(ds: any): string | null {
   if (ds.type === 'netsuite_employees') {
     return 'netsuite_employees|netsuite/employees|label|value';
   }
-  if (ds.type === 'netsuite_hsn' || ds.type === 'netsuite_location') {
-    return null;
+  if (ds.type === 'netsuite_department') {
+    return 'netsuite_department|departments/|dept|internalId';
+  }
+  if (ds.type === 'netsuite_class_live') {
+    return 'netsuite_class_live|classes/|class|internalId';
+  }
+  if (ds.type === 'netsuite_location') {
+    return 'netsuite_location|locations/|loc|internalId';
+  }
+  if (ds.type === 'netsuite_hsn') {
+    return 'netsuite_hsn|hsn-codes/|hsn|internalId';
+  }
+  if (ds.type === 'netsuite_tax_nature_live') {
+    return 'netsuite_tax_nature_live|tax-nature/live|name|name';
   }
   if (ds.type === 'api' && ds.apiConfig?.url) {
     const path = normalizeApiPath(ds.apiConfig.url);
@@ -592,6 +135,8 @@ interface FieldControlProps {
   fieldId?: string;
   /** When false, hides API/NetSuite badges and footer hints (e.g. Preview page) */
   showIntegrationHints?: boolean;
+  /** Fired when a NetSuite item row is chosen (line-item auto-fill). */
+  onItemMasterSelect?: (item: ItemOption) => void;
 }
 
 /**
@@ -613,8 +158,57 @@ export function FieldControl({
   label,
   fieldId,
   showIntegrationHints = true,
+  onItemMasterSelect,
 }: FieldControlProps) {
   const resolvedDataSource = React.useMemo(() => {
+    if (dataSource?.type === 'netsuite_hsn') return dataSource;
+    if (fieldId && isHsnFetchFieldId(fieldId)) {
+      return {
+        ...NETSUITE_HSN_DATA_SOURCE,
+        ...dataSource,
+        type: 'netsuite_hsn' as const,
+      };
+    }
+    if (dataSource?.type === 'netsuite_tax_nature_live') return dataSource;
+    if (fieldId && isTaxNatureFieldId(fieldId)) {
+      return {
+        ...NETSUITE_TAX_NATURE_DATA_SOURCE,
+        ...dataSource,
+        type: 'netsuite_tax_nature_live' as const,
+      };
+    }
+    if (dataSource?.type === 'netsuite_department') return dataSource;
+    if (fieldId && isDepartmentFieldId(fieldId)) {
+      return {
+        ...NETSUITE_DEPARTMENT_DATA_SOURCE,
+        ...dataSource,
+        type: 'netsuite_department' as const,
+      };
+    }
+    if (dataSource?.type === 'netsuite_class_live') return dataSource;
+    if (fieldId && isClassFieldId(fieldId)) {
+      return {
+        ...NETSUITE_CLASS_DATA_SOURCE,
+        ...dataSource,
+        type: 'netsuite_class_live' as const,
+      };
+    }
+    if (dataSource?.type === 'netsuite_account_live') return dataSource;
+    if (fieldId && isAccountFieldId(fieldId)) {
+      return {
+        ...NETSUITE_ACCOUNT_DATA_SOURCE,
+        ...dataSource,
+        type: 'netsuite_account_live' as const,
+      };
+    }
+    if (dataSource?.type === 'netsuite_item_live') return dataSource;
+    if (fieldId && isItemLineFieldId(fieldId)) {
+      return {
+        ...NETSUITE_ITEM_DATA_SOURCE,
+        ...dataSource,
+        type: 'netsuite_item_live' as const,
+      };
+    }
     if (dataSource?.type === 'netsuite_location') return dataSource;
     if (fieldId && isLocationFieldId(fieldId)) {
       return { ...NETSUITE_LOCATION_DATA_SOURCE, ...dataSource, type: 'netsuite_location' as const };
@@ -630,23 +224,30 @@ export function FieldControl({
     className
   );
 
-  const [options, setOptions] = React.useState<{ label: string; value: any }[]>([]);
+  const [options, setOptions] = React.useState<
+    { label: string; value: any; title?: string }[]
+  >([]);
   const [loading, setLoading] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
 
   const fetchRemoteOptions = React.useCallback(async () => {
     if (preview) return;
     const ds = resolvedDataSource;
-    const isNs = ds?.type === 'netsuite_currency';
-    const isNsEmp = ds?.type === 'netsuite_employees';
-    const isApi = ds?.type === 'api';
-    if (!isNs && !isNsEmp && !isApi) return;
-    const cfg = ds?.apiConfig;
-    if (!isNs && !isNsEmp && !cfg?.url) return;
+    if (!ds) return;
 
-    const path = isNs ? 'currencies/' : isNsEmp ? 'netsuite/employees' : normalizeApiPath(cfg!.url);
-    const labelKey = cfg?.labelKey || (isNs ? 'name' : isNsEmp ? 'label' : 'name');
-    const valueKey = cfg?.valueKey || (isNs ? 'internalId' : isNsEmp ? 'value' : 'id');
+    const remoteTypes = [
+      'api',
+      'netsuite_currency',
+      'netsuite_employees',
+      'netsuite_department',
+      'netsuite_class_live',
+      'netsuite_location',
+      'netsuite_hsn',
+      'netsuite_tax_nature_live',
+    ] as const;
+    if (!remoteTypes.includes(ds.type as (typeof remoteTypes)[number])) return;
+    if (ds.type === 'api' && !ds.apiConfig?.url) return;
+
     const cacheKey = remoteOptionsCacheKey(ds);
     if (cacheKey) {
       const hit = optionsCache.get(cacheKey);
@@ -660,15 +261,78 @@ export function FieldControl({
     setLoading(true);
     setLoadError(null);
     try {
-      const response = await api.get(path);
-      const data = response.data;
-      if (!Array.isArray(data)) {
-        throw new Error('API response is not an array');
+      let mapped: { label: string; value: string; title?: string }[];
+
+      if (ds.type === 'netsuite_department') {
+        mapped = await fetchMasterDataListPages('departments/', row => {
+          const r = row as { name?: string; subsidiary?: string; internalId?: string };
+          return {
+            label: formatDepartmentOptionLabel(r),
+            title: formatDepartmentOptionTitle(r),
+            value: String(row.internalId ?? ''),
+          };
+        });
+      } else if (ds.type === 'netsuite_class_live') {
+        mapped = await fetchMasterDataListPages('classes/', row => {
+          const r = row as { name?: string; subsidiary?: string; internalId?: string };
+          return {
+            label: formatClassOptionLabel(r),
+            title: formatClassOptionTitle(r),
+            value: String(row.internalId ?? ''),
+          };
+        });
+      } else if (ds.type === 'netsuite_location') {
+        mapped = await fetchMasterDataListPages('locations/', row => {
+          const r = row as { name?: string; subsidiary?: string; internalId?: string };
+          return {
+            label: formatLocationOptionLabel(r),
+            title: formatLocationOptionTitle(r),
+            value: String(row.internalId ?? ''),
+          };
+        });
+      } else if (ds.type === 'netsuite_hsn') {
+        mapped = await fetchMasterDataListPages('hsn-codes/', row => ({
+          label: formatHsnOptionLabel(
+            row as { hsncode?: string; hsndescription?: string; name?: string },
+          ),
+          value: String(row.internalId ?? ''),
+        }));
+      } else if (ds.type === 'netsuite_tax_nature_live') {
+        const response = await api.get('tax-nature/live');
+        if (response.data?.success === false) {
+          throw new Error(response.data?.message || 'Unable to fetch tax nature data');
+        }
+        const rows = response.data?.data;
+        if (!Array.isArray(rows)) {
+          throw new Error('API response is not a list');
+        }
+        mapped = rows.map((item: { name?: string }) => ({
+          label: String(item.name ?? 'Unknown'),
+          value: String(item.name ?? ''),
+        }));
+      } else {
+        const cfg = ds.apiConfig;
+        const path =
+          ds.type === 'netsuite_currency'
+            ? 'currencies/'
+            : ds.type === 'netsuite_employees'
+              ? 'netsuite/employees'
+              : normalizeApiPath(cfg!.url);
+        const labelKey = cfg?.labelKey || (ds.type === 'netsuite_currency' ? 'name' : 'label');
+        const valueKey =
+          cfg?.valueKey ||
+          (ds.type === 'netsuite_currency' ? 'internalId' : ds.type === 'netsuite_employees' ? 'value' : 'id');
+        const response = await api.get(path);
+        const data = response.data;
+        if (!Array.isArray(data)) {
+          throw new Error('API response is not an array');
+        }
+        mapped = data.map((item: Record<string, unknown>) => ({
+          label: String(item[labelKey] ?? 'Unknown'),
+          value: String(item[valueKey] ?? ''),
+        }));
       }
-      const mapped = data.map((item: any) => ({
-        label: String(item[labelKey] ?? 'Unknown'),
-        value: String(item[valueKey] ?? ''),
-      }));
+
       setOptions(mapped);
       if (cacheKey) {
         if (mapped.length > 0) {
@@ -698,12 +362,21 @@ export function FieldControl({
       setLoadError(null);
       return;
     }
-    if (ds?.type === 'netsuite_hsn' || ds?.type === 'netsuite_location') {
+    if (ds?.type === 'netsuite_account_live' || ds?.type === 'netsuite_item_live') {
       setOptions([]);
       setLoadError(null);
       return;
     }
-    if (ds?.type === 'api' || ds?.type === 'netsuite_currency' || ds?.type === 'netsuite_employees') {
+    if (
+      ds?.type === 'api' ||
+      ds?.type === 'netsuite_currency' ||
+      ds?.type === 'netsuite_employees' ||
+      ds?.type === 'netsuite_department' ||
+      ds?.type === 'netsuite_class_live' ||
+      ds?.type === 'netsuite_location' ||
+      ds?.type === 'netsuite_hsn' ||
+      ds?.type === 'netsuite_tax_nature_live'
+    ) {
       void fetchRemoteOptions();
       return;
     }
@@ -716,42 +389,47 @@ export function FieldControl({
   // ─── SELECT / DROPDOWN ────────────────────────────────────────────────────
   if (type === 'select' || type === 'recordref') {
     const ds = resolvedDataSource;
-    if (ds?.type === 'netsuite_hsn') {
+    if (ds?.type === 'netsuite_item_live') {
       return (
-        <HSNAsyncSelect
+        <ItemAsyncSelect
           value={value}
           onChange={onChange}
+          onItemSelect={onItemMasterSelect}
           disabled={disabled}
           preview={preview}
           label={label}
           className={className}
-          dataSource={ds}
         />
       );
     }
-    if (ds?.type === 'netsuite_location') {
+    if (ds?.type === 'netsuite_account_live') {
       return (
-        <LocationAsyncSelect
+        <AccountAsyncSelect
           value={value}
           onChange={onChange}
           disabled={disabled}
           preview={preview}
           label={label}
           className={className}
-          dataSource={ds}
-          showBadge={showIntegrationHints}
         />
       );
     }
     const isApiLike =
-      ds?.type === 'api' || ds?.type === 'netsuite_currency' || ds?.type === 'netsuite_employees';
+      ds?.type === 'api' ||
+      ds?.type === 'netsuite_currency' ||
+      ds?.type === 'netsuite_employees' ||
+      ds?.type === 'netsuite_department' ||
+      ds?.type === 'netsuite_class_live' ||
+      ds?.type === 'netsuite_location' ||
+      ds?.type === 'netsuite_hsn' ||
+      ds?.type === 'netsuite_tax_nature_live';
 
     return (
-      <div className={cn('relative', className)}>
-        <div className="relative">
+      <div className={cn('relative min-w-0 w-full max-w-full', className)}>
+        <div className="relative min-w-0 w-full max-w-full">
           <select
             className={cn(
-              'w-full h-9 border border-ns-border rounded-sm pl-3 pr-8 text-[12px] text-ns-text bg-white appearance-none',
+              'w-full max-w-full min-w-0 h-9 border border-ns-border rounded-sm pl-3 pr-8 text-[12px] text-ns-text bg-white appearance-none truncate',
               'focus:outline-none focus:border-ns-blue focus:ring-2 focus:ring-ns-blue/10',
               'transition-all duration-150',
               (disabled || loading) && 'bg-gray-50 text-gray-400 cursor-not-allowed',
@@ -767,7 +445,11 @@ export function FieldControl({
             </option>
             {options.length > 0 ? (
               options.map((opt, i) => (
-                <option key={`${opt.value}-${i}`} value={opt.value}>
+                <option
+                  key={`${opt.value}-${i}`}
+                  value={opt.value}
+                  title={opt.title && opt.title !== opt.label ? opt.title : undefined}
+                >
                   {opt.label}
                 </option>
               ))

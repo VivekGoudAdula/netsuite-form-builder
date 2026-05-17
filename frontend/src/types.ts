@@ -33,7 +33,12 @@ export interface DataSource {
     | 'netsuite_currency'
     | 'netsuite_hsn'
     | 'netsuite_employees'
-    | 'netsuite_location';
+    | 'netsuite_location'
+    | 'netsuite_tax_nature_live'
+    | 'netsuite_department'
+    | 'netsuite_class_live'
+    | 'netsuite_account_live'
+    | 'netsuite_item_live';
   options?: FieldOption[];
   /** Optional REST path relative to /api (mirrors apiConfig.url for presets). */
   endpoint?: string;
@@ -166,6 +171,120 @@ export interface LocationListResponse {
 
 export type LocationSyncSummary = CurrencySyncSummary;
 
+export interface DepartmentRow {
+  _id: string;
+  internalId: string;
+  name: string;
+  subsidiary?: string;
+  source?: string;
+  isActive?: boolean;
+  syncedAt?: string;
+  lastSyncedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DepartmentListResponse {
+  success: boolean;
+  count: number;
+  page: number;
+  limit: number;
+  data: DepartmentRow[];
+}
+
+export type DepartmentSyncSummary = CurrencySyncSummary;
+
+export interface ClassOption {
+  internalId: string;
+  name: string;
+  subsidiary: string;
+}
+
+export interface ClassRow {
+  _id: string;
+  internalId: string;
+  name: string;
+  subsidiary?: string;
+  source?: string;
+  isActive?: boolean;
+}
+
+export interface ClassListResponse {
+  success: boolean;
+  count: number;
+  page?: number;
+  limit?: number;
+  data: ClassRow[];
+  message?: string;
+  source?: string;
+}
+
+export interface AccountOption {
+  internalId: string;
+  number: string;
+  name: string;
+  type: string;
+  generalratetype: string;
+  cashflowratetype: string;
+}
+
+export interface AccountRow {
+  _id: string;
+  internalId: string;
+  number: string;
+  name: string;
+  type?: string;
+  generalratetype?: string;
+  cashflowratetype?: string;
+  source?: string;
+  isActive?: boolean;
+}
+
+export interface AccountListResponse {
+  success: boolean;
+  count: number;
+  page?: number;
+  limit?: number;
+  data: AccountRow[];
+  message?: string;
+  source?: string;
+}
+
+export interface ItemOption {
+  internalId: string;
+  displayName: string;
+  itemCategory: string;
+  department: string;
+  className: string;
+  location: string;
+  hsnCode: string;
+  gstRate: string;
+}
+
+export interface ItemRow {
+  _id: string;
+  internalId: string;
+  displayName: string;
+  itemCategory?: string;
+  department?: string;
+  className?: string;
+  location?: string;
+  hsnCode?: string;
+  gstRate?: string;
+  source?: string;
+  isActive?: boolean;
+}
+
+export interface ItemListResponse {
+  success: boolean;
+  count: number;
+  page?: number;
+  limit?: number;
+  data: ItemRow[];
+  message?: string;
+  source?: string;
+}
+
 export interface Approval {
   userId: string;
   name: string;
@@ -252,6 +371,20 @@ export interface AppState {
   locationListPage: number;
   locationListLimit: number;
   loadingLocations: boolean;
+  taxNatureOptions: TaxNatureOption[];
+  loadingTaxNature: boolean;
+  classOptions: ClassOption[];
+  loadingClasses: boolean;
+  accountOptions: AccountOption[];
+  accountListCount: number;
+  accountListPage: number;
+  accountListLimit: number;
+  loadingAccounts: boolean;
+  itemOptions: ItemOption[];
+  itemListCount: number;
+  itemListPage: number;
+  itemListLimit: number;
+  loadingItems: boolean;
   isLoading: boolean;
   error: string | null;
   
@@ -291,6 +424,23 @@ export interface AppState {
   }) => Promise<void>;
   searchLocations: (q: string, limit?: number, subsidiary?: string) => Promise<LocationRow[]>;
   syncLocations: () => Promise<LocationSyncSummary>;
+  fetchTaxNature: () => Promise<void>;
+  searchTaxNature: (q: string) => Promise<TaxNatureOption[]>;
+  fetchClasses: (opts?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    subsidiary?: string;
+  }) => Promise<void>;
+  searchClasses: (q: string, limit?: number, subsidiary?: string) => Promise<ClassOption[]>;
+  fetchAccounts: (opts?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) => Promise<void>;
+  searchAccounts: (q: string, page?: number, limit?: number) => Promise<AccountOption[]>;
+  fetchItems: (opts?: { page?: number; limit?: number; search?: string }) => Promise<void>;
+  searchItems: (q: string, page?: number, limit?: number) => Promise<ItemOption[]>;
 
   // Form Management
   createForm: (name: string, companyId: string, transactionType: TransactionType, tabs?: Tab[]) => Promise<void>;

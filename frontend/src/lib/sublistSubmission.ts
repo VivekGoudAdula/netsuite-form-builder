@@ -1,5 +1,5 @@
 import type { CustomForm, Field } from '../types';
-import { isHsnLineFieldId } from './netsuiteMasterData';
+import { isDedicatedHsnFieldId } from './netsuiteMasterData';
 
 const ITEM_ROW_KEY = /^item_(\d+)_(.+)$/;
 const EXP_ROW_KEY = /^exp_(\d+)_(.+)$/;
@@ -59,8 +59,8 @@ export function findLineItemsMissingHsnWhenTaxSet(
   const issues: { row: number; taxField: string }[] = [];
   const itemFields =
     form.tabs.find(t => t.name === 'Items')?.itemSublist ?? [];
-  const hasHsnColumn = itemFields.some(f => isHsnLineFieldId(f.id));
-  if (!hasHsnColumn) return issues;
+  const hasDedicatedHsnColumn = itemFields.some(f => isDedicatedHsnFieldId(f.id));
+  if (!hasDedicatedHsnColumn) return issues;
 
   const rows = new Map<number, Record<string, unknown>>();
   for (const [key, val] of Object.entries(flatValues)) {

@@ -2,7 +2,15 @@
  * Form builder: which datasource presets are valid per NetSuite field id.
  * Keeps master-data integrations scoped to the fields they belong to.
  */
-import { isHsnLineFieldId, isLocationFieldId } from './netsuiteMasterData';
+import {
+  isAccountFieldId,
+  isItemLineFieldId,
+  isClassFieldId,
+  isDepartmentFieldId,
+  isHsnFetchFieldId,
+  isLocationFieldId,
+  isTaxNatureFieldId,
+} from './netsuiteMasterData';
 
 export type DataSourceTypeOption =
   | 'static'
@@ -10,7 +18,12 @@ export type DataSourceTypeOption =
   | 'netsuite_currency'
   | 'netsuite_hsn'
   | 'netsuite_employees'
-  | 'netsuite_location';
+  | 'netsuite_location'
+  | 'netsuite_tax_nature_live'
+  | 'netsuite_department'
+  | 'netsuite_class_live'
+  | 'netsuite_account_live'
+  | 'netsuite_item_live';
 
 export function isEmployeesApiUrl(url?: string): boolean {
   if (!url || typeof url !== 'string') return false;
@@ -23,7 +36,7 @@ export function isEmployeesApiUrl(url?: string): boolean {
 }
 
 function isHsnRelatedFieldId(fieldId: string): boolean {
-  return isHsnLineFieldId(fieldId);
+  return isHsnFetchFieldId(fieldId);
 }
 
 /** Dropdown options shown in PropertiesPanel for this field id. */
@@ -61,6 +74,41 @@ export function getDataSourceOptionsForField(fieldId: string): {
     ];
   }
 
+  if (isTaxNatureFieldId(id)) {
+    return [
+      { label: 'Static', value: 'static' },
+      { label: 'NetSuite India Tax Nature', value: 'netsuite_tax_nature_live' },
+    ];
+  }
+
+  if (isDepartmentFieldId(id)) {
+    return [
+      { label: 'Static', value: 'static' },
+      { label: 'NetSuite Departments', value: 'netsuite_department' },
+    ];
+  }
+
+  if (isClassFieldId(id)) {
+    return [
+      { label: 'Static', value: 'static' },
+      { label: 'NetSuite Classes', value: 'netsuite_class_live' },
+    ];
+  }
+
+  if (isAccountFieldId(id)) {
+    return [
+      { label: 'Static', value: 'static' },
+      { label: 'NetSuite Accounts', value: 'netsuite_account_live' },
+    ];
+  }
+
+  if (isItemLineFieldId(id)) {
+    return [
+      { label: 'Static', value: 'static' },
+      { label: 'NetSuite Items', value: 'netsuite_item_live' },
+    ];
+  }
+
   return [
     { label: 'Static', value: 'static' },
     { label: 'API', value: 'api' },
@@ -76,6 +124,11 @@ export function resolveDataSourceSelectValue(ds: any): DataSourceTypeOption {
     t === 'netsuite_hsn' ||
     t === 'netsuite_employees' ||
     t === 'netsuite_location' ||
+    t === 'netsuite_tax_nature_live' ||
+    t === 'netsuite_department' ||
+    t === 'netsuite_class_live' ||
+    t === 'netsuite_account_live' ||
+    t === 'netsuite_item_live' ||
     t === 'static'
   ) {
     return t as DataSourceTypeOption;
