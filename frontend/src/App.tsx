@@ -17,6 +17,9 @@ import UserTransactionHub from './pages/UserTransactionHub';
 import StaffManagementPage from './pages/StaffManagementPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import CurrencyManagementPage from './pages/admin/CurrencyManagementPage';
+import HSNManagementPage from './pages/admin/HSNManagementPage';
+import LocationManagementPage from './pages/admin/LocationManagementPage';
 import { useStore } from './store/useStore';
 import { UserRole } from './types';
 
@@ -161,6 +164,30 @@ export default function App() {
           element={
             <ProtectedRoute roles={['super_admin', 'client_admin']}>
               <AdminSubmissionsPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/master-data/currencies" 
+          element={
+            <ProtectedRoute roles={['super_admin', 'client_admin']}>
+              <CurrencyManagementPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/master-data/hsn-codes" 
+          element={
+            <ProtectedRoute roles={['super_admin', 'client_admin']}>
+              <HSNManagementPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/master-data/locations" 
+          element={
+            <ProtectedRoute roles={['super_admin', 'client_admin']}>
+              <LocationManagementPage />
             </ProtectedRoute>
           } 
         />

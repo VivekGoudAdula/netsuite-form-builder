@@ -3,9 +3,51 @@ import { useStore } from '../../store/useStore';
 import { Input, Label, Select, Checkbox, Button } from '../ui/Base';
 import { Field } from '../../types';
 import { Settings2, Info, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown } from 'lucide-react';
+import {
+  getDataSourceOptionsForField,
+  resolveDataSourceSelectValue,
+} from '../../lib/fieldDataSourceOptions';
 
 export default function PropertiesPanel({ selectedField }: { selectedField: Field | undefined }) {
-  const { currentForm, updateCurrentForm, catalogues } = useStore();
+  const { currentForm, updateCurrentForm } = useStore();
+
+  const dataSourceSelectOptions = React.useMemo(() => {
+    if (!selectedField) {
+      return [
+        { label: 'Static', value: 'static' as const },
+        { label: 'API', value: 'api' as const },
+      ];
+    }
+    const base = getDataSourceOptionsForField(selectedField.id);
+    const resolved = resolveDataSourceSelectValue(selectedField.dataSource);
+    if (base.some(o => o.value === resolved)) return base;
+    const legacy =
+      resolved === 'api'
+        ? 'API (current)'
+        : resolved === 'netsuite_currency'
+          ? 'NetSuite Currency (current)'
+          : resolved === 'netsuite_hsn'
+            ? 'NetSuite HSN Codes (current)'
+            : resolved === 'netsuite_employees'
+              ? 'NetSuite Employees (current)'
+              : resolved === 'netsuite_location'
+                ? 'NetSuite Locations (current)'
+                : `${resolved} (current)`;
+    return [...base, { label: legacy, value: resolved }];
+  }, [
+    selectedField?.id,
+    selectedField?.dataSource?.type,
+    selectedField?.dataSource?.apiConfig?.url,
+  ]);
+
+  const dataSourceSelectValue = React.useMemo(() => {
+    if (!selectedField) return 'static';
+    return resolveDataSourceSelectValue(selectedField.dataSource);
+  }, [
+    selectedField?.id,
+    selectedField?.dataSource?.type,
+    selectedField?.dataSource?.apiConfig?.url,
+  ]);
 
   if (!selectedField || !currentForm) {
     return (
@@ -18,8 +60,6 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
       </div>
     );
   }
-
-  const currentCatalogue = catalogues[currentForm.transactionType];
 
   const handleUpdate = (updates: Partial<Field>) => {
     const newTabs = currentForm.tabs.map(tab => ({
@@ -170,31 +210,121 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
             <h3 className="text-[10px] font-bold text-ns-blue uppercase tracking-[0.2em] border-b border-ns-blue/10 pb-2">Data Source</h3>
             <div className="space-y-4">
               <div>
-                <Label>Source Type</Label>
+                <Label>Datasource Type</Label>
                 <Select 
-                  value={selectedField.dataSource?.type || 'static'}
-                  onChange={(e) => handleUpdate({ 
-                    dataSource: { 
-                      ...(selectedField.dataSource || { type: 'static' }), 
-                      type: e.target.value as 'static' | 'api',
-                      apiConfig: (e.target.value === 'api' && !selectedField.dataSource?.apiConfig) 
-                        ? { url: '/api/netsuite/employees', method: 'GET', labelKey: 'label', valueKey: 'value' }
-                        : selectedField.dataSource?.apiConfig
-                    } 
-                  })}
-                  options={[
-                    { label: 'Static', value: 'static' },
-                    { label: 'API (Dynamic)', value: 'api' }
-                  ]} 
+                  value={dataSourceSelectValue}
+                  onChange={(e) => {
+                    const v = e.target.value as
+                      | 'static'
+                      | 'api'
+                      | 'netsuite_currency'
+                      | 'netsuite_hsn'
+                      | 'netsuite_employees'
+                      | 'netsuite_location';
+                    if (v === 'static') {
+                      handleUpdate({
+                        dataSource: {
+                          type: 'static',
+                          options: selectedField.dataSource?.options || [],
+                        },
+                      });
+                      return;
+                    }
+                    if (v === 'netsuite_employees') {
+                      handleUpdate({
+                        dataSource: {
+                          type: 'netsuite_employees',
+                          apiConfig: {
+                            url: 'netsuite/employees',
+                            method: 'GET',
+                            labelKey: 'label',
+                            valueKey: 'value',
+                          },
+                        },
+                      });
+                      return;
+                    }
+                    if (v === 'netsuite_currency') {
+                      handleUpdate({
+                        dataSource: {
+                          type: 'netsuite_currency',
+                          apiConfig: {
+                            url: 'currencies/',
+                            method: 'GET',
+                            labelKey: 'name',
+                            valueKey: 'internalId',
+                          },
+                        },
+                      });
+                      return;
+                    }
+                    if (v === 'netsuite_hsn') {
+                      handleUpdate({
+                        dataSource: {
+                          type: 'netsuite_hsn',
+                          endpoint: 'hsn-codes/search',
+                          apiConfig: {
+                            url: 'hsn-codes/search',
+                            method: 'GET',
+                            labelKey: 'name',
+                            valueKey: 'internalId',
+                            searchKey: 'hsncode',
+                          },
+                        },
+                      });
+                      return;
+                    }
+                    if (v === 'netsuite_location') {
+                      handleUpdate({
+                        dataSource: {
+                          type: 'netsuite_location',
+                          endpoint: 'locations/search',
+                          apiConfig: {
+                            url: 'locations/search',
+                            method: 'GET',
+                            labelKey: 'name',
+                            valueKey: 'internalId',
+                            searchKey: 'name',
+                          },
+                        },
+                      });
+                      return;
+                    }
+                    const prev = selectedField.dataSource;
+                    const migrated =
+                      prev?.apiConfig?.url
+                        ? prev.apiConfig
+                        : {
+                            url: '',
+                            method: 'GET',
+                            labelKey: 'label',
+                            valueKey: 'value',
+                          };
+                    handleUpdate({
+                      dataSource: {
+                        type: 'api',
+                        apiConfig: migrated,
+                      },
+                    });
+                  }}
+                  options={dataSourceSelectOptions} 
                 />
               </div>
               
-              {selectedField.dataSource?.type === 'api' && (
+              {(selectedField.dataSource?.type === 'api' ||
+                selectedField.dataSource?.type === 'netsuite_currency' ||
+                selectedField.dataSource?.type === 'netsuite_hsn' ||
+                selectedField.dataSource?.type === 'netsuite_employees' ||
+                selectedField.dataSource?.type === 'netsuite_location') && (
                 <div className="space-y-3 p-3 bg-ns-light-blue/30 rounded-sm border border-ns-blue/10">
                   <div>
                     <Label>API Configuration</Label>
                     <div className="text-[10px] text-ns-text-muted mb-2 font-medium bg-white/50 p-2 rounded">
-                      Fetch dynamic options from an external or internal endpoint.
+                      Path relative to <span className="font-mono">/api</span> (e.g.{' '}
+                      <span className="font-mono">currencies/</span>,{' '}
+                      <span className="font-mono">hsn-codes/</span>,{' '}
+                      <span className="font-mono">locations/</span>,{' '}
+                      <span className="font-mono">netsuite/employees</span>).
                     </div>
                   </div>
                   <div>
@@ -207,7 +337,7 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
                           apiConfig: { ...(selectedField.dataSource?.apiConfig || { method: 'GET', labelKey: 'name', valueKey: 'id' }), url: e.target.value } 
                         } 
                       })}
-                      placeholder="/api/netsuite/employees"
+                      placeholder="netsuite/employees"
                       className="bg-white"
                     />
                   </div>

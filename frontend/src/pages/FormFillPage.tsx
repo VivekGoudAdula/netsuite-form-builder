@@ -17,6 +17,12 @@ import {
   PlusCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { sortItemSublistFields } from '../lib/netsuiteMasterData';
+import {
+  buildSubmissionValues,
+  findLineItemsMissingHsnWhenTaxSet,
+  itemSublistRowKey,
+} from '../lib/sublistSubmission';
 
 export default function FormFillPage() {
   const { id } = useParams();
@@ -122,6 +128,12 @@ export default function FormFillPage() {
           }
         });
       });
+      const itemFields = sortItemSublistFields(tab.itemSublist || []);
+      itemFields.forEach(field => {
+        if (field.mandatory && !formValues[itemSublistRowKey(0, field.id)]) {
+          missingFields = true;
+        }
+      });
     });
 
     if (missingFields) {
@@ -129,11 +141,20 @@ export default function FormFillPage() {
       return;
     }
 
+    const hsnWarnings = findLineItemsMissingHsnWhenTaxSet(form, formValues);
+    if (hsnWarnings.length > 0) {
+      const ok = window.confirm(
+        'A Tax Code is set on a line item without an HSN Code. HSN is recommended for GST compliance. Submit anyway?',
+      );
+      if (!ok) return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
-      const result = await submitForm(form.id, formValues);
+      const payload = buildSubmissionValues(form, formValues);
+      const result = await submitForm(form.id, payload);
       setSubmissionResult(result);
       setIsSubmitting(false);
       // Wait a moment to show success or just stay on page if result is set
@@ -257,6 +278,7 @@ export default function FormFillPage() {
                               )}
                             </div>
                             <FieldControl
+                              fieldId={field.id}
                               fieldType={field.type}
                               value={formValues[field.id]}
                               onChange={(val) => handleInputChange(field.id, val)}
@@ -289,7 +311,7 @@ export default function FormFillPage() {
                         <table className="w-full text-left border-collapse">
                           <thead>
                             <tr className="bg-ns-gray-bg border-b border-ns-border">
-                              {tab.itemSublist.map(field => (
+                              {sortItemSublistFields(tab.itemSublist).map(field => (
                                 <th key={field.id} className="px-3 py-2 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider whitespace-nowrap">
                                   {field.label}{field.mandatory && <span className="text-red-500 ml-1">*</span>}
                                 </th>
@@ -298,12 +320,21 @@ export default function FormFillPage() {
                           </thead>
                           <tbody>
                             <tr className="border-b border-ns-border">
-                              {tab.itemSublist.map(field => (
-                                <td key={field.id} className="px-2 py-2 min-w-[120px]">
+                              {sortItemSublistFields(tab.itemSublist).map(field => (
+                                <td
+                                  key={field.id}
+                                  className={cn(
+                                    'px-2 py-2 align-top',
+                                    field.dataSource?.type === 'netsuite_hsn'
+                                      ? 'min-w-[280px]'
+                                      : 'min-w-[120px]',
+                                  )}
+                                >
                                   <FieldControl
+                                    fieldId={field.id}
                                     fieldType={field.type}
-                                    value={formValues[`item_0_${field.id}`]}
-                                    onChange={(val) => handleInputChange(`item_0_${field.id}`, val)}
+                                    value={formValues[itemSublistRowKey(0, field.id)]}
+                                    onChange={(val) => handleInputChange(itemSublistRowKey(0, field.id), val)}
                                     label={field.label}
                                     dataSource={field.dataSource}
                                     preview={false}
@@ -340,6 +371,7 @@ export default function FormFillPage() {
                               {tab.expenseSublist.map(field => (
                                 <td key={field.id} className="px-2 py-2 min-w-[120px]">
                                   <FieldControl
+                                    fieldId={field.id}
                                     fieldType={field.type}
                                     value={formValues[`exp_0_${field.id}`]}
                                     onChange={(val) => handleInputChange(`exp_0_${field.id}`, val)}

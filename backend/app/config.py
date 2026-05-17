@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
 from pathlib import Path
 
 class Settings(BaseSettings):
@@ -15,9 +14,19 @@ class Settings(BaseSettings):
 
     NETSUITE_CONSUMER_KEY: str = ""
     NETSUITE_CONSUMER_SECRET: str = ""
+    NETSUITE_ACCESS_TOKEN: str = ""
     NETSUITE_TOKEN: str = ""
     NETSUITE_TOKEN_SECRET: str = ""
     NETSUITE_REALM: str = "6738288_SB1"
+
+    NETSUITE_CURRENCY_SCRIPT: str = "customscript_rg_restapi_currency_fetch"
+    NETSUITE_CURRENCY_DEPLOY: str = "1"
+
+    NETSUITE_HSN_SCRIPT: str = "customscript_rg_restapi_hsncode_fetch"
+    NETSUITE_HSN_DEPLOY: str = "1"
+
+    NETSUITE_LOCATION_SCRIPT: str = "customscript_rg_restapi_location_fetch"
+    NETSUITE_LOCATION_DEPLOY: str = "1"
 
     class Config:
         env_file = str(Path(__file__).parent.parent.parent / ".env")

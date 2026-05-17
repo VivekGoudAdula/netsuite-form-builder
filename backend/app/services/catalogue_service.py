@@ -43,6 +43,24 @@ class CatalogueService:
                     tabs_dict[tab_name]["subSections"][sub_section] = []
                 tabs_dict[tab_name]["subSections"][sub_section].append(field)
 
+        # Stable PO line-item column order (Item → HSN → Qty → Rate → Tax → Amount)
+        _item_order = [
+            "item", "hsncode", "custcol_hsn_code", "quantity", "rate",
+            "taxcode", "amount", "units", "description",
+        ]
+        for tab in tabs_dict.values():
+            items = tab.get("subSections", {}).get("item")
+            if items:
+
+                def _rank(f: dict) -> int:
+                    iid = (f.get("internalId") or "").lower()
+                    try:
+                        return _item_order.index(iid)
+                    except ValueError:
+                        return 999
+
+                tab["subSections"]["item"] = sorted(items, key=_rank)
+
         # Convert dictionary to ordered list of tabs
         # Preferred order: Main, Items, Shipping, Billing, Tax Details
         preferred_order = ["Main", "Items", "Shipping", "Billing", "Tax Details"]

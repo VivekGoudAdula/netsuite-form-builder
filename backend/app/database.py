@@ -1,7 +1,8 @@
+from datetime import datetime
+
 from motor.motor_asyncio import AsyncIOMotorClient
 from .config import settings
 from .utils.security import get_password_hash
-from datetime import datetime
 
 class Database:
     client: AsyncIOMotorClient = None
@@ -28,7 +29,6 @@ async def init_db():
         {"createdAt": {"$exists": False}}, 
         {"$set": {"createdAt": datetime.utcnow()}}
     )
-
 
 async def close_mongo_connection():
     if db_instance.client:

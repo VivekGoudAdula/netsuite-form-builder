@@ -16,12 +16,80 @@ import {
   Tag,
   CreditCard,
   Receipt,
-  CheckCircle,
   Users,
   GitBranch,
-  UserCircle
+  UserCircle,
+  DollarSign,
+  Hash,
+  MapPin,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+
+function MasterDataNav({
+  isExpanded,
+  pathname,
+}: {
+  isExpanded: boolean;
+  pathname: string;
+}) {
+  const items = [
+    { name: 'Employees', path: '/employees', icon: Users },
+    { name: 'Currency', path: '/master-data/currencies', icon: DollarSign },
+    { name: 'HSN Codes', path: '/master-data/hsn-codes', icon: Hash },
+    { name: 'Locations', path: '/master-data/locations', icon: MapPin },
+  ];
+  return (
+    <>
+      <MasterDataNavHeader isExpanded={isExpanded} />
+      {items.map(item => {
+        const isActive = pathname === item.path;
+        return (
+          <Link
+            key={item.name}
+            to={item.path}
+            className={cn(
+              'flex items-center rounded-sm text-sm font-semibold transition-all group/item whitespace-nowrap overflow-hidden relative',
+              isExpanded ? 'px-3 py-2.5 gap-3' : 'px-0 py-3 justify-center gap-0',
+              isActive
+                ? 'bg-ns-blue text-white shadow-lg shadow-ns-blue/20'
+                : 'text-white/60 hover:text-white hover:bg-white/5',
+            )}
+            title={!isExpanded ? item.name : ''}
+          >
+            <item.icon
+              size={18}
+              className={cn(
+                'flex-shrink-0 transition-colors',
+                isActive ? 'text-white' : 'text-white/40 group-hover/item:text-white',
+              )}
+            />
+            <span
+              className={cn(
+                'transition-all duration-300 origin-left overflow-hidden',
+                isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0',
+              )}
+            >
+              {item.name}
+            </span>
+          </Link>
+        );
+      })}
+    </>
+  );
+}
+
+function MasterDataNavHeader({ isExpanded }: { isExpanded: boolean }) {
+  return (
+    <div
+      className={cn(
+        'pt-6 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] px-3 mb-4 transition-all duration-300 whitespace-nowrap overflow-hidden',
+        isExpanded ? 'opacity-100' : 'opacity-0',
+      )}
+    >
+      Master Data
+    </div>
+  );
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useStore();
@@ -106,6 +174,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Link>
             );
           })}
+
+          {(user?.role === 'super_admin' || user?.role === 'client_admin') && (
+            <MasterDataNav isExpanded={isExpanded} pathname={location.pathname} />
+          )}
 
           {user?.role === 'super_admin' && (
             <>

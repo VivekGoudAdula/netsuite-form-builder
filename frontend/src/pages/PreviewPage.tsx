@@ -6,6 +6,7 @@ import { Tabs, Modal } from '../components/ui/Complex';
 import { ChevronLeft, Printer, Mail, Share2, MoreHorizontal } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { FieldControl } from '../components/ui/FieldControl';
+import { sortItemSublistFields } from '../lib/netsuiteMasterData';
 
 export default function PreviewPage() {
   const { currentForm, catalogues } = useStore();
@@ -194,6 +195,7 @@ export default function PreviewPage() {
                           checkBoxDefault={field.checkBoxDefault}
                           label={field.label}
                           preview={false}
+                          showIntegrationHints={false}
                           dataSource={field.dataSource}
                         />
                         {field.layout?.spaceBefore && <div className="mt-4" />}
@@ -217,7 +219,7 @@ export default function PreviewPage() {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="bg-ns-navy text-white">
-                          {activeTab.itemSublist.map(field => (
+                          {sortItemSublistFields(activeTab.itemSublist).map(field => (
                             <th key={field.id} className="p-3 text-[10px] font-black uppercase tracking-widest border-r border-white/10 last:border-0">
                               {field.label}
                             </th>
@@ -227,13 +229,14 @@ export default function PreviewPage() {
                       <tbody>
                         {[1, 2].map((row) => (
                           <tr key={row} className="border-b border-ns-border bg-white last:border-0 group hover:bg-ns-light-blue/20 transition-colors">
-                            {activeTab.itemSublist!.map(field => (
+                            {sortItemSublistFields(activeTab.itemSublist!).map(field => (
                               <td key={field.id} className="p-3 border-r border-ns-border last:border-0">
                                 <FieldControl
                                   fieldType={field.type}
                                   disabled={field.displayType === 'disabled'}
                                   label={field.label}
                                   preview={true}
+                                  showIntegrationHints={false}
                                   dataSource={field.dataSource}
                                 />
                               </td>
@@ -276,6 +279,7 @@ export default function PreviewPage() {
                                   disabled={field.displayType === 'disabled'}
                                   label={field.label}
                                   preview={true}
+                                  showIntegrationHints={false}
                                   dataSource={field.dataSource}
                                 />
                               </td>

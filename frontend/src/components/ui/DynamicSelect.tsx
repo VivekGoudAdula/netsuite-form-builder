@@ -19,12 +19,28 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({ field, className, 
   const [error, setError] = React.useState<string | null>(null);
 
   const fetchOptions = React.useCallback(async () => {
-    if (field.dataSource?.type !== 'api' || !field.dataSource.apiConfig) {
-      setOptions(field.dataSource?.options || []);
+    const ds = field.dataSource;
+    const isApi = ds?.type === 'api' && ds.apiConfig;
+    const isNsCurrency = ds?.type === 'netsuite_currency';
+    const isNsEmployees = ds?.type === 'netsuite_employees';
+
+    if (!isApi && !isNsCurrency && !isNsEmployees) {
+      setOptions(ds?.options || []);
       return;
     }
 
-    const { url, labelKey, valueKey } = field.dataSource.apiConfig;
+    const cfg = ds?.apiConfig;
+    const url = isNsCurrency
+      ? 'currencies/'
+      : isNsEmployees
+        ? 'netsuite/employees'
+        : (cfg?.url || '').replace(/^\//, '').replace(/^api\//, '');
+    if (!isNsCurrency && !isNsEmployees && !url) {
+      setOptions([]);
+      return;
+    }
+    const labelKey = cfg?.labelKey || (isNsCurrency ? 'name' : isNsEmployees ? 'label' : 'label');
+    const valueKey = cfg?.valueKey || (isNsCurrency ? 'internalId' : isNsEmployees ? 'value' : 'value');
     setLoading(true);
     setError(null);
 
@@ -75,14 +91,18 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({ field, className, 
         {error && (
           <AlertCircle size={12} className="text-red-500" />
         )}
-        {field.dataSource?.type === 'api' && !loading && !error && (
+        {(field.dataSource?.type === 'api' ||
+          field.dataSource?.type === 'netsuite_currency' ||
+          field.dataSource?.type === 'netsuite_employees') && !loading && !error && (
           <div className="bg-ns-blue text-white text-[8px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-tighter shadow-sm">
             API
           </div>
         )}
       </div>
 
-      {field.dataSource?.type === 'api' && (
+      {(field.dataSource?.type === 'api' ||
+        field.dataSource?.type === 'netsuite_currency' ||
+        field.dataSource?.type === 'netsuite_employees') && (
         <div className="mt-1 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] text-ns-blue font-bold tracking-tight uppercase">⚡ API Powered</span>

@@ -22,11 +22,21 @@ export interface APIConfig {
   method: string;
   labelKey: string;
   valueKey: string;
+  /** Primary search field for master-data autocomplete (e.g. hsncode). */
+  searchKey?: string;
 }
 
 export interface DataSource {
-  type: 'static' | 'api';
+  type:
+    | 'static'
+    | 'api'
+    | 'netsuite_currency'
+    | 'netsuite_hsn'
+    | 'netsuite_employees'
+    | 'netsuite_location';
   options?: FieldOption[];
+  /** Optional REST path relative to /api (mirrors apiConfig.url for presets). */
+  endpoint?: string;
   apiConfig?: APIConfig;
 }
 
@@ -96,6 +106,65 @@ export interface Company {
   name: string;
   createdAt: string;
 }
+
+export interface CurrencyRow {
+  _id: string;
+  internalId: string;
+  name: string;
+  source?: string;
+  lastSyncedAt?: string;
+  isActive: boolean;
+}
+
+export interface CurrencySyncSummary {
+  success: boolean;
+  fetched: number;
+  inserted: number;
+  updated: number;
+}
+
+export interface HSNRow {
+  _id: string;
+  internalId: string;
+  name: string;
+  hsncode: string;
+  hsndescription?: string;
+  source?: string;
+  isActive?: boolean;
+  lastSyncedAt?: string;
+  updatedAt?: string;
+}
+
+export interface HSNListResponse {
+  success: boolean;
+  count: number;
+  page: number;
+  limit: number;
+  data: HSNRow[];
+}
+
+export type HSNSyncSummary = CurrencySyncSummary;
+
+export interface LocationRow {
+  _id: string;
+  internalId: string;
+  name: string;
+  subsidiary?: string;
+  source?: string;
+  isActive?: boolean;
+  lastSyncedAt?: string;
+  updatedAt?: string;
+}
+
+export interface LocationListResponse {
+  success: boolean;
+  count: number;
+  page: number;
+  limit: number;
+  data: LocationRow[];
+}
+
+export type LocationSyncSummary = CurrencySyncSummary;
 
 export interface Approval {
   userId: string;
@@ -171,6 +240,18 @@ export interface AppState {
   transactionType: TransactionType;
   catalogues: Record<TransactionType, CatalogueData>;
   groupedCatalogues: Record<TransactionType, GroupedCatalogue | null>;
+  currencies: CurrencyRow[];
+  loadingCurrencies: boolean;
+  hsnCodes: HSNRow[];
+  hsnListCount: number;
+  hsnListPage: number;
+  hsnListLimit: number;
+  loadingHSN: boolean;
+  locations: LocationRow[];
+  locationListCount: number;
+  locationListPage: number;
+  locationListLimit: number;
+  loadingLocations: boolean;
   isLoading: boolean;
   error: string | null;
   
@@ -191,7 +272,26 @@ export interface AppState {
   fetchMyStats: (transactionType?: string) => Promise<{total: number, approved: number, pending: number, rejected: number} | null>;
   fetchCatalogue: (type: TransactionType) => Promise<void>;
   fetchGroupedCatalogue: (type: TransactionType) => Promise<void>;
-  
+  fetchCurrencies: (opts?: { includeInactive?: boolean }) => Promise<void>;
+  syncCurrencies: () => Promise<CurrencySyncSummary>;
+  fetchHSN: (opts?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    includeInactive?: boolean;
+  }) => Promise<void>;
+  searchHSN: (q: string, limit?: number) => Promise<HSNRow[]>;
+  syncHSN: () => Promise<HSNSyncSummary>;
+  fetchLocations: (opts?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    includeInactive?: boolean;
+    subsidiary?: string;
+  }) => Promise<void>;
+  searchLocations: (q: string, limit?: number, subsidiary?: string) => Promise<LocationRow[]>;
+  syncLocations: () => Promise<LocationSyncSummary>;
+
   // Form Management
   createForm: (name: string, companyId: string, transactionType: TransactionType, tabs?: Tab[]) => Promise<void>;
   updateForm: (id: string, updates: Partial<CustomForm>) => Promise<void>;
