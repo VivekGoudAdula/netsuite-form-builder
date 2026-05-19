@@ -11,3 +11,4 @@ beanie
 requests
 requests-oauthlib
 apscheduler
+cachetools

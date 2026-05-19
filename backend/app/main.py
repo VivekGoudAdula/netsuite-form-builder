@@ -19,8 +19,10 @@ from .routes import (
     accounts,
     items,
     vendors,
+    customers,
     tax_nature,
     netsuite,
+    netsuite_datasources,
     submissions,
     users,
     workflows,
@@ -83,8 +85,10 @@ app.include_router(classes.router, prefix="/api")
 app.include_router(accounts.router, prefix="/api")
 app.include_router(items.router, prefix="/api")
 app.include_router(vendors.router, prefix="/api")
+app.include_router(customers.router, prefix="/api")
 app.include_router(tax_nature.router, prefix="/api")
 app.include_router(netsuite.router)
+app.include_router(netsuite_datasources.router, prefix="/api")
 
 
 @app.get("/")

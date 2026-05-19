@@ -7,6 +7,8 @@ import {
   formatItemOptionTitle,
 } from '../../lib/netsuiteMasterData';
 import { lookupItem, rowToItemOption, searchItems } from '../../services/itemService';
+import { getPrefetchedItemSearch } from '../../lib/asyncSearchPrefetch';
+import { useStore } from '../../store/useStore';
 import type { ItemOption, ItemRow } from '../../types';
 
 const PAGE_SIZE = 50;
@@ -48,6 +50,39 @@ export function ItemAsyncSelect({
   } | null>(null);
 
   const hasMore = results.length < total;
+  const itemOptions = useStore(s => s.itemOptions);
+  const itemListCount = useStore(s => s.itemListCount);
+
+  const applyPrefetched = React.useCallback((rows: ItemRow[], count: number) => {
+    setResults(rows);
+    setTotal(count);
+    setSearchErr(null);
+  }, []);
+
+  React.useEffect(() => {
+    if (preview || input.trim()) return;
+    const cached = getPrefetchedItemSearch('', 1);
+    if (cached?.rows.length) {
+      applyPrefetched(cached.rows, cached.total);
+      return;
+    }
+    if (itemOptions.length > 0) {
+      applyPrefetched(
+        itemOptions.map(o => ({
+          _id: o.internalId,
+          internalId: o.internalId,
+          displayName: o.displayName,
+          itemCategory: o.itemCategory,
+          department: o.department,
+          className: o.className,
+          location: o.location,
+          hsnCode: o.hsnCode,
+          gstRate: o.gstRate,
+        })),
+        itemListCount,
+      );
+    }
+  }, [preview, input, itemOptions, itemListCount, applyPrefetched]);
 
   const updatePanelPosition = React.useCallback(() => {
     const el = wrapRef.current;
@@ -99,6 +134,13 @@ export function ItemAsyncSelect({
   }, [value, preview]);
 
   const loadPage = React.useCallback(async (q: string, pageNum: number, append: boolean) => {
+    if (!append && q === '' && pageNum === 1) {
+      const cached = getPrefetchedItemSearch(q, pageNum);
+      if (cached?.rows.length) {
+        applyPrefetched(cached.rows, cached.total);
+        return;
+      }
+    }
     if (append) setLoadingMore(true);
     else setLoading(true);
     setSearchErr(null);
@@ -120,7 +162,7 @@ export function ItemAsyncSelect({
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [applyPrefetched]);
 
   React.useEffect(() => {
     if (preview || !open) return;

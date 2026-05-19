@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 import time
 from typing import Any, Dict, Optional
 
@@ -15,6 +16,11 @@ from requests_oauthlib import OAuth1
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+# NetSuite governance: only one RESTlet in flight; minimum gap between calls.
+_restlet_mutex = threading.Lock()
+_last_restlet_finished_at = 0.0
+RESTLET_MIN_GAP_SEC = 1.25
 
 
 class NetSuiteRateLimitError(requests.HTTPError):
@@ -68,71 +74,85 @@ def restlet_get_sync(
         "Accept": "application/json",
     }
 
-    logger.info(
-        "NetSuite RESTlet GET start script=%s deploy=%s",
-        script,
-        deploy,
-    )
-    try:
-        resp = requests.get(
-            url,
-            auth=_oauth1(),
-            params=params,
-            headers=headers,
-            timeout=timeout,
+    global _last_restlet_finished_at
+
+    with _restlet_mutex:
+        gap = RESTLET_MIN_GAP_SEC - (time.time() - _last_restlet_finished_at)
+        if gap > 0:
+            logger.debug(
+                "NetSuite RESTlet throttle sleep %.2fs before script=%s",
+                gap,
+                script,
+            )
+            time.sleep(gap)
+
+        logger.info(
+            "NetSuite RESTlet GET start script=%s deploy=%s",
+            script,
+            deploy,
         )
         try:
-            body = resp.json()
-        except ValueError:
+            resp = requests.get(
+                url,
+                auth=_oauth1(),
+                params=params,
+                headers=headers,
+                timeout=timeout,
+            )
+            try:
+                body = resp.json()
+            except ValueError:
+                logger.error(
+                    "NetSuite RESTlet GET invalid JSON script=%s status=%s text=%s",
+                    script,
+                    resp.status_code,
+                    resp.text[:500],
+                )
+                body = {}
+
+            if _is_rate_limited(resp.status_code, body):
+                msg = _netsuite_error_code(body) or "SSS_REQUEST_LIMIT_EXCEEDED"
+                logger.warning(
+                    "NetSuite RESTlet rate limited script=%s deploy=%s code=%s",
+                    script,
+                    deploy,
+                    msg,
+                )
+                raise NetSuiteRateLimitError(
+                    f"NetSuite request limit exceeded ({msg})",
+                    response=resp,
+                )
+
+            if not resp.ok:
+                logger.warning(
+                    "NetSuite RESTlet GET HTTP %s script=%s deploy=%s body=%s",
+                    resp.status_code,
+                    script,
+                    deploy,
+                    str(body)[:300],
+                )
+
+            resp.raise_for_status()
+            logger.info(
+                "NetSuite RESTlet GET success script=%s deploy=%s status=%s",
+                script,
+                deploy,
+                resp.status_code,
+            )
+            return body if isinstance(body, dict) else {"_raw": body}
+        except requests.Timeout:
+            logger.error("NetSuite RESTlet GET timeout script=%s deploy=%s", script, deploy)
+            raise
+        except requests.RequestException as exc:
             logger.error(
-                "NetSuite RESTlet GET invalid JSON script=%s status=%s text=%s",
-                script,
-                resp.status_code,
-                resp.text[:500],
-            )
-            body = {}
-
-        if _is_rate_limited(resp.status_code, body):
-            msg = _netsuite_error_code(body) or "SSS_REQUEST_LIMIT_EXCEEDED"
-            logger.warning(
-                "NetSuite RESTlet rate limited script=%s deploy=%s code=%s",
+                "NetSuite RESTlet GET failure script=%s deploy=%s: %s",
                 script,
                 deploy,
-                msg,
+                exc,
             )
-            raise NetSuiteRateLimitError(
-                f"NetSuite request limit exceeded ({msg})",
-                response=resp,
-            )
-
-        if not resp.ok:
-            logger.warning(
-                "NetSuite RESTlet GET HTTP %s script=%s deploy=%s body=%s",
-                resp.status_code,
-                script,
-                deploy,
-                str(body)[:300],
-            )
-
-        resp.raise_for_status()
-        logger.info(
-            "NetSuite RESTlet GET success script=%s deploy=%s status=%s",
-            script,
-            deploy,
-            resp.status_code,
-        )
-        return body if isinstance(body, dict) else {"_raw": body}
-    except requests.Timeout:
-        logger.error("NetSuite RESTlet GET timeout script=%s deploy=%s", script, deploy)
-        raise
-    except requests.RequestException as exc:
-        logger.error(
-            "NetSuite RESTlet GET failure script=%s deploy=%s: %s",
-            script,
-            deploy,
-            exc,
-        )
-        raise
+            raise
+        finally:
+            _last_restlet_finished_at = time.time()
 
 
 def restlet_get_sync_with_retry(
@@ -152,7 +172,7 @@ def restlet_get_sync_with_retry(
             )
         except NetSuiteRateLimitError as exc:
             last_exc = exc
-            wait_s = 20.0 + 15.0 * attempt
+            wait_s = 25.0 + 20.0 * attempt
             logger.warning(
                 "NetSuite rate limit — retry in %.0fs (attempt %s/%s) script=%s deploy=%s",
                 wait_s,

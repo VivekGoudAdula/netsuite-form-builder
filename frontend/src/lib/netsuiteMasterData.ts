@@ -370,6 +370,111 @@ export function applyAccountFieldDataSource(field: Field): Field {
   };
 }
 
+/** NetSuite Customer REST — SO / AR customer (searchable, paginated). */
+export const NETSUITE_CUSTOMER_DATA_SOURCE: DataSource = {
+  type: 'netsuite_customer_live',
+  endpoint: 'customers/search',
+  apiConfig: {
+    url: 'customers/search',
+    method: 'GET',
+    labelKey: 'displayName',
+    valueKey: 'internalId',
+    searchKey: 'displayName',
+  },
+};
+
+/** PO expense line, SO/AR body entity, etc. */
+export function isCustomerFieldId(fieldId: string): boolean {
+  const id = fieldId.toLowerCase();
+  return id === 'customer' || id === 'customer_expense' || id === 'entity';
+}
+
+export function isCustomerEntityField(field: Field): boolean {
+  const id = field.id.toLowerCase();
+  if (field.dataSource?.type === 'netsuite_vendor_live') return false;
+  if (id === 'customer_expense' || id === 'customer') return true;
+  if (id !== 'entity') return false;
+  const label = (field.label || '').trim().toLowerCase();
+  if (label === 'vendor') return false;
+  return label === 'customer' || label.includes('customer');
+}
+
+/** Infer live NetSuite datasource for entity/customer fields (used by FieldControl). */
+export function resolveEntityLiveDataSource(
+  fieldId: string | undefined,
+  label: string | undefined,
+  dataSource?: DataSource | null,
+): DataSource | null {
+  if (!fieldId) return null;
+  const probe: Field = {
+    id: fieldId,
+    label: label || '',
+    dataSource: dataSource ?? undefined,
+    type: 'select',
+    section: 'body',
+    subSection: null,
+    group: '',
+    tab: '',
+    visible: true,
+    displayType: 'normal',
+    mandatory: false,
+    checkBoxDefault: 'default',
+    defaultValue: '',
+    layout: { columnBreak: false, spaceBefore: false },
+  };
+  if (isCustomerEntityField(probe)) {
+    return {
+      ...NETSUITE_CUSTOMER_DATA_SOURCE,
+      ...(dataSource || {}),
+      type: 'netsuite_customer_live',
+    };
+  }
+  if (isVendorEntityField(probe)) {
+    return {
+      ...NETSUITE_VENDOR_DATA_SOURCE,
+      ...(dataSource || {}),
+      type: 'netsuite_vendor_live',
+    };
+  }
+  return null;
+}
+
+export function formatCustomerOptionLabel(row: {
+  displayName?: string;
+  customerCode?: string;
+}): string {
+  const name = String(row.displayName ?? '').trim();
+  if (name) return name;
+  const code = String(row.customerCode ?? '').trim();
+  return code || 'Unknown';
+}
+
+export function formatCustomerOptionTitle(row: {
+  displayName?: string;
+  customerCode?: string;
+  email?: string;
+  subsidiary?: string;
+  address?: string;
+}): string {
+  const lines = [
+    formatCustomerOptionLabel(row),
+    row.customerCode ? `Code: ${row.customerCode}` : '',
+    row.email ? `Email: ${row.email}` : '',
+    row.subsidiary ? `Subsidiary: ${row.subsidiary}` : '',
+    row.address ? `Address: ${row.address}` : '',
+  ].filter(Boolean);
+  return lines.join('\n');
+}
+
+export function applyCustomerFieldDataSource(field: Field): Field {
+  if (!isCustomerEntityField(field)) return field;
+  if (field.dataSource?.type === 'netsuite_customer_live') return field;
+  return {
+    ...field,
+    dataSource: { ...NETSUITE_CUSTOMER_DATA_SOURCE },
+  };
+}
+
 /** NetSuite Vendor REST — PO vendor (searchable, paginated). */
 export const NETSUITE_VENDOR_DATA_SOURCE: DataSource = {
   type: 'netsuite_vendor_live',
@@ -488,7 +593,8 @@ export function applyItemFieldDataSource(field: Field): Field {
 
 /** Apply all NetSuite live master-data presets for known field ids. */
 export function applyFormFieldDataSource(field: Field): Field {
-  return applyVendorFieldDataSource(
+  return applyCustomerFieldDataSource(
+    applyVendorFieldDataSource(
     applyItemFieldDataSource(
       applyAccountFieldDataSource(
         applyTaxNatureFieldDataSource(
@@ -499,6 +605,7 @@ export function applyFormFieldDataSource(field: Field): Field {
           ),
         ),
       ),
+    ),
     ),
   );
 }

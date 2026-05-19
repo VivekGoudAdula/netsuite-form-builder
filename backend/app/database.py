@@ -18,6 +18,11 @@ async def connect_to_mongo():
 
 async def init_db():
     db = get_database()
+    # NetSuite dynamic datasource registry
+    await db.netsuite_datasources.create_index("key", unique=True)
+    from app.services.netsuite_datasource_seed import seed_netsuite_datasources
+    await seed_netsuite_datasources(db)
+
     # Migration: Promote all legacy 'admin' to 'super_admin'
     await db.users.update_many({"role": "admin"}, {"$set": {"role": "super_admin"}})
     

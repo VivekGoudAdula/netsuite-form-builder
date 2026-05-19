@@ -7,6 +7,8 @@ import {
   formatAccountOptionTitle,
 } from '../../lib/netsuiteMasterData';
 import { searchAccounts, lookupAccount } from '../../services/accountService';
+import { getPrefetchedAccountSearch } from '../../lib/asyncSearchPrefetch';
+import { useStore } from '../../store/useStore';
 import type { AccountRow } from '../../types';
 
 const PAGE_SIZE = 50;
@@ -46,6 +48,40 @@ export function AccountAsyncSelect({
   } | null>(null);
 
   const hasMore = results.length < total;
+  const accountOptions = useStore(s => s.accountOptions);
+  const accountListCount = useStore(s => s.accountListCount);
+
+  const applyPrefetched = React.useCallback(
+    (rows: AccountRow[], count: number) => {
+      setResults(rows);
+      setTotal(count);
+      setSearchErr(null);
+    },
+    [],
+  );
+
+  React.useEffect(() => {
+    if (preview || input.trim()) return;
+    const cached = getPrefetchedAccountSearch('', 1);
+    if (cached?.rows.length) {
+      applyPrefetched(cached.rows, cached.total);
+      return;
+    }
+    if (accountOptions.length > 0) {
+      applyPrefetched(
+        accountOptions.map(o => ({
+          _id: o.internalId,
+          internalId: o.internalId,
+          number: o.number,
+          name: o.name,
+          type: o.type,
+          generalratetype: o.generalratetype,
+          cashflowratetype: o.cashflowratetype,
+        })),
+        accountListCount,
+      );
+    }
+  }, [preview, input, accountOptions, accountListCount, applyPrefetched]);
 
   const updatePanelPosition = React.useCallback(() => {
     const el = wrapRef.current;
@@ -98,6 +134,13 @@ export function AccountAsyncSelect({
 
   const loadPage = React.useCallback(
     async (q: string, pageNum: number, append: boolean) => {
+      if (!append && q === '' && pageNum === 1) {
+        const cached = getPrefetchedAccountSearch(q, pageNum);
+        if (cached?.rows.length) {
+          applyPrefetched(cached.rows, cached.total);
+          return;
+        }
+      }
       if (append) setLoadingMore(true);
       else setLoading(true);
       setSearchErr(null);
@@ -120,7 +163,7 @@ export function AccountAsyncSelect({
         setLoadingMore(false);
       }
     },
-    [],
+    [applyPrefetched],
   );
 
   React.useEffect(() => {

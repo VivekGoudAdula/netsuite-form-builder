@@ -22,6 +22,8 @@ export interface APIConfig {
   method: string;
   labelKey: string;
   valueKey: string;
+  /** NetSuite RESTlet script stored in vault (deploy defaults to 1 on server). */
+  scriptId?: string;
   /** Primary search field for master-data autocomplete (e.g. hsncode). */
   searchKey?: string;
 }
@@ -30,6 +32,7 @@ export interface DataSource {
   type:
     | 'static'
     | 'api'
+    | 'netsuite_dynamic'
     | 'netsuite_currency'
     | 'netsuite_hsn'
     | 'netsuite_employees'
@@ -39,8 +42,11 @@ export interface DataSource {
     | 'netsuite_class_live'
     | 'netsuite_account_live'
     | 'netsuite_item_live'
-    | 'netsuite_vendor_live';
+    | 'netsuite_vendor_live'
+    | 'netsuite_customer_live';
   options?: FieldOption[];
+  /** Key into netsuite_datasources collection (type netsuite_dynamic). */
+  datasourceKey?: string;
   /** Optional REST path relative to /api (mirrors apiConfig.url for presets). */
   endpoint?: string;
   apiConfig?: APIConfig;
@@ -292,6 +298,47 @@ export interface VendorListResponse {
   source?: string;
 }
 
+export interface CustomerOption {
+  internalId: string;
+  customerCode: string;
+  displayName: string;
+  email: string;
+  phone: string;
+  subsidiary: string;
+  address: string;
+  isPerson: boolean;
+  companyName: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface CustomerRow {
+  _id: string;
+  internalId: string;
+  customerCode: string;
+  displayName: string;
+  email?: string;
+  phone?: string;
+  subsidiary?: string;
+  address?: string;
+  isPerson?: boolean;
+  companyName?: string;
+  firstName?: string;
+  lastName?: string;
+  source?: string;
+  isActive?: boolean;
+}
+
+export interface CustomerListResponse {
+  success: boolean;
+  count: number;
+  page?: number;
+  limit?: number;
+  data: CustomerRow[];
+  message?: string;
+  source?: string;
+}
+
 export interface ItemOption {
   internalId: string;
   displayName: string;
@@ -432,6 +479,11 @@ export interface AppState {
   vendorListPage: number;
   vendorListLimit: number;
   loadingVendors: boolean;
+  customerOptions: CustomerOption[];
+  customerListCount: number;
+  customerListPage: number;
+  customerListLimit: number;
+  loadingCustomers: boolean;
   isLoading: boolean;
   error: string | null;
   
@@ -439,6 +491,9 @@ export interface AppState {
   login: (email: string, password?: string) => Promise<boolean>;
   logout: () => void;
   restoreSession: () => Promise<void>;
+  masterDataPrefetching: boolean;
+  masterDataPrefetchDone: boolean;
+  prefetchMasterData: () => Promise<void>;
   
   // Data Fetching
   fetchCompanies: () => Promise<void>;
@@ -490,6 +545,8 @@ export interface AppState {
   searchItems: (q: string, page?: number, limit?: number) => Promise<ItemOption[]>;
   fetchVendors: (opts?: { page?: number; limit?: number; search?: string }) => Promise<void>;
   searchVendors: (q: string, page?: number, limit?: number) => Promise<VendorOption[]>;
+  fetchCustomers: (opts?: { page?: number; limit?: number; search?: string }) => Promise<void>;
+  searchCustomers: (q: string, page?: number, limit?: number) => Promise<CustomerOption[]>;
 
   // Form Management
   createForm: (name: string, companyId: string, transactionType: TransactionType, tabs?: Tab[]) => Promise<void>;

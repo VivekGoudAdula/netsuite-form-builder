@@ -7,9 +7,31 @@ import {
   getDataSourceOptionsForField,
   resolveDataSourceSelectValue,
 } from '../../lib/fieldDataSourceOptions';
+import {
+  listDatasources,
+  registerDatasourceScript,
+  type NetSuiteDatasource,
+} from '../../services/netsuiteDatasourceService';
+import { fieldToDatasourceKey } from '../../lib/fieldDatasourceKey';
 
 export default function PropertiesPanel({ selectedField }: { selectedField: Field | undefined }) {
   const { currentForm, updateCurrentForm } = useStore();
+  const [connectors, setConnectors] = React.useState<NetSuiteDatasource[]>([]);
+  const [scriptDraft, setScriptDraft] = React.useState('');
+  const [vaultSaving, setVaultSaving] = React.useState(false);
+  const [vaultMessage, setVaultMessage] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    void listDatasources(true).then(setConnectors).catch(() => setConnectors([]));
+  }, []);
+
+  React.useEffect(() => {
+    if (!selectedField) return;
+    const ds = selectedField.dataSource;
+    const fromVault = connectors.find(c => c.key === ds?.datasourceKey);
+    setScriptDraft(ds?.apiConfig?.scriptId || fromVault?.scriptId || '');
+    setVaultMessage(null);
+  }, [selectedField?.id, selectedField?.dataSource?.datasourceKey, selectedField?.dataSource?.apiConfig?.scriptId, connectors]);
 
   const dataSourceSelectOptions = React.useMemo(() => {
     if (!selectedField) {
@@ -44,7 +66,11 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
                           ? 'NetSuite Items (current)'
                           : resolved === 'netsuite_vendor_live'
                             ? 'NetSuite Vendors (current)'
-                            : `${resolved} (current)`;
+                            : resolved === 'netsuite_customer_live'
+                              ? 'NetSuite Customers (current)'
+                              : resolved === 'netsuite_dynamic'
+                                ? `NetSuite Connector: ${selectedField.dataSource?.datasourceKey || '—'}`
+                                : `${resolved} (current)`;
     return [...base, { label: legacy, value: resolved }];
   }, [
     selectedField?.id,
@@ -90,6 +116,48 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
       )
     }));
     updateCurrentForm({ tabs: newTabs });
+  };
+
+  const saveScriptToVault = async () => {
+    if (!scriptDraft.trim()) return;
+    const vaultKey = fieldToDatasourceKey(selectedField.id);
+    setVaultSaving(true);
+    setVaultMessage(null);
+    try {
+      const { datasource, test } = await registerDatasourceScript({
+        scriptId: scriptDraft.trim(),
+        fieldId: selectedField.id,
+        key: vaultKey,
+        name: selectedField.label || selectedField.id,
+        labelKey: selectedField.dataSource?.apiConfig?.labelKey,
+        valueKey: selectedField.dataSource?.apiConfig?.valueKey,
+      });
+      const labelKey = test.suggestedLabelKey || datasource.labelKey;
+      const valueKey = test.suggestedValueKey || datasource.valueKey;
+      handleUpdate({
+        dataSource: {
+          type: 'netsuite_dynamic',
+          datasourceKey: datasource.key,
+          apiConfig: {
+            url: '',
+            method: 'GET',
+            scriptId: datasource.scriptId,
+            labelKey,
+            valueKey,
+          },
+        },
+      });
+      setVaultMessage(
+        test.success
+          ? `Vault saved · ${test.responseCount ?? 0} rows · deploy 1 · OAuth from server .env`
+          : `Script saved; test: ${test.message || 'check NetSuite'}`,
+      );
+      setConnectors(await listDatasources(true));
+    } catch {
+      setVaultMessage('Could not save script to vault');
+    } finally {
+      setVaultSaving(false);
+    }
   };
 
   const handleMoveField = (direction: 'up' | 'down' | 'top' | 'bottom') => {
@@ -238,7 +306,9 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
                       | 'netsuite_class_live'
                       | 'netsuite_account_live'
                       | 'netsuite_item_live'
-                      | 'netsuite_vendor_live';
+                      | 'netsuite_vendor_live'
+                      | 'netsuite_customer_live'
+                      | 'netsuite_dynamic';
                     if (v === 'static') {
                       handleUpdate({
                         dataSource: {
@@ -404,6 +474,41 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
                       });
                       return;
                     }
+                    if (v === 'netsuite_customer_live') {
+                      handleUpdate({
+                        dataSource: {
+                          type: 'netsuite_customer_live',
+                          endpoint: 'customers/search',
+                          apiConfig: {
+                            url: 'customers/search',
+                            method: 'GET',
+                            labelKey: 'displayName',
+                            valueKey: 'internalId',
+                            searchKey: 'displayName',
+                          },
+                        },
+                      });
+                      return;
+                    }
+                    if (v === 'netsuite_dynamic') {
+                      const vaultKey = fieldToDatasourceKey(selectedField.id);
+                      const existing = connectors.find(c => c.key === vaultKey);
+                      handleUpdate({
+                        dataSource: {
+                          type: 'netsuite_dynamic',
+                          datasourceKey: vaultKey,
+                          apiConfig: {
+                            url: '',
+                            method: 'GET',
+                            scriptId: existing?.scriptId || '',
+                            labelKey: existing?.labelKey || 'displayName',
+                            valueKey: existing?.valueKey || 'internalId',
+                          },
+                        },
+                      });
+                      setScriptDraft(existing?.scriptId || '');
+                      return;
+                    }
                     const prev = selectedField.dataSource;
                     const migrated =
                       prev?.apiConfig?.url
@@ -424,7 +529,71 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
                   options={dataSourceSelectOptions} 
                 />
               </div>
-              
+
+              {selectedField.dataSource?.type === 'netsuite_dynamic' && (
+                <div className="space-y-3 p-3 bg-ns-light-blue/30 rounded-sm border border-ns-blue/10">
+                  <Label>NetSuite RESTlet Script ID</Label>
+                  <p className="text-[10px] text-ns-text-muted mb-2 font-medium bg-white/50 p-2 rounded">
+                    Paste script only. Deploy is always 1. OAuth from server .env (not in vault).
+                  </p>
+                  <Input
+                    value={scriptDraft}
+                    onChange={e => setScriptDraft(e.target.value)}
+                    placeholder="customscript_rg_restapi_tax_nature_fetch"
+                    className="bg-white font-mono text-[11px]"
+                  />
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={vaultSaving || !scriptDraft.trim()}
+                      onClick={() => void saveScriptToVault()}
+                    >
+                      {vaultSaving ? 'Saving…' : 'Save to vault & fetch'}
+                    </Button>
+                    <span className="text-[10px] text-ns-text-muted">
+                      Vault: <code>{fieldToDatasourceKey(selectedField.id)}</code>
+                    </span>
+                  </div>
+                  {vaultMessage && (
+                    <p className="text-[10px] text-ns-blue font-medium mt-1">{vaultMessage}</p>
+                  )}
+                  <details className="text-[10px] mt-2">
+                    <summary className="cursor-pointer text-ns-text-muted">Existing connector</summary>
+                    <Select
+                      className="mt-2"
+                      value={selectedField.dataSource.datasourceKey || ''}
+                      onChange={e => {
+                        const key = e.target.value;
+                        const cfg = connectors.find(c => c.key === key);
+                        setScriptDraft(cfg?.scriptId || '');
+                        handleUpdate({
+                          dataSource: {
+                            ...selectedField.dataSource!,
+                            type: 'netsuite_dynamic',
+                            datasourceKey: key,
+                            apiConfig: {
+                              url: '',
+                              method: 'GET',
+                              scriptId: cfg?.scriptId || '',
+                              labelKey: cfg?.labelKey || 'displayName',
+                              valueKey: cfg?.valueKey || 'internalId',
+                            },
+                          },
+                        });
+                      }}
+                      options={[
+                        { label: '— Select —', value: '' },
+                        ...connectors.map(c => ({ label: `${c.name} (${c.key})`, value: c.key })),
+                      ]}
+                    />
+                  </details>
+                  <span className="text-[9px] font-bold text-ns-blue uppercase tracking-widest">
+                    ⚡ ERP Metadata Mode
+                  </span>
+                </div>
+              )}
+
               {(selectedField.dataSource?.type === 'api' ||
                 selectedField.dataSource?.type === 'netsuite_currency' ||
                 selectedField.dataSource?.type === 'netsuite_hsn' ||

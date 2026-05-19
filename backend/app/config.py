@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     NETSUITE_VENDOR_SCRIPT: str = "customscript_rg_restapi_vendor_fetch"
     NETSUITE_VENDOR_DEPLOY: str = "1"
 
+    NETSUITE_CUSTOMER_SCRIPT: str = "customscript_rg_restapi_customer_fetch"
+    NETSUITE_CUSTOMER_DEPLOY: str = "1"
+
     class Config:
         env_file = str(Path(__file__).parent.parent.parent / ".env")
         extra = "ignore"

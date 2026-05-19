@@ -28,6 +28,9 @@ import {
   NETSUITE_ACCOUNT_DATA_SOURCE,
   NETSUITE_ITEM_DATA_SOURCE,
   NETSUITE_VENDOR_DATA_SOURCE,
+  NETSUITE_CUSTOMER_DATA_SOURCE,
+  resolveEntityLiveDataSource,
+  isCustomerFieldId,
   NETSUITE_CLASS_DATA_SOURCE,
   NETSUITE_DEPARTMENT_DATA_SOURCE,
   NETSUITE_HSN_DATA_SOURCE,
@@ -37,11 +40,16 @@ import {
 import { AccountAsyncSelect } from './AccountAsyncSelect';
 import { ItemAsyncSelect } from './ItemAsyncSelect';
 import { VendorAsyncSelect } from './VendorAsyncSelect';
-import type { DataSource, ItemOption, VendorOption } from '../../types';
-
-const OPTIONS_CACHE_TTL_MS = 5 * 60 * 1000;
-const optionsCache = new Map<string, { at: number; opts: { label: string; value: string }[] }>();
-
+import { CustomerAsyncSelect } from './CustomerAsyncSelect';
+import { DynamicAsyncSelect } from './DynamicAsyncSelect';
+import { fetchDynamicDatasource } from '../../services/netsuiteDatasourceService';
+import type { DataSource, CustomerOption, ItemOption, VendorOption } from '../../types';
+import {
+  fetchMasterDataListPages,
+  getCachedSelectOptions,
+  SELECT_CACHE_KEYS,
+  setCachedSelectOptions,
+} from '../../lib/masterDataOptionsCache';
 
 function normalizeApiPath(raw: string): string {
   let p = (raw || '').trim();
@@ -50,57 +58,15 @@ function normalizeApiPath(raw: string): string {
   return p;
 }
 
-async function fetchMasterDataListPages(
-  listPath: string,
-  mapRow: (row: Record<string, unknown>) => { label: string; value: string; title?: string },
-  pageLimit = 200,
-): Promise<{ label: string; value: string; title?: string }[]> {
-  const path = normalizeApiPath(listPath);
-  const url = path.endsWith('/') ? path : `${path}/`;
-  const out: { label: string; value: string; title?: string }[] = [];
-  let page = 1;
-  for (;;) {
-    const res = await api.get(url, { params: { page, limit: pageLimit } });
-    const body = res.data;
-    const rows = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : null;
-    if (!rows) {
-      throw new Error('API response is not a list');
-    }
-    const total = typeof body?.count === 'number' ? body.count : rows.length;
-    for (const row of rows) {
-      const mapped = mapRow(row as Record<string, unknown>);
-      if (mapped.value) out.push(mapped);
-    }
-    if (rows.length < pageLimit || out.length >= total) break;
-    page += 1;
-    if (page > 100) break;
-  }
-  return out;
-}
-
 function remoteOptionsCacheKey(ds: any): string | null {
   if (!ds) return null;
-  if (ds.type === 'netsuite_currency') {
-    return 'netsuite_currency|currencies/|name|internalId';
-  }
-  if (ds.type === 'netsuite_employees') {
-    return 'netsuite_employees|netsuite/employees|label|value';
-  }
-  if (ds.type === 'netsuite_department') {
-    return 'netsuite_department|departments/|dept|internalId';
-  }
-  if (ds.type === 'netsuite_class_live') {
-    return 'netsuite_class_live|classes/|class|internalId';
-  }
-  if (ds.type === 'netsuite_location') {
-    return 'netsuite_location|locations/|loc|internalId';
-  }
-  if (ds.type === 'netsuite_hsn') {
-    return 'netsuite_hsn|hsn-codes/|hsn|internalId';
-  }
-  if (ds.type === 'netsuite_tax_nature_live') {
-    return 'netsuite_tax_nature_live|tax-nature/live|name|name';
-  }
+  if (ds.type === 'netsuite_currency') return SELECT_CACHE_KEYS.currency;
+  if (ds.type === 'netsuite_employees') return SELECT_CACHE_KEYS.employees;
+  if (ds.type === 'netsuite_department') return SELECT_CACHE_KEYS.department;
+  if (ds.type === 'netsuite_class_live') return SELECT_CACHE_KEYS.class;
+  if (ds.type === 'netsuite_location') return SELECT_CACHE_KEYS.location;
+  if (ds.type === 'netsuite_hsn') return SELECT_CACHE_KEYS.hsn;
+  if (ds.type === 'netsuite_tax_nature_live') return SELECT_CACHE_KEYS.taxNature;
   if (ds.type === 'api' && ds.apiConfig?.url) {
     const path = normalizeApiPath(ds.apiConfig.url);
     const lk = ds.apiConfig.labelKey || 'name';
@@ -141,6 +107,8 @@ interface FieldControlProps {
   onItemMasterSelect?: (item: ItemOption) => void;
   /** Fired when a NetSuite vendor is chosen (body auto-fill). */
   onVendorMasterSelect?: (vendor: VendorOption) => void;
+  /** Fired when a NetSuite customer is chosen (body auto-fill). */
+  onCustomerMasterSelect?: (customer: CustomerOption) => void;
 }
 
 /**
@@ -164,6 +132,7 @@ export function FieldControl({
   showIntegrationHints = true,
   onItemMasterSelect,
   onVendorMasterSelect,
+  onCustomerMasterSelect,
 }: FieldControlProps) {
   const resolvedDataSource = React.useMemo(() => {
     if (dataSource?.type === 'netsuite_hsn') return dataSource;
@@ -215,17 +184,19 @@ export function FieldControl({
       };
     }
     if (dataSource?.type === 'netsuite_vendor_live') return dataSource;
-    if (
-      fieldId &&
-      fieldId.toLowerCase() === 'entity' &&
-      (label?.trim().toLowerCase() === 'vendor' || dataSource?.type === 'netsuite_vendor_live')
-    ) {
-      return {
-        ...NETSUITE_VENDOR_DATA_SOURCE,
-        ...dataSource,
-        type: 'netsuite_vendor_live' as const,
-      };
+    if (dataSource?.type === 'netsuite_customer_live') return dataSource;
+    if (fieldId && isCustomerFieldId(fieldId)) {
+      const id = fieldId.toLowerCase();
+      if (id === 'customer_expense' || id === 'customer') {
+        return {
+          ...NETSUITE_CUSTOMER_DATA_SOURCE,
+          ...dataSource,
+          type: 'netsuite_customer_live' as const,
+        };
+      }
     }
+    const entityLive = resolveEntityLiveDataSource(fieldId, label, dataSource);
+    if (entityLive) return entityLive;
     if (dataSource?.type === 'netsuite_location') return dataSource;
     if (fieldId && isLocationFieldId(fieldId)) {
       return { ...NETSUITE_LOCATION_DATA_SOURCE, ...dataSource, type: 'netsuite_location' as const };
@@ -254,6 +225,7 @@ export function FieldControl({
 
     const remoteTypes = [
       'api',
+      'netsuite_dynamic',
       'netsuite_currency',
       'netsuite_employees',
       'netsuite_department',
@@ -264,12 +236,13 @@ export function FieldControl({
     ] as const;
     if (!remoteTypes.includes(ds.type as (typeof remoteTypes)[number])) return;
     if (ds.type === 'api' && !ds.apiConfig?.url) return;
+    if (ds.type === 'netsuite_dynamic' && !ds.datasourceKey) return;
 
     const cacheKey = remoteOptionsCacheKey(ds);
     if (cacheKey) {
-      const hit = optionsCache.get(cacheKey);
-      if (hit && Date.now() - hit.at < OPTIONS_CACHE_TTL_MS) {
-        setOptions(hit.opts);
+      const cached = getCachedSelectOptions(cacheKey);
+      if (cached) {
+        setOptions(cached);
         setLoadError(null);
         return;
       }
@@ -280,7 +253,19 @@ export function FieldControl({
     try {
       let mapped: { label: string; value: string; title?: string }[];
 
-      if (ds.type === 'netsuite_department') {
+      if (ds.type === 'netsuite_dynamic' && ds.datasourceKey) {
+        const lk = ds.apiConfig?.labelKey || 'displayName';
+        const vk = ds.apiConfig?.valueKey || 'internalId';
+        const res = await fetchDynamicDatasource(ds.datasourceKey, { limit: 200 });
+        if (res.success === false) {
+          throw new Error(res.message || 'Unable to fetch dynamic datasource');
+        }
+        const rows = res.data ?? [];
+        mapped = rows.map((item: Record<string, unknown>) => ({
+          label: String(item[lk] ?? item.label ?? 'Unknown'),
+          value: String(item[vk] ?? item.internalId ?? ''),
+        }));
+      } else if (ds.type === 'netsuite_department') {
         mapped = await fetchMasterDataListPages('departments/', row => {
           const r = row as { name?: string; subsidiary?: string; internalId?: string };
           return {
@@ -352,11 +337,7 @@ export function FieldControl({
 
       setOptions(mapped);
       if (cacheKey) {
-        if (mapped.length > 0) {
-          optionsCache.set(cacheKey, { at: Date.now(), opts: mapped });
-        } else {
-          optionsCache.delete(cacheKey);
-        }
+        setCachedSelectOptions(cacheKey, mapped);
       }
     } catch (err) {
       console.error('Failed to fetch field options', err);
@@ -382,7 +363,9 @@ export function FieldControl({
     if (
       ds?.type === 'netsuite_account_live' ||
       ds?.type === 'netsuite_item_live' ||
-      ds?.type === 'netsuite_vendor_live'
+      ds?.type === 'netsuite_vendor_live' ||
+      ds?.type === 'netsuite_customer_live' ||
+      ds?.type === 'netsuite_dynamic'
     ) {
       setOptions([]);
       setLoadError(null);
@@ -410,6 +393,21 @@ export function FieldControl({
   // ─── SELECT / DROPDOWN ────────────────────────────────────────────────────
   if (type === 'select' || type === 'recordref') {
     const ds = resolvedDataSource;
+    if (ds?.type === 'netsuite_dynamic' && ds.datasourceKey) {
+      return (
+        <DynamicAsyncSelect
+          datasourceKey={ds.datasourceKey}
+          labelKey={ds.apiConfig?.labelKey || 'displayName'}
+          valueKey={ds.apiConfig?.valueKey || 'internalId'}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          preview={preview}
+          label={label}
+          className={className}
+        />
+      );
+    }
     if (ds?.type === 'netsuite_item_live') {
       return (
         <ItemAsyncSelect
@@ -429,6 +427,19 @@ export function FieldControl({
           value={value}
           onChange={onChange}
           onVendorSelect={onVendorMasterSelect}
+          disabled={disabled}
+          preview={preview}
+          label={label}
+          className={className}
+        />
+      );
+    }
+    if (ds?.type === 'netsuite_customer_live') {
+      return (
+        <CustomerAsyncSelect
+          value={value}
+          onChange={onChange}
+          onCustomerSelect={onCustomerMasterSelect}
           disabled={disabled}
           preview={preview}
           label={label}

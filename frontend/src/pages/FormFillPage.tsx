@@ -20,7 +20,8 @@ import { cn } from '../lib/utils';
 import { sortItemSublistFields } from '../lib/netsuiteMasterData';
 import { buildItemRowAutoFill } from '../lib/itemAutoFill';
 import { buildVendorBodyAutoFill } from '../lib/vendorAutoFill';
-import type { ItemOption, VendorOption } from '../types';
+import { buildCustomerBodyAutoFill } from '../lib/customerAutoFill';
+import type { CustomerOption, ItemOption, VendorOption } from '../types';
 import {
   buildSubmissionValues,
   findLineItemsMissingHsnWhenTaxSet,
@@ -116,13 +117,20 @@ export default function FormFillPage() {
     );
   }
 
-  const handleInputChange = (fieldId: string, value: any, vendor?: VendorOption) => {
-    if (fieldId.toLowerCase() === 'entity' && vendor && form) {
+  const handleInputChange = (
+    fieldId: string,
+    value: any,
+    party?: VendorOption | CustomerOption,
+  ) => {
+    if (fieldId.toLowerCase() === 'entity' && party && form) {
       setFormValues(prev => {
         const bodyFields = form.tabs.flatMap(t =>
           t.fieldGroups.flatMap(g => g.fields),
         );
-        const updates = buildVendorBodyAutoFill(vendor, bodyFields);
+        const isVendor = 'vendorCode' in party;
+        const updates = isVendor
+          ? buildVendorBodyAutoFill(party as VendorOption, bodyFields)
+          : buildCustomerBodyAutoFill(party as CustomerOption, bodyFields);
         return { ...prev, [fieldId]: value, ...updates };
       });
       return;
@@ -321,6 +329,13 @@ export default function FormFillPage() {
                                       handleInputChange(field.id, vendor.internalId, vendor)
                                   : undefined
                               }
+                              onCustomerMasterSelect={
+                                field.id.toLowerCase() === 'entity' &&
+                                field.label.trim().toLowerCase() === 'customer'
+                                  ? customer =>
+                                      handleInputChange(field.id, customer.internalId, customer)
+                                  : undefined
+                              }
                               disabled={field.displayType === 'disabled'}
                               defaultValue={field.defaultValue}
                               checkBoxDefault={field.checkBoxDefault}
@@ -428,12 +443,32 @@ export default function FormFillPage() {
                           <tbody>
                             <tr className="border-b border-ns-border">
                               {tab.expenseSublist.map(field => (
-                                <td key={field.id} className="px-2 py-2 min-w-[120px]">
+                                <td
+                                  key={field.id}
+                                  className={cn(
+                                    'px-2 py-2 align-top',
+                                    field.id.toLowerCase() === 'customer_expense' ||
+                                    field.dataSource?.type === 'netsuite_customer_live'
+                                      ? 'min-w-[280px]'
+                                      : 'min-w-[120px]',
+                                  )}
+                                >
                                   <FieldControl
                                     fieldId={field.id}
                                     fieldType={field.type}
                                     value={formValues[`exp_0_${field.id}`]}
-                                    onChange={(val) => handleInputChange(`exp_0_${field.id}`, val)}
+                                    onChange={val => handleInputChange(`exp_0_${field.id}`, val)}
+                                    onCustomerMasterSelect={
+                                      field.id.toLowerCase() === 'customer_expense' ||
+                                      field.dataSource?.type === 'netsuite_customer_live'
+                                        ? customer =>
+                                            handleInputChange(
+                                              `exp_0_${field.id}`,
+                                              customer.internalId,
+                                              customer,
+                                            )
+                                        : undefined
+                                    }
                                     label={field.label}
                                     dataSource={field.dataSource}
                                     preview={false}

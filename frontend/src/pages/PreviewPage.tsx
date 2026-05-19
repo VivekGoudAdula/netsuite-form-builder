@@ -189,6 +189,7 @@ export default function PreviewPage() {
                           )}
                         </div>
                         <FieldControl
+                          fieldId={field.id}
                           fieldType={field.type}
                           disabled={field.displayType === 'disabled'}
                           defaultValue={field.defaultValue}

@@ -16,6 +16,7 @@ import CataloguePage from './pages/CataloguePage';
 import UserTransactionHub from './pages/UserTransactionHub';
 import StaffManagementPage from './pages/StaffManagementPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
+import NetSuiteDatasourceManagementPage from './pages/NetSuiteDatasourceManagementPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import { useStore } from './store/useStore';
 import { UserRole } from './types';
@@ -36,10 +37,21 @@ function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?
 
 export default function App() {
   const restoreSession = useStore((state) => state.restoreSession);
+  const prefetchMasterData = useStore((state) => state.prefetchMasterData);
+  const user = useStore((state) => state.user);
 
   React.useEffect(() => {
     restoreSession();
   }, [restoreSession]);
+
+  React.useEffect(() => {
+    if (!user) return;
+    // Defer prefetch so login UI and first navigation are not blocked by NetSuite calls.
+    const t = window.setTimeout(() => {
+      void prefetchMasterData();
+    }, 1200);
+    return () => window.clearTimeout(t);
+  }, [user, prefetchMasterData]);
 
   return (
     <Router>
@@ -163,6 +175,14 @@ export default function App() {
               <AdminSubmissionsPage />
             </ProtectedRoute>
           } 
+        />
+        <Route
+          path="/netsuite-connectors"
+          element={
+            <ProtectedRoute roles={['super_admin', 'client_admin']}>
+              <NetSuiteDatasourceManagementPage />
+            </ProtectedRoute>
+          }
         />
         {/* All Users / Common */}
         <Route 

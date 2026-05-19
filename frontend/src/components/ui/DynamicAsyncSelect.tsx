@@ -3,40 +3,45 @@ import { createPortal } from 'react-dom';
 import { AlertCircle, ChevronDown, Loader2, RefreshCcw } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import {
-  formatVendorOptionLabel,
-  formatVendorOptionTitle,
-} from '../../lib/netsuiteMasterData';
-import { lookupVendor, rowToVendorOption, searchVendors } from '../../services/vendorService';
-import { getPrefetchedVendorSearch } from '../../lib/asyncSearchPrefetch';
-import { useStore } from '../../store/useStore';
-import type { VendorOption, VendorRow } from '../../types';
+  formatDynamicLabel,
+  lookupDynamicRecord,
+  searchDynamicDatasource,
+} from '../../services/netsuiteDatasourceService';
 
 const PAGE_SIZE = 50;
 const DEBOUNCE_MS = 300;
 
-export function VendorAsyncSelect({
+export function DynamicAsyncSelect({
+  datasourceKey,
+  labelKey,
+  valueKey,
   value,
   onChange,
-  onVendorSelect,
+  onRecordSelect,
   disabled,
   preview,
   label,
   className,
+  placeholder,
 }: {
+  datasourceKey: string;
+  labelKey: string;
+  valueKey: string;
   value?: string;
   onChange?: (value: string) => void;
-  onVendorSelect?: (vendor: VendorOption) => void;
+  onRecordSelect?: (row: Record<string, unknown>) => void;
   disabled?: boolean;
   preview?: boolean;
   label?: string;
   className?: string;
+  placeholder?: string;
 }) {
   const wrapRef = React.useRef<HTMLDivElement>(null);
   const panelRef = React.useRef<HTMLUListElement>(null);
   const listEndRef = React.useRef<HTMLLIElement>(null);
   const [open, setOpen] = React.useState(false);
   const [input, setInput] = React.useState('');
-  const [results, setResults] = React.useState<VendorRow[]>([]);
+  const [results, setResults] = React.useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [loadingMore, setLoadingMore] = React.useState(false);
   const [searchErr, setSearchErr] = React.useState<string | null>(null);
@@ -50,42 +55,6 @@ export function VendorAsyncSelect({
   } | null>(null);
 
   const hasMore = results.length < total;
-  const vendorOptions = useStore(s => s.vendorOptions);
-  const vendorListCount = useStore(s => s.vendorListCount);
-
-  const applyPrefetched = React.useCallback((rows: VendorRow[], count: number) => {
-    setResults(rows);
-    setTotal(count);
-    setSearchErr(null);
-  }, []);
-
-  React.useEffect(() => {
-    if (preview || input.trim()) return;
-    const cached = getPrefetchedVendorSearch('', 1);
-    if (cached?.rows.length) {
-      applyPrefetched(cached.rows, cached.total);
-      return;
-    }
-    if (vendorOptions.length > 0) {
-      applyPrefetched(
-        vendorOptions.map(o => ({
-          _id: o.internalId,
-          internalId: o.internalId,
-          vendorCode: o.vendorCode,
-          displayName: o.displayName,
-          email: o.email,
-          phone: o.phone,
-          subsidiary: o.subsidiary,
-          address: o.address,
-          isPerson: o.isPerson,
-          companyName: o.companyName,
-          firstName: o.firstName,
-          lastName: o.lastName,
-        })),
-        vendorListCount,
-      );
-    }
-  }, [preview, input, vendorOptions, vendorListCount, applyPrefetched]);
 
   const updatePanelPosition = React.useCallback(() => {
     const el = wrapRef.current;
@@ -121,12 +90,12 @@ export function VendorAsyncSelect({
   }, []);
 
   React.useEffect(() => {
-    if (preview || !value) return;
+    if (preview || !value || !datasourceKey) return;
     let cancelled = false;
     void (async () => {
-      const vendor = await lookupVendor(String(value));
-      if (!cancelled && vendor) {
-        setInput(formatVendorOptionLabel(vendor));
+      const row = await lookupDynamicRecord(datasourceKey, String(value));
+      if (!cancelled && row) {
+        setInput(formatDynamicLabel(row, labelKey, valueKey));
       } else if (!cancelled) {
         setInput(String(value));
       }
@@ -134,41 +103,48 @@ export function VendorAsyncSelect({
     return () => {
       cancelled = true;
     };
-  }, [value, preview]);
+  }, [value, preview, datasourceKey, labelKey, valueKey]);
 
-  const loadPage = React.useCallback(async (q: string, pageNum: number, append: boolean) => {
-    if (!append && q === '' && pageNum === 1) {
-      const cached = getPrefetchedVendorSearch(q, pageNum);
-      if (cached?.rows.length) {
-        applyPrefetched(cached.rows, cached.total);
-        return;
-      }
-    }
-    if (append) setLoadingMore(true);
-    else setLoading(true);
-    setSearchErr(null);
-    try {
-      const res = await searchVendors(q, pageNum, PAGE_SIZE);
-      if (res.success === false) {
-        setSearchErr(res.message || 'Unable to fetch vendor data');
+  const loadPage = React.useCallback(
+    async (q: string, pageNum: number, append: boolean) => {
+      if (!datasourceKey) return;
+      if (append) setLoadingMore(true);
+      else setLoading(true);
+      setSearchErr(null);
+      try {
+        const res = await searchDynamicDatasource(datasourceKey, q, pageNum, PAGE_SIZE);
+        if (res.success === false) {
+          setSearchErr(res.message || 'Unable to fetch data');
+          if (!append) setResults([]);
+          return;
+        }
+        const rows = res.data ?? [];
+        if (rows.length === 0 && res.message) {
+          setSearchErr(res.message);
+          if (!append) setResults([]);
+          return;
+        }
+        setTotal(res.count ?? rows.length);
+        setPage(pageNum);
+        setResults(prev => (append ? [...prev, ...rows] : rows));
+      } catch {
+        setSearchErr('Unable to fetch data');
         if (!append) setResults([]);
-        return;
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
       }
-      const rows = res.data ?? [];
-      setTotal(res.count ?? rows.length);
-      setPage(pageNum);
-      setResults(prev => (append ? [...prev, ...rows] : rows));
-    } catch {
-      setSearchErr('Unable to fetch vendor data');
-      if (!append) setResults([]);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [applyPrefetched]);
+    },
+    [datasourceKey],
+  );
 
   React.useEffect(() => {
-    if (preview || !open) return;
+    if (preview || !datasourceKey) return;
+    void loadPage('', 1, false);
+  }, [preview, retryKey, loadPage, datasourceKey]);
+
+  React.useEffect(() => {
+    if (preview || !open || !datasourceKey) return;
     const q = input.trim();
     let cancelled = false;
     const run = () => {
@@ -181,7 +157,7 @@ export function VendorAsyncSelect({
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, [input, open, preview, retryKey, loadPage]);
+  }, [input, open, preview, retryKey, loadPage, datasourceKey]);
 
   React.useEffect(() => {
     if (!open || !listEndRef.current || !hasMore || loading || loadingMore) return;
@@ -207,7 +183,7 @@ export function VendorAsyncSelect({
           className,
         )}
       >
-        — Vendor —
+        — {label || datasourceKey || 'NetSuite'} —
       </div>
     );
   }
@@ -247,38 +223,36 @@ export function VendorAsyncSelect({
             {!searchErr && loading && results.length === 0 && (
               <li className="px-3 py-2.5 text-ns-text-muted text-[11px] flex items-center gap-2">
                 <Loader2 size={12} className="animate-spin text-ns-blue shrink-0" />
-                Searching vendors…
+                Searching…
               </li>
             )}
             {!searchErr && !loading && results.length === 0 && (
-              <li className="px-3 py-2.5 text-ns-text-muted text-[11px]">No vendors found</li>
+              <li className="px-3 py-2.5 text-ns-text-muted text-[11px]">No results found</li>
             )}
-            {results.map(row => (
-              <li key={row.internalId}>
-                <button
-                  type="button"
-                  className="w-full text-left px-3 py-2.5 hover:bg-ns-light-blue/40 border-b border-ns-border/50 last:border-0"
-                  title={formatVendorOptionTitle(row)}
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => {
-                    const opt = rowToVendorOption(row);
-                    onChange?.(row.internalId);
-                    onVendorSelect?.(opt);
-                    setInput(formatVendorOptionLabel(row));
-                    setOpen(false);
-                  }}
-                >
-                  <div className="font-medium text-ns-navy text-[11px] leading-snug truncate">
-                    {formatVendorOptionLabel(row)}
-                  </div>
-                  {(row.vendorCode || row.email || row.subsidiary) && (
-                    <div className="text-[10px] text-ns-text-muted mt-0.5 truncate">
-                      {[row.vendorCode, row.email, row.subsidiary].filter(Boolean).join(' · ')}
+            {results.map(row => {
+              const id = String(row[valueKey] ?? row.internalId ?? row.value ?? '');
+              const optionLabel = formatDynamicLabel(row, labelKey, valueKey);
+              return (
+                <li key={id}>
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2.5 hover:bg-ns-light-blue/40 border-b border-ns-border/50 last:border-0"
+                    title={optionLabel}
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => {
+                      onChange?.(id);
+                      onRecordSelect?.(row);
+                      setInput(optionLabel);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="font-medium text-ns-navy text-[11px] leading-snug truncate">
+                      {optionLabel}
                     </div>
-                  )}
-                </button>
-              </li>
-            ))}
+                  </button>
+                </li>
+              );
+            })}
             {hasMore && (
               <li ref={listEndRef} className="h-8 flex items-center justify-center">
                 {loadingMore && (
@@ -312,7 +286,7 @@ export function VendorAsyncSelect({
             setOpen(true);
             updatePanelPosition();
           }}
-          placeholder="Search vendor name or code…"
+          placeholder={placeholder || `Search ${datasourceKey}…`}
           disabled={disabled}
           aria-label={label}
           aria-expanded={open}

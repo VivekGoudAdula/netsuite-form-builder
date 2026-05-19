@@ -20,6 +20,7 @@ import {
   AccountOption,
   ItemOption,
   VendorOption,
+  CustomerOption,
 } from '../types';
 import { getCurrencies, syncCurrencies as postSyncCurrencies } from '../services/currencyService';
 import {
@@ -53,6 +54,24 @@ import {
   searchVendors as searchVendorsApi,
   rowToVendorOption,
 } from '../services/vendorService';
+import { searchAccounts as searchAccountsForPrefetch } from '../services/accountService';
+import { searchItems as searchItemsForPrefetch } from '../services/itemService';
+import { searchVendors as searchVendorsForPrefetch } from '../services/vendorService';
+import {
+  fetchCustomers as getCustomersPage,
+  searchCustomers as searchCustomersApi,
+  searchCustomers as searchCustomersForPrefetch,
+  rowToCustomerOption,
+} from '../services/customerService';
+import { prefetchMasterDataSelectOptions } from '../lib/masterDataOptionsCache';
+import {
+  clearAsyncSearchPrefetch,
+  setPrefetchedAccountSearch,
+  setPrefetchedItemSearch,
+  setPrefetchedVendorSearch,
+  setPrefetchedCustomerSearch,
+} from '../lib/asyncSearchPrefetch';
+import { clearMasterDataOptionsCache } from '../lib/masterDataOptionsCache';
 import { isEmployeesApiUrl } from '../lib/fieldDataSourceOptions';
 import {
   isDedicatedHsnFieldId,
@@ -64,6 +83,7 @@ import {
   NETSUITE_ACCOUNT_DATA_SOURCE,
   NETSUITE_ITEM_DATA_SOURCE,
   NETSUITE_VENDOR_DATA_SOURCE,
+  NETSUITE_CUSTOMER_DATA_SOURCE,
   applyFormFieldDataSource,
   sortItemSublistFields,
 } from '../lib/netsuiteMasterData';
@@ -352,7 +372,18 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
         { ...NETSUITE_LOCATION_DATA_SOURCE },
         'NetSuite location (expense line)',
       ),
-      mapNetSuiteField('customer_expense', 'Customer', 'select', 'Expenses', 'Items', false, 'sublist', 'expense'),
+      mapNetSuiteField(
+        'customer_expense',
+        'Customer',
+        'select',
+        'Expenses',
+        'Items',
+        false,
+        'sublist',
+        'expense',
+        { ...NETSUITE_CUSTOMER_DATA_SOURCE },
+        'NetSuite customer (live lookup)',
+      ),
       mapNetSuiteField('isbillable', 'Billable', 'checkbox', 'Expenses', 'Items', false, 'sublist', 'expense'),
     ] 
   },
@@ -361,10 +392,24 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
     tabs: ['Main', 'Shipping', 'Billing', 'Items'], 
     fieldGroups: ['Primary Information', 'Classification', 'Shipping', 'Billing', 'Line Items'], 
     fields: [
-      mapNetSuiteField('entity', 'Customer', 'select', 'Primary Information', 'Main', true, 'body', null),
+      mapNetSuiteField(
+        'entity',
+        'Customer',
+        'select',
+        'Primary Information',
+        'Main',
+        true,
+        'body',
+        null,
+        { ...NETSUITE_CUSTOMER_DATA_SOURCE },
+        'NetSuite customer (live lookup)',
+      ),
       mapNetSuiteField('trandate', 'Date', 'date', 'Primary Information', 'Main', true),
       mapNetSuiteField('tranid', 'Order #', 'text', 'Primary Information', 'Main'),
+      mapNetSuiteField('email', 'Email', 'emails', 'Primary Information', 'Main'),
       mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null),
+      mapNetSuiteField('shipaddress', 'Shipping Address', 'address', 'Shipping', 'Shipping'),
+      mapNetSuiteField('billaddress', 'Billing Address', 'address', 'Billing', 'Billing'),
       mapNetSuiteField(
         'item',
         'Item',
@@ -407,8 +452,21 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
     tabs: ['Main', 'Items'], 
     fieldGroups: ['Primary Information', 'Line Items'], 
     fields: [
-      mapNetSuiteField('entity', 'Customer', 'select', 'Primary Information', 'Main', true, 'body', null),
+      mapNetSuiteField(
+        'entity',
+        'Customer',
+        'select',
+        'Primary Information',
+        'Main',
+        true,
+        'body',
+        null,
+        { ...NETSUITE_CUSTOMER_DATA_SOURCE },
+        'NetSuite customer (live lookup)',
+      ),
       mapNetSuiteField('trandate', 'Date', 'date', 'Primary Information', 'Main', true),
+      mapNetSuiteField('email', 'Email', 'emails', 'Primary Information', 'Main'),
+      mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null),
       mapNetSuiteField(
         'item',
         'Item',
@@ -562,6 +620,20 @@ function normalizeFieldDataSource(ds: any): any {
       },
     };
   }
+  if (ds.type === 'netsuite_customer_live') {
+    return {
+      type: 'netsuite_customer_live',
+      endpoint: ds.endpoint || 'customers/search',
+      apiConfig: {
+        method: 'GET',
+        labelKey: 'displayName',
+        valueKey: 'internalId',
+        searchKey: 'displayName',
+        ...ds.apiConfig,
+        url: ds.apiConfig?.url || 'customers/search',
+      },
+    };
+  }
   if (ds.type === 'api' && isEmployeesApiUrl(ds.apiConfig?.url)) {
     return {
       type: 'netsuite_employees',
@@ -597,7 +669,7 @@ const mapBackendForm = (form: any): CustomForm => {
       const mapFields = (fields: any[]): Field[] =>
         fields?.map((f: any) =>
           applyFormFieldDataSource({
-            id: f.fieldId,
+            id: f.fieldId || f.id,
             label: f.label,
             visible: f.visible,
             mandatory: f.mandatory,
@@ -812,6 +884,13 @@ export const useStore = create<AppState>((set, get) => ({
   vendorListPage: 1,
   vendorListLimit: 50,
   loadingVendors: false,
+  customerOptions: [] as CustomerOption[],
+  customerListCount: 0,
+  customerListPage: 1,
+  customerListLimit: 50,
+  loadingCustomers: false,
+  masterDataPrefetching: false,
+  masterDataPrefetchDone: false,
   isLoading: false,
   error: null,
   activeTabId: '',
@@ -833,6 +912,7 @@ export const useStore = create<AppState>((set, get) => ({
       localStorage.setItem('token', access_token);
       localStorage.setItem('user', JSON.stringify({ ...user, role }));
       set({ user: { ...user, role }, isLoading: false });
+      void get().prefetchMasterData();
       return true;
     } catch (err: any) {
       set({ error: err.response?.data?.detail || 'Login failed', isLoading: false });
@@ -843,6 +923,8 @@ export const useStore = create<AppState>((set, get) => ({
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    clearMasterDataOptionsCache();
+    clearAsyncSearchPrefetch();
     set({
       user: null,
       forms: [],
@@ -858,6 +940,18 @@ export const useStore = create<AppState>((set, get) => ({
       locationListCount: 0,
       locationListPage: 1,
       locationListLimit: 50,
+      accountOptions: [],
+      accountListCount: 0,
+      itemOptions: [],
+      itemListCount: 0,
+      vendorOptions: [],
+      vendorListCount: 0,
+      customerOptions: [],
+      customerListCount: 0,
+      classOptions: [],
+      taxNatureOptions: [],
+      masterDataPrefetchDone: false,
+      masterDataPrefetching: false,
     });
     window.location.href = '/login';
   },
@@ -871,6 +965,88 @@ export const useStore = create<AppState>((set, get) => ({
       localStorage.setItem('user', JSON.stringify(response.data));
     } catch (err) {
       get().logout();
+    }
+  },
+
+  prefetchMasterData: async () => {
+    if (get().masterDataPrefetching || get().masterDataPrefetchDone) return;
+    if (!localStorage.getItem('token')) return;
+    set({ masterDataPrefetching: true, error: null });
+
+    const pause = (ms = 500) => new Promise<void>(r => setTimeout(r, ms));
+
+    try {
+      // Native <select> caches (each step may call one NetSuite RESTlet on the backend).
+      await prefetchMasterDataSelectOptions();
+
+      // Large async comboboxes: one search per type (avoids duplicate fetch + search).
+      const accountRes = await searchAccountsForPrefetch('', 1, 50);
+      await pause();
+      const itemRes = await searchItemsForPrefetch('', 1, 50);
+      await pause();
+      const vendorRes = await searchVendorsForPrefetch('', 1, 50);
+      await pause();
+      const customerRes = await searchCustomersForPrefetch('', 1, 50);
+
+      if (accountRes.success !== false) {
+        const rows = accountRes.data ?? [];
+        setPrefetchedAccountSearch('', 1, rows, accountRes.count ?? rows.length);
+        set({
+          accountOptions: rows.map(row => ({
+            internalId: row.internalId,
+            number: row.number,
+            name: row.name,
+            type: row.type ?? '',
+            generalratetype: row.generalratetype ?? '',
+            cashflowratetype: row.cashflowratetype ?? '',
+          })),
+          accountListCount: accountRes.count ?? rows.length,
+          accountListPage: 1,
+        });
+      }
+      if (itemRes.success !== false) {
+        const rows = itemRes.data ?? [];
+        setPrefetchedItemSearch('', 1, rows, itemRes.count ?? rows.length);
+        set({
+          itemOptions: rows.map(row => ({
+            internalId: row.internalId,
+            displayName: row.displayName,
+            itemCategory: row.itemCategory ?? '',
+            department: row.department ?? '',
+            className: row.className ?? '',
+            location: row.location ?? '',
+            hsnCode: row.hsnCode ?? '',
+            gstRate: row.gstRate ?? '',
+          })),
+          itemListCount: itemRes.count ?? rows.length,
+          itemListPage: 1,
+        });
+      }
+      if (vendorRes.success !== false) {
+        const rows = vendorRes.data ?? [];
+        setPrefetchedVendorSearch('', 1, rows, vendorRes.count ?? rows.length);
+        set({
+          vendorOptions: rows.map(rowToVendorOption),
+          vendorListCount: vendorRes.count ?? rows.length,
+          vendorListPage: 1,
+        });
+      }
+      if (customerRes.success !== false) {
+        const rows = customerRes.data ?? [];
+        setPrefetchedCustomerSearch('', 1, rows, customerRes.count ?? rows.length);
+        set({
+          customerOptions: rows.map(rowToCustomerOption),
+          customerListCount: customerRes.count ?? rows.length,
+          customerListPage: 1,
+        });
+      }
+
+      set({ masterDataPrefetchDone: true });
+    } catch (err) {
+      console.warn('Master data prefetch incomplete', err);
+      set({ masterDataPrefetchDone: true });
+    } finally {
+      set({ masterDataPrefetching: false });
     }
   },
 
@@ -1521,6 +1697,40 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const res = await searchVendorsApi(q, page, limit);
       return (res.data ?? []).map(rowToVendorOption);
+    } catch {
+      return [];
+    }
+  },
+
+  fetchCustomers: async (opts) => {
+    set({ loadingCustomers: true, error: null });
+    try {
+      const page = opts?.page ?? 1;
+      const limit = opts?.limit ?? 50;
+      const res = await getCustomersPage({ page, limit, search: opts?.search });
+      const options: CustomerOption[] = (res.data ?? []).map(rowToCustomerOption);
+      set({
+        customerOptions: res.success ? options : [],
+        customerListCount: res.count ?? 0,
+        customerListPage: page,
+        customerListLimit: limit,
+        loadingCustomers: false,
+        error: res.success ? null : res.message || 'Unable to fetch customer data',
+      });
+    } catch (err: any) {
+      set({
+        customerOptions: [],
+        customerListCount: 0,
+        error: err.response?.data?.detail || err.message,
+        loadingCustomers: false,
+      });
+    }
+  },
+
+  searchCustomers: async (q: string, page = 1, limit = 50) => {
+    try {
+      const res = await searchCustomersApi(q, page, limit);
+      return (res.data ?? []).map(rowToCustomerOption);
     } catch {
       return [];
     }

@@ -5,6 +5,7 @@
 import {
   isAccountFieldId,
   isItemLineFieldId,
+  isCustomerFieldId,
   isClassFieldId,
   isDepartmentFieldId,
   isHsnFetchFieldId,
@@ -15,6 +16,7 @@ import {
 export type DataSourceTypeOption =
   | 'static'
   | 'api'
+  | 'netsuite_dynamic'
   | 'netsuite_currency'
   | 'netsuite_hsn'
   | 'netsuite_employees'
@@ -24,7 +26,8 @@ export type DataSourceTypeOption =
   | 'netsuite_class_live'
   | 'netsuite_account_live'
   | 'netsuite_item_live'
-  | 'netsuite_vendor_live';
+  | 'netsuite_vendor_live'
+  | 'netsuite_customer_live';
 
 export function isEmployeesApiUrl(url?: string): boolean {
   if (!url || typeof url !== 'string') return false;
@@ -110,17 +113,27 @@ export function getDataSourceOptionsForField(fieldId: string): {
     ];
   }
 
+  if (id === 'customer_expense' || id === 'customer') {
+    return [
+      { label: 'Static', value: 'static' },
+      { label: 'NetSuite Customers', value: 'netsuite_customer_live' },
+    ];
+  }
+
   if (id === 'entity') {
     return [
       { label: 'Static', value: 'static' },
+      { label: 'NetSuite Customers', value: 'netsuite_customer_live' },
       { label: 'NetSuite Vendors', value: 'netsuite_vendor_live' },
-      { label: 'API', value: 'api' },
+      { label: 'NetSuite Connector (dynamic)', value: 'netsuite_dynamic' },
+      { label: 'API (legacy)', value: 'api' },
     ];
   }
 
   return [
     { label: 'Static', value: 'static' },
-    { label: 'API', value: 'api' },
+    { label: 'NetSuite Connector (dynamic)', value: 'netsuite_dynamic' },
+    { label: 'API (legacy)', value: 'api' },
   ];
 }
 
@@ -128,6 +141,9 @@ export function getDataSourceOptionsForField(fieldId: string): {
 export function resolveDataSourceSelectValue(ds: any): DataSourceTypeOption {
   if (!ds?.type) return 'static';
   const t = ds.type as string;
+  if (t === 'netsuite_dynamic') {
+    return 'netsuite_dynamic';
+  }
   if (
     t === 'netsuite_currency' ||
     t === 'netsuite_hsn' ||
@@ -139,6 +155,7 @@ export function resolveDataSourceSelectValue(ds: any): DataSourceTypeOption {
     t === 'netsuite_account_live' ||
     t === 'netsuite_item_live' ||
     t === 'netsuite_vendor_live' ||
+    t === 'netsuite_customer_live' ||
     t === 'static'
   ) {
     return t as DataSourceTypeOption;

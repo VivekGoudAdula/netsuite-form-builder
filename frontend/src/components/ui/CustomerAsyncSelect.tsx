@@ -3,21 +3,21 @@ import { createPortal } from 'react-dom';
 import { AlertCircle, ChevronDown, Loader2, RefreshCcw } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import {
-  formatVendorOptionLabel,
-  formatVendorOptionTitle,
+  formatCustomerOptionLabel,
+  formatCustomerOptionTitle,
 } from '../../lib/netsuiteMasterData';
-import { lookupVendor, rowToVendorOption, searchVendors } from '../../services/vendorService';
-import { getPrefetchedVendorSearch } from '../../lib/asyncSearchPrefetch';
+import { lookupCustomer, rowToCustomerOption, searchCustomers } from '../../services/customerService';
+import { getPrefetchedCustomerSearch } from '../../lib/asyncSearchPrefetch';
 import { useStore } from '../../store/useStore';
-import type { VendorOption, VendorRow } from '../../types';
+import type { CustomerOption, CustomerRow } from '../../types';
 
 const PAGE_SIZE = 50;
 const DEBOUNCE_MS = 300;
 
-export function VendorAsyncSelect({
+export function CustomerAsyncSelect({
   value,
   onChange,
-  onVendorSelect,
+  onCustomerSelect,
   disabled,
   preview,
   label,
@@ -25,7 +25,7 @@ export function VendorAsyncSelect({
 }: {
   value?: string;
   onChange?: (value: string) => void;
-  onVendorSelect?: (vendor: VendorOption) => void;
+  onCustomerSelect?: (customer: CustomerOption) => void;
   disabled?: boolean;
   preview?: boolean;
   label?: string;
@@ -36,7 +36,7 @@ export function VendorAsyncSelect({
   const listEndRef = React.useRef<HTMLLIElement>(null);
   const [open, setOpen] = React.useState(false);
   const [input, setInput] = React.useState('');
-  const [results, setResults] = React.useState<VendorRow[]>([]);
+  const [results, setResults] = React.useState<CustomerRow[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [loadingMore, setLoadingMore] = React.useState(false);
   const [searchErr, setSearchErr] = React.useState<string | null>(null);
@@ -50,10 +50,10 @@ export function VendorAsyncSelect({
   } | null>(null);
 
   const hasMore = results.length < total;
-  const vendorOptions = useStore(s => s.vendorOptions);
-  const vendorListCount = useStore(s => s.vendorListCount);
+  const customerOptions = useStore(s => s.customerOptions);
+  const customerListCount = useStore(s => s.customerListCount);
 
-  const applyPrefetched = React.useCallback((rows: VendorRow[], count: number) => {
+  const applyPrefetched = React.useCallback((rows: CustomerRow[], count: number) => {
     setResults(rows);
     setTotal(count);
     setSearchErr(null);
@@ -61,17 +61,17 @@ export function VendorAsyncSelect({
 
   React.useEffect(() => {
     if (preview || input.trim()) return;
-    const cached = getPrefetchedVendorSearch('', 1);
+    const cached = getPrefetchedCustomerSearch('', 1);
     if (cached?.rows.length) {
       applyPrefetched(cached.rows, cached.total);
       return;
     }
-    if (vendorOptions.length > 0) {
+    if (customerOptions.length > 0) {
       applyPrefetched(
-        vendorOptions.map(o => ({
+        customerOptions.map(o => ({
           _id: o.internalId,
           internalId: o.internalId,
-          vendorCode: o.vendorCode,
+          customerCode: o.customerCode,
           displayName: o.displayName,
           email: o.email,
           phone: o.phone,
@@ -82,10 +82,10 @@ export function VendorAsyncSelect({
           firstName: o.firstName,
           lastName: o.lastName,
         })),
-        vendorListCount,
+        customerListCount,
       );
     }
-  }, [preview, input, vendorOptions, vendorListCount, applyPrefetched]);
+  }, [preview, input, customerOptions, customerListCount, applyPrefetched]);
 
   const updatePanelPosition = React.useCallback(() => {
     const el = wrapRef.current;
@@ -124,9 +124,9 @@ export function VendorAsyncSelect({
     if (preview || !value) return;
     let cancelled = false;
     void (async () => {
-      const vendor = await lookupVendor(String(value));
-      if (!cancelled && vendor) {
-        setInput(formatVendorOptionLabel(vendor));
+      const customer = await lookupCustomer(String(value));
+      if (!cancelled && customer) {
+        setInput(formatCustomerOptionLabel(customer));
       } else if (!cancelled) {
         setInput(String(value));
       }
@@ -138,7 +138,7 @@ export function VendorAsyncSelect({
 
   const loadPage = React.useCallback(async (q: string, pageNum: number, append: boolean) => {
     if (!append && q === '' && pageNum === 1) {
-      const cached = getPrefetchedVendorSearch(q, pageNum);
+      const cached = getPrefetchedCustomerSearch(q, pageNum);
       if (cached?.rows.length) {
         applyPrefetched(cached.rows, cached.total);
         return;
@@ -148,9 +148,9 @@ export function VendorAsyncSelect({
     else setLoading(true);
     setSearchErr(null);
     try {
-      const res = await searchVendors(q, pageNum, PAGE_SIZE);
+      const res = await searchCustomers(q, pageNum, PAGE_SIZE);
       if (res.success === false) {
-        setSearchErr(res.message || 'Unable to fetch vendor data');
+        setSearchErr(res.message || 'Unable to fetch customer data');
         if (!append) setResults([]);
         return;
       }
@@ -159,13 +159,18 @@ export function VendorAsyncSelect({
       setPage(pageNum);
       setResults(prev => (append ? [...prev, ...rows] : rows));
     } catch {
-      setSearchErr('Unable to fetch vendor data');
+      setSearchErr('Unable to fetch customer data');
       if (!append) setResults([]);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
   }, [applyPrefetched]);
+
+  React.useEffect(() => {
+    if (preview) return;
+    void loadPage('', 1, false);
+  }, [preview, retryKey, loadPage]);
 
   React.useEffect(() => {
     if (preview || !open) return;
@@ -207,7 +212,7 @@ export function VendorAsyncSelect({
           className,
         )}
       >
-        — Vendor —
+        — Customer —
       </div>
     );
   }
@@ -247,33 +252,33 @@ export function VendorAsyncSelect({
             {!searchErr && loading && results.length === 0 && (
               <li className="px-3 py-2.5 text-ns-text-muted text-[11px] flex items-center gap-2">
                 <Loader2 size={12} className="animate-spin text-ns-blue shrink-0" />
-                Searching vendors…
+                Searching customers…
               </li>
             )}
             {!searchErr && !loading && results.length === 0 && (
-              <li className="px-3 py-2.5 text-ns-text-muted text-[11px]">No vendors found</li>
+              <li className="px-3 py-2.5 text-ns-text-muted text-[11px]">No customers found</li>
             )}
             {results.map(row => (
               <li key={row.internalId}>
                 <button
                   type="button"
                   className="w-full text-left px-3 py-2.5 hover:bg-ns-light-blue/40 border-b border-ns-border/50 last:border-0"
-                  title={formatVendorOptionTitle(row)}
+                  title={formatCustomerOptionTitle(row)}
                   onMouseDown={e => e.preventDefault()}
                   onClick={() => {
-                    const opt = rowToVendorOption(row);
+                    const opt = rowToCustomerOption(row);
                     onChange?.(row.internalId);
-                    onVendorSelect?.(opt);
-                    setInput(formatVendorOptionLabel(row));
+                    onCustomerSelect?.(opt);
+                    setInput(formatCustomerOptionLabel(row));
                     setOpen(false);
                   }}
                 >
                   <div className="font-medium text-ns-navy text-[11px] leading-snug truncate">
-                    {formatVendorOptionLabel(row)}
+                    {formatCustomerOptionLabel(row)}
                   </div>
-                  {(row.vendorCode || row.email || row.subsidiary) && (
+                  {(row.customerCode || row.email || row.subsidiary) && (
                     <div className="text-[10px] text-ns-text-muted mt-0.5 truncate">
-                      {[row.vendorCode, row.email, row.subsidiary].filter(Boolean).join(' · ')}
+                      {[row.customerCode, row.email, row.subsidiary].filter(Boolean).join(' · ')}
                     </div>
                   )}
                 </button>
@@ -312,7 +317,7 @@ export function VendorAsyncSelect({
             setOpen(true);
             updatePanelPosition();
           }}
-          placeholder="Search vendor name or code…"
+          placeholder="Search customer name or code…"
           disabled={disabled}
           aria-label={label}
           aria-expanded={open}

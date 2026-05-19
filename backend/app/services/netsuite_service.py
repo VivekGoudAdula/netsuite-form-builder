@@ -626,6 +626,75 @@ def _vendor_display_name(item: Dict[str, Any]) -> str:
     return "Unknown"
 
 
+async def fetch_customers_from_netsuite() -> List[Dict[str, str]]:
+    """Fetch Customer master rows from NetSuite RESTlet (OAuth1 HMAC-SHA256)."""
+    logger.info(
+        "NetSuite Customer fetch: request start script=%s deploy=%s",
+        settings.NETSUITE_CUSTOMER_SCRIPT,
+        settings.NETSUITE_CUSTOMER_DEPLOY,
+    )
+    try:
+        data = await restlet_get_with_retry(
+            settings.NETSUITE_CUSTOMER_SCRIPT,
+            settings.NETSUITE_CUSTOMER_DEPLOY,
+            timeout=120,
+            max_retries=3,
+        )
+    except Exception as exc:
+        logger.warning("NetSuite Customer fetch: failure %s", exc)
+        return []
+
+    if not data.get("success"):
+        logger.warning(
+            "NetSuite Customer fetch: success flag false payload_keys=%s",
+            list(data.keys()),
+        )
+        return []
+
+    raw = data.get("data")
+    if not isinstance(raw, list):
+        logger.warning("NetSuite Customer fetch: data is not a list")
+        return []
+
+    out: List[Dict[str, str]] = []
+    seen: set[str] = set()
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        iid = item.get("internalId")
+        if iid is None:
+            continue
+        iid_s = str(iid)
+        if iid_s in seen:
+            continue
+        seen.add(iid_s)
+        raw_type = item.get("type")
+        is_person = raw_type is True or str(raw_type).lower() in ("true", "1", "t")
+        addr = str(item.get("address") or "").replace("\r\n", " ").replace("\r", " ").replace("\n", " ")
+        out.append(
+            {
+                "internalId": iid_s,
+                "customerCode": str(item.get("CustomerID") or ""),
+                "displayName": _vendor_display_name(item),
+                "email": str(item.get("email") or ""),
+                "phone": str(item.get("phone") or ""),
+                "subsidiary": str(item.get("subsidiary") or ""),
+                "address": addr.strip(),
+                "isPerson": "true" if is_person else "false",
+                "companyName": str(item.get("companyname") or item.get("companyName") or ""),
+                "firstName": str(item.get("firstname") or item.get("firstName") or ""),
+                "lastName": str(item.get("lastname") or item.get("lastName") or ""),
+            }
+        )
+
+    logger.info(
+        "NetSuite Customer fetch: success response_count=%s normalized=%s",
+        data.get("count"),
+        len(out),
+    )
+    return out
+
+
 async def fetch_vendors_from_netsuite() -> List[Dict[str, str]]:
     """Fetch Vendor master rows from NetSuite RESTlet (OAuth1 HMAC-SHA256)."""
     logger.info(
