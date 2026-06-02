@@ -15,6 +15,8 @@ export function buildVendorBodyAutoFill(
   const updates: Record<string, string> = {};
   const rules: { value: string; patterns: string[] }[] = [
     { value: vendor.subsidiary, patterns: ['subsidiary'] },
+    { value: vendor.currency ?? '', patterns: ['currency'] },
+    { value: vendor.terms ?? '', patterns: ['terms'] },
     { value: vendor.email, patterns: ['email'] },
     { value: vendor.phone, patterns: ['billphone', 'phone', 'bill_phone'] },
     { value: vendor.address, patterns: ['billaddress', 'billingaddress', 'shipaddress'] },

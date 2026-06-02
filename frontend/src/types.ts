@@ -101,7 +101,8 @@ export type TransactionType =
   | 'sales_order'
   | 'accounts_payable'
   | 'accounts_receivable'
-  | 'item_receipt';
+  | 'item_receipt'
+  | 'vendor_bill';
 
 export type UserRole = 'super_admin' | 'client_admin' | 'manager' | 'user';
 
@@ -128,6 +129,7 @@ export interface CurrencyRow {
   _id: string;
   internalId: string;
   name: string;
+  exchangeRate?: string | number;
   source?: string;
   lastSyncedAt?: string;
   isActive: boolean;
@@ -270,6 +272,8 @@ export interface VendorOption {
   phone: string;
   subsidiary: string;
   address: string;
+  currency?: string;
+  terms?: string;
   isPerson: boolean;
   companyName: string;
   firstName: string;

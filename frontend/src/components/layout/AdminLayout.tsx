@@ -120,6 +120,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 { name: 'Accounts Payable', path: '/catalogue/ap', icon: CreditCard },
                 { name: 'Accounts Receivable', path: '/catalogue/ar', icon: Receipt },
                 { name: 'Item Receipt', path: '/catalogue/item-receipt', icon: Receipt },
+                { name: 'Vendor Bill', path: '/catalogue/vendor-bill', icon: Receipt },
               ].map((item) => {
                 const isActive = location.pathname === item.path;
                 return (

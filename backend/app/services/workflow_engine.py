@@ -5,6 +5,7 @@ from ..database import get_database
 from .activity import log_activity
 from .netsuite_service import send_to_netsuite
 from .item_receipt_service import send_item_receipt_to_netsuite
+from .vendor_bill_service import send_vendor_bill_to_netsuite
 import os
 from dotenv import load_dotenv
 
@@ -13,8 +14,11 @@ BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 
 def _send_submission_to_netsuite(submission: Dict[str, Any], submission_id: str) -> Dict[str, Any]:
-    if submission.get("transactionType") == "item_receipt":
+    tx = submission.get("transactionType")
+    if tx == "item_receipt":
         return send_item_receipt_to_netsuite(submission)
+    if tx == "vendor_bill":
+        return send_vendor_bill_to_netsuite(submission)
     payload = {
         "firstname": submission.get("values", {}).get("firstName", ""),
         "lastname": submission.get("values", {}).get("lastName", ""),
@@ -200,6 +204,17 @@ async def approve_submission(submission_id: str, user: Dict[str, Any]):
                 }
             },
         )
+    if submission.get("transactionType") == "vendor_bill":
+        await db.vendor_bill_submissions.update_one(
+            {"_id": ObjectId(submission_id)},
+            {
+                "$set": {
+                    "workflowStatus": submission["status"],
+                    "currentLevel": submission.get("currentLevel", 1),
+                    "updatedAt": datetime.utcnow(),
+                }
+            },
+        )
 
     await log_activity(user["id"], "APPROVE_FORM", entity_id=submission_id, entity_type="submission")
     if submission["status"] == "submitted":
@@ -254,6 +269,16 @@ async def reject_submission(submission_id: str, user: Dict[str, Any]):
 
     if submission.get("transactionType") == "item_receipt":
         await db.item_receipt_submissions.update_one(
+            {"_id": ObjectId(submission_id)},
+            {
+                "$set": {
+                    "workflowStatus": "rejected",
+                    "updatedAt": datetime.utcnow(),
+                }
+            },
+        )
+    if submission.get("transactionType") == "vendor_bill":
+        await db.vendor_bill_submissions.update_one(
             {"_id": ObjectId(submission_id)},
             {
                 "$set": {

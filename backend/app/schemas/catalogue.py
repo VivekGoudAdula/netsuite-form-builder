@@ -10,7 +10,7 @@ class CatalogueFieldBase(BaseModel):
     nlapiSubmitField: bool = False
     label: str
     required: bool = False
-    transactionType: str  # purchase_order, sales_order, ap, ar
+    transactionType: str  # purchase_order, sales_order, ap, ar, item_receipt, vendor_bill
     isSystemField: bool = True
     dataSource: Optional[DataSourceSchema] = None
     section: str = "body" # body, sublist

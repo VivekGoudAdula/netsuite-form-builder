@@ -33,7 +33,8 @@ export default function CataloguePage() {
     'sales-order': 'sales_order',
     'ap': 'accounts_payable',
     'ar': 'accounts_receivable',
-    'item-receipt': 'item_receipt'
+    'item-receipt': 'item_receipt',
+    'vendor-bill': 'vendor_bill',
   };
 
   const displayNames: Record<string, string> = {
@@ -41,7 +42,8 @@ export default function CataloguePage() {
     'sales-order': 'Sales Order Fields',
     'ap': 'Accounts Payable Fields',
     'ar': 'Accounts Receivable Fields',
-    'item-receipt': 'Item Receipt Fields'
+    'item-receipt': 'Item Receipt Fields',
+    'vendor-bill': 'Vendor Bill Fields',
   };
 
   const transactionType = type ? typeMap[type] : 'purchase_order';

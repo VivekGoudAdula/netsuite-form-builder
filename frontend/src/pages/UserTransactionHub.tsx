@@ -18,21 +18,24 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TransactionType } from '../types';
+import { slugToTransactionType, TRANSACTION_REGISTRY } from '../lib/transactionRegistry';
 
 export default function UserTransactionHub() {
   const { type } = useParams<{ type: string }>();
   const { user, forms, submissions, fetchMyForms, fetchMySubmissions, fetchMyStats, isLoading } = useStore();
   const navigate = useNavigate();
-  const [stats, setStats] = React.useState<{ total: number, approved: number, pending: number, rejected: number } | null>(null);
+  const [stats, setStats] = React.useState<{
+    total: number;
+    approved: number;
+    pending: number;
+    rejected: number;
+    drafts?: number;
+  } | null>(null);
 
-  const transactionType = (type === 'po' ? 'purchase_order' : 
-                          type === 'so' ? 'sales_order' : 
-                          type === 'ap' ? 'accounts_payable' : 
-                          type === 'ar' ? 'accounts_receivable' :
-                          type === 'ir' ? 'item_receipt' : 'purchase_order') as TransactionType;
-
-  const title = type?.toUpperCase() || 'Transactions';
-  const fullTitle = transactionType.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  const transactionType = slugToTransactionType(type) as TransactionType;
+  const meta = TRANSACTION_REGISTRY[transactionType];
+  const fullTitle = meta.name;
+  const statLabels = meta.statLabels;
 
   React.useEffect(() => {
     fetchMyForms(transactionType);
@@ -83,10 +86,15 @@ export default function UserTransactionHub() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className={cn(
+          'grid grid-cols-1 gap-6',
+          statLabels?.drafts ? 'md:grid-cols-5' : 'md:grid-cols-4',
+        )}>
           <div className="bg-white p-6 rounded-sm border border-ns-border shadow-sm flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">Total Submissions</p>
+              <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">
+                {statLabels?.total ?? 'Total Submissions'}
+              </p>
               <p className="text-3xl font-bold text-ns-navy">{stats?.total || 0}</p>
             </div>
             <div className="w-12 h-12 bg-ns-blue/5 rounded-full flex items-center justify-center text-ns-blue">
@@ -95,16 +103,9 @@ export default function UserTransactionHub() {
           </div>
           <div className="bg-white p-6 rounded-sm border border-ns-border shadow-sm flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">Approved</p>
-              <p className="text-3xl font-bold text-ns-navy">{stats?.approved || 0}</p>
-            </div>
-            <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-green-600">
-              <CheckCircle2 size={22} />
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-sm border border-ns-border shadow-sm flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">Pending</p>
+              <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">
+                {statLabels?.pending ?? 'Pending'}
+              </p>
               <p className="text-3xl font-bold text-ns-navy">{stats?.pending || 0}</p>
             </div>
             <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center text-amber-600">
@@ -113,13 +114,39 @@ export default function UserTransactionHub() {
           </div>
           <div className="bg-white p-6 rounded-sm border border-ns-border shadow-sm flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">Rejected</p>
+              <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">
+                {statLabels?.approved ?? 'Approved'}
+              </p>
+              <p className="text-3xl font-bold text-ns-navy">{stats?.approved || 0}</p>
+            </div>
+            <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-green-600">
+              <CheckCircle2 size={22} />
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-sm border border-ns-border shadow-sm flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">
+                {statLabels?.rejected ?? 'Rejected'}
+              </p>
               <p className="text-3xl font-bold text-ns-navy">{stats?.rejected || 0}</p>
             </div>
             <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-600">
               <AlertCircle size={22} />
             </div>
           </div>
+          {statLabels?.drafts && (
+            <div className="bg-white p-6 rounded-sm border border-ns-border shadow-sm flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.2em]">
+                  {statLabels.drafts}
+                </p>
+                <p className="text-3xl font-bold text-ns-navy">{stats?.drafts ?? 0}</p>
+              </div>
+              <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center text-slate-600">
+                <FileText size={22} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Form Templates Section */}

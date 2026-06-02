@@ -178,6 +178,51 @@ PO_FIELDS = [
     create_field("isbillable", "Billable", "checkbox", section="sublist", sub_section="expense", group="Expenses", tab="Items"),
 ]
 
+def _vb_ds(ds_type: str) -> dict:
+    return {"type": ds_type}
+
+
+# Vendor Bill catalogue (transactionType: vendor_bill)
+VB_FIELDS = [
+    create_field("customform", "Form", "select", trans_type="vendor_bill", group="Primary Information", tab="Main", required=True),
+    create_field("entity", "Vendor", "select", trans_type="vendor_bill", group="Primary Information", tab="Main", required=True, ds=_vb_ds("netsuite_vendor_live")),
+    create_field("tranid", "Invoice Number", "text", trans_type="vendor_bill", group="Primary Information", tab="Main"),
+    create_field("account", "Account", "select", trans_type="vendor_bill", group="Primary Information", tab="Main", required=True, ds=_vb_ds("netsuite_account")),
+    create_field("usertotal", "Amount", "currency", trans_type="vendor_bill", group="Primary Information", tab="Main", required=True),
+    create_field("currency", "Currency", "select", trans_type="vendor_bill", group="Primary Information", tab="Main", required=True, ds=_vb_ds("netsuite_currency")),
+    create_field("exchangerate", "Exchange Rate", "number", trans_type="vendor_bill", group="Primary Information", tab="Main", required=True),
+    create_field("terms", "Terms", "select", trans_type="vendor_bill", group="Primary Information", tab="Main"),
+    create_field("duedate", "Due Date", "date", trans_type="vendor_bill", group="Primary Information", tab="Main", required=True),
+    create_field("trandate", "Date", "date", trans_type="vendor_bill", group="Primary Information", tab="Main", required=True),
+    create_field("postingperiod", "Posting Period", "select", trans_type="vendor_bill", group="Primary Information", tab="Main"),
+    create_field("memo", "Memo", "textarea", trans_type="vendor_bill", group="Primary Information", tab="Main"),
+    create_field("approvalstatus", "Approval Status", "select", trans_type="vendor_bill", group="Primary Information", tab="Main"),
+    create_field("subsidiary", "Subsidiary", "select", trans_type="vendor_bill", group="Classification", tab="Main", required=True),
+    create_field("location", "Location", "select", trans_type="vendor_bill", group="Classification", tab="Main", ds=_vb_ds("netsuite_location")),
+    create_field("class", "Class", "select", trans_type="vendor_bill", group="Classification", tab="Main", ds=_vb_ds("netsuite_class_live")),
+    create_field("custbody_in_gst_pos", "Place Of Supply", "select", trans_type="vendor_bill", group="Classification", tab="Main"),
+    create_field("item", "Item", "select", trans_type="vendor_bill", section="sublist", sub_section="item", group="Line Items", tab="Items", required=True, ds=_vb_ds("netsuite_item_live")),
+    create_field("description", "Description", "text", trans_type="vendor_bill", section="sublist", sub_section="item", group="Line Items", tab="Items"),
+    create_field("quantity", "Quantity", "float", trans_type="vendor_bill", section="sublist", sub_section="item", group="Line Items", tab="Items"),
+    create_field("rate", "Rate", "currency", trans_type="vendor_bill", section="sublist", sub_section="item", group="Line Items", tab="Items"),
+    create_field("amount", "Amount", "currency", trans_type="vendor_bill", section="sublist", sub_section="item", group="Line Items", tab="Items"),
+    create_field("department", "Department", "select", trans_type="vendor_bill", section="sublist", sub_section="item", group="Line Items", tab="Items", ds=_vb_ds("netsuite_department")),
+    create_field("class", "Class", "select", trans_type="vendor_bill", section="sublist", sub_section="item", group="Line Items", tab="Items", ds=_vb_ds("netsuite_class_live")),
+    create_field("location", "Location", "select", trans_type="vendor_bill", section="sublist", sub_section="item", group="Line Items", tab="Items", ds=_vb_ds("netsuite_location")),
+    create_field("account", "Account", "select", trans_type="vendor_bill", section="sublist", sub_section="expense", group="Expense Lines", tab="Expenses", required=True, ds=_vb_ds("netsuite_account")),
+    create_field("amount", "Amount", "currency", trans_type="vendor_bill", section="sublist", sub_section="expense", group="Expense Lines", tab="Expenses", required=True),
+    create_field("department", "Department", "select", trans_type="vendor_bill", section="sublist", sub_section="expense", group="Expense Lines", tab="Expenses", ds=_vb_ds("netsuite_department")),
+    create_field("class", "Class", "select", trans_type="vendor_bill", section="sublist", sub_section="expense", group="Expense Lines", tab="Expenses", ds=_vb_ds("netsuite_class_live")),
+    create_field("location", "Location", "select", trans_type="vendor_bill", section="sublist", sub_section="expense", group="Expense Lines", tab="Expenses", ds=_vb_ds("netsuite_location")),
+    create_field("memo", "Memo", "text", trans_type="vendor_bill", section="sublist", sub_section="expense", group="Expense Lines", tab="Expenses"),
+    create_field("isbillable", "Billable", "checkbox", trans_type="vendor_bill", section="sublist", sub_section="expense", group="Expense Lines", tab="Expenses"),
+    create_field("customer", "Customer", "select", trans_type="vendor_bill", section="sublist", sub_section="expense", group="Expense Lines", tab="Expenses", ds=_vb_ds("netsuite_customer_live")),
+]
+
+for i, field in enumerate(VB_FIELDS):
+    field["displayOrder"] = (i + 1) * 10
+
+
 async def seed():
     print(f"Connecting to MongoDB: {MONGO_URI.split('@')[-1] if '@' in MONGO_URI else MONGO_URI}")
     print(f"Database: {DB_NAME}")
@@ -199,6 +244,12 @@ async def seed():
         print(f"WARNING: Detected duplicate Internal IDs: {duplicates}")
     else:
         print("Verification Complete: No duplicate Internal IDs detected within PO fields.")
+
+    await db.field_catalogue.delete_many({"transactionType": "vendor_bill"})
+    print("Cleared existing field catalogue for Vendor Bill")
+    if VB_FIELDS:
+        await db.field_catalogue.insert_many(VB_FIELDS)
+        print(f"Seeded {len(VB_FIELDS)} Vendor Bill fields into field_catalogue")
 
     client.close()
 

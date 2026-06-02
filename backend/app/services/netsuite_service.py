@@ -237,7 +237,11 @@ async def fetch_currencies_from_netsuite() -> List[Dict[str, str]]:
         name = item.get("name")
         if iid is None or name is None:
             continue
-        out.append({"internalId": str(iid), "name": str(name)})
+        rate = item.get("exchangeRate") or item.get("exchangerate") or item.get("rate")
+        row = {"internalId": str(iid), "name": str(name)}
+        if rate is not None and str(rate).strip():
+            row["exchangeRate"] = str(rate)
+        out.append(row)
 
     logger.info(
         "NetSuite currency fetch: success response_count=%s normalized=%s",
@@ -748,6 +752,8 @@ async def fetch_vendors_from_netsuite() -> List[Dict[str, str]]:
                 "phone": str(item.get("phone") or ""),
                 "subsidiary": str(item.get("subsidiary") or ""),
                 "address": str(item.get("address") or ""),
+                "currency": str(item.get("currency") or item.get("currencyId") or ""),
+                "terms": str(item.get("terms") or item.get("termsId") or ""),
                 "isPerson": "true" if is_person else "false",
                 "companyName": str(item.get("companyname") or item.get("companyName") or ""),
                 "firstName": str(item.get("firstname") or item.get("firstName") or ""),

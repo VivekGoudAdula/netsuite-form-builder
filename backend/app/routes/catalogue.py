@@ -16,7 +16,11 @@ def serialize_doc(doc):
     if "_id" in doc and doc["_id"] is not None:
         doc["_id"] = str(doc["_id"])
     else:
-        fallback_id = f'{doc.get("transactionType", "catalogue")}:{doc.get("internalId", "field")}'
+        # Include section/subSection to disambiguate duplicates like department on expense vs item.
+        section = doc.get("section", "body")
+        sub = doc.get("subSection") if section == "sublist" else None
+        sub_part = sub if sub is not None else "none"
+        fallback_id = f'{doc.get("transactionType", "catalogue")}:{section}:{sub_part}:{doc.get("internalId", "field")}'
         doc["_id"] = fallback_id
     return doc
 
@@ -115,10 +119,26 @@ async def delete_catalogue_field(
 ):
     db = get_database()
     
-    if not ObjectId.is_valid(id):
+    # Support both Mongo ObjectIds and synthetic ids for in-memory/system rows.
+    if ObjectId.is_valid(id):
+        result = await db.field_catalogue.delete_one({"_id": ObjectId(id)})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Field not found")
+        return {"message": "Field deleted successfully"}
+
+    # Synthetic id format: {transactionType}:{section}:{subSection|none}:{internalId}
+    parts = id.split(":")
+    if len(parts) != 4:
         raise HTTPException(status_code=400, detail="Invalid field ID")
-        
-    result = await db.field_catalogue.delete_one({"_id": ObjectId(id)})
+
+    transaction_type, section, sub_part, internal_id = parts
+    query: Dict[str, Any] = {"transactionType": transaction_type, "internalId": internal_id}
+    if section:
+        query["section"] = section
+    if section == "sublist":
+        query["subSection"] = None if sub_part == "none" else sub_part
+
+    result = await db.field_catalogue.delete_many(query)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Field not found")
         

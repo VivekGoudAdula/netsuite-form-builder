@@ -34,13 +34,17 @@ def _matches_search(row: Dict[str, str], search: str) -> bool:
 
 def _to_api_row(row: Dict[str, str]) -> Dict[str, Any]:
     iid = str(row.get("internalId") or "")
-    return {
+    out = {
         "_id": iid,
         "internalId": iid,
         "name": str(row.get("name") or ""),
         "source": "netsuite",
         "isActive": True,
     }
+    rate = row.get("exchangeRate")
+    if rate is not None and str(rate).strip():
+        out["exchangeRate"] = rate
+    return out
 
 
 async def _load_currencies(*, force_refresh: bool = False) -> List[Dict[str, str]]:

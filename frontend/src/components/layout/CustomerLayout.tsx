@@ -12,6 +12,7 @@ import {
   TrendingUp,
   CreditCard,
   PackageCheck,
+  FileStack,
   ArrowUpRight,
   Search,
   Settings,
@@ -41,6 +42,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
     { name: 'Accounts Payable', icon: CreditCard, path: '/user/ap' },
     { name: 'Accounts Receivable', icon: ArrowUpRight, path: '/user/ar' },
     { name: 'Item Receipt', icon: PackageCheck, path: '/user/ir' },
+    { name: 'Vendor Bills', icon: FileStack, path: '/user/vb' },
     { name: 'Profile', icon: UserCircle, path: '/profile' },
   ];
 
@@ -104,7 +106,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
           )}>
             Transactions
           </div>
-          {menuItems.slice(1, 6).map((item) => {
+          {menuItems.slice(1, 7).map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link

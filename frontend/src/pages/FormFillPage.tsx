@@ -27,12 +27,14 @@ import {
   findLineItemsMissingHsnWhenTaxSet,
   itemSublistRowKey,
 } from '../lib/sublistSubmission';
+import { transactionTypeToSlug } from '../lib/transactionRegistry';
+import { exchangeRateForCurrency } from '../lib/currencyExchange';
 import api from '../api/client';
 
 export default function FormFillPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, fetchMyFormDetails, submitForm, isLoading } = useStore();
+  const { user, fetchMyFormDetails, submitForm, isLoading, currencies, fetchCurrencies } = useStore();
 
   const [form, setForm] = React.useState<CustomForm | null>(null);
   const [formValues, setFormValues] = React.useState<Record<string, any>>({});
@@ -44,7 +46,7 @@ export default function FormFillPage() {
 
   const sortLineFields = React.useCallback(
     (fields: CustomForm['tabs'][0]['itemSublist']) =>
-      form?.transactionType === 'item_receipt'
+      form?.transactionType === 'item_receipt' || form?.transactionType === 'vendor_bill'
         ? sortItemReceiptSublistFields(fields ?? [])
         : sortItemSublistFields(fields ?? []),
     [form?.transactionType],
@@ -76,10 +78,16 @@ export default function FormFillPage() {
   }, [form]);
 
   React.useEffect(() => {
-    if (form?.transactionType === 'item_receipt') {
+    if (form?.transactionType === 'item_receipt' || form?.transactionType === 'vendor_bill') {
       setItemRows([0]);
     }
   }, [form?.transactionType]);
+
+  React.useEffect(() => {
+    if (form?.transactionType === 'vendor_bill') {
+      void fetchCurrencies();
+    }
+  }, [form?.transactionType, fetchCurrencies]);
 
   if (!form && isLoading) return (
     <CustomerLayout>
@@ -94,11 +102,7 @@ export default function FormFillPage() {
   if (submissionResult) {
     const status = submissionResult.status;
     const currentLevel = submissionResult.currentLevel || 1;
-    const transType = form.transactionType === 'purchase_order' ? 'po' : 
-                     form.transactionType === 'sales_order' ? 'so' : 
-                     form.transactionType === 'accounts_payable' ? 'ap' : 
-                     form.transactionType === 'accounts_receivable' ? 'ar' :
-                     form.transactionType === 'item_receipt' ? 'ir' : 'po';
+    const transType = transactionTypeToSlug(form.transactionType);
 
     return (
       <CustomerLayout>
@@ -190,8 +194,17 @@ export default function FormFillPage() {
         const updates = isVendor
           ? buildVendorBodyAutoFill(party as VendorOption, bodyFields)
           : buildCustomerBodyAutoFill(party as CustomerOption, bodyFields);
-        return { ...prev, [fieldId]: value, ...updates };
+        const next = { ...prev, [fieldId]: value, ...updates };
+        if (isVendor && updates.currency && form.transactionType === 'vendor_bill') {
+          next.exchangerate = exchangeRateForCurrency(updates.currency, currencies);
+        }
+        return next;
       });
+      return;
+    }
+    if (fieldId.toLowerCase() === 'currency' && form?.transactionType === 'vendor_bill') {
+      const rate = exchangeRateForCurrency(String(value ?? ''), currencies);
+      setFormValues(prev => ({ ...prev, [fieldId]: value, exchangerate: rate }));
       return;
     }
     setFormValues(prev => ({ ...prev, [fieldId]: value }));
@@ -210,6 +223,23 @@ export default function FormFillPage() {
         const next = { ...prev, [key]: value };
         const updates = buildItemRowAutoFill(item, tabItemSublist || [], rowIndex);
         return { ...next, ...updates };
+      });
+      return;
+    }
+    if (
+      form?.transactionType === 'vendor_bill' &&
+      (fieldId.toLowerCase() === 'quantity' || fieldId.toLowerCase() === 'rate')
+    ) {
+      setFormValues(prev => {
+        const next = { ...prev, [key]: value };
+        const qty = Number.parseFloat(String(next[itemSublistRowKey(rowIndex, 'quantity')] ?? ''));
+        const rate = Number.parseFloat(String(next[itemSublistRowKey(rowIndex, 'rate')] ?? ''));
+        if (Number.isFinite(qty) && Number.isFinite(rate)) {
+          next[itemSublistRowKey(rowIndex, 'amount')] = String(
+            Math.round(qty * rate * 100) / 100,
+          );
+        }
+        return next;
       });
       return;
     }
@@ -271,12 +301,7 @@ export default function FormFillPage() {
           <div className="space-y-1">
             <button
               onClick={() => {
-                const transType = form.transactionType === 'purchase_order' ? 'po' : 
-                                 form.transactionType === 'sales_order' ? 'so' : 
-                                 form.transactionType === 'accounts_payable' ? 'ap' : 
-                                 form.transactionType === 'accounts_receivable' ? 'ar' :
-                                 form.transactionType === 'item_receipt' ? 'ir' : 'po';
-                navigate(`/user/${transType}`);
+                navigate(`/user/${transactionTypeToSlug(form.transactionType)}`);
               }}
               className="flex items-center gap-2 text-[10px] font-bold text-ns-text-muted hover:text-ns-blue transition-colors uppercase tracking-widest mb-4"
             >
@@ -425,7 +450,7 @@ export default function FormFillPage() {
                         <table className="w-full text-left border-collapse">
                           <thead>
                             <tr className="bg-ns-gray-bg border-b border-ns-border">
-                              {form.transactionType === 'item_receipt' && (
+                              {(form.transactionType === 'item_receipt' || form.transactionType === 'vendor_bill') && (
                                 <th className="px-3 py-2 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider whitespace-nowrap">
                                   Receive
                                 </th>
@@ -439,7 +464,7 @@ export default function FormFillPage() {
                           </thead>
                           <tbody>
                             <tr className="border-b border-ns-border">
-                              {form.transactionType === 'item_receipt' && (
+                              {(form.transactionType === 'item_receipt' || form.transactionType === 'vendor_bill') && (
                                 <td className="px-2 py-2 align-top min-w-[80px]">
                                   <FieldControl
                                     fieldId="receive"
@@ -495,7 +520,9 @@ export default function FormFillPage() {
                                 </td>
                               ))}
                             </tr>
-                            {form.transactionType === 'item_receipt' && itemRows.slice(1).map((rowIndex) => (
+                            {(form.transactionType === 'item_receipt' ||
+                              form.transactionType === 'vendor_bill') &&
+                              itemRows.slice(1).map((rowIndex) => (
                               <tr key={`row_${rowIndex}`} className="border-b border-ns-border">
                                 <td className="px-2 py-2 align-top min-w-[80px]">
                                   <FieldControl
@@ -539,7 +566,8 @@ export default function FormFillPage() {
                           </tbody>
                         </table>
                       </div>
-                      {form.transactionType === 'item_receipt' && (
+                      {(form.transactionType === 'item_receipt' ||
+                        form.transactionType === 'vendor_bill') && (
                         <div className="flex justify-end">
                           <Button
                             variant="secondary"

@@ -516,6 +516,130 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
       mapNetSuiteField('description', 'Description', 'text', 'Line Items', 'Items', false, 'sublist', 'item'),
     ],
   },
+  vendor_bill: {
+    name: 'Vendor Bill',
+    tabs: ['Main', 'Items'],
+    fieldGroups: ['Primary Information', 'Classification', 'Line Items'],
+    fields: [
+      mapNetSuiteField('customform', 'Form', 'select', 'Primary Information', 'Main', true, 'body', null),
+      mapNetSuiteField(
+        'entity',
+        'Vendor',
+        'select',
+        'Primary Information',
+        'Main',
+        true,
+        'body',
+        null,
+        { ...NETSUITE_VENDOR_DATA_SOURCE },
+        'NetSuite vendor (live lookup)',
+      ),
+      mapNetSuiteField('tranid', 'Invoice Number', 'text', 'Primary Information', 'Main'),
+      mapNetSuiteField(
+        'account',
+        'Account',
+        'select',
+        'Primary Information',
+        'Main',
+        true,
+        'body',
+        null,
+        { ...NETSUITE_ACCOUNT_DATA_SOURCE },
+        'NetSuite GL account',
+      ),
+      mapNetSuiteField('usertotal', 'Amount', 'currency', 'Primary Information', 'Main', true, 'body', null),
+      mapNetSuiteField('currency', 'Currency', 'select', 'Primary Information', 'Main', true, 'body', null, {
+        type: 'netsuite_currency',
+        apiConfig: { url: 'currencies/', method: 'GET', labelKey: 'name', valueKey: 'internalId' },
+      }),
+      mapNetSuiteField('exchangerate', 'Exchange Rate', 'number', 'Primary Information', 'Main', true, 'body', null),
+      mapNetSuiteField('terms', 'Terms', 'select', 'Primary Information', 'Main', false, 'body', null),
+      mapNetSuiteField('duedate', 'Due Date', 'date', 'Primary Information', 'Main', true, 'body', null),
+      mapNetSuiteField('trandate', 'Date', 'date', 'Primary Information', 'Main', true, 'body', null),
+      mapNetSuiteField('postingperiod', 'Posting Period', 'select', 'Primary Information', 'Main', false, 'body', null),
+      mapNetSuiteField('memo', 'Memo', 'textarea', 'Primary Information', 'Main', false, 'body', null),
+      mapNetSuiteField('approvalstatus', 'Approval Status', 'select', 'Primary Information', 'Main', false, 'body', null, {
+        type: 'static',
+        options: [
+          { label: 'Pending Approval', value: '1' },
+          { label: 'Approved', value: '2' },
+          { label: 'Rejected', value: '3' },
+        ],
+      }),
+      mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null),
+      mapNetSuiteField(
+        'location',
+        'Location',
+        'select',
+        'Classification',
+        'Main',
+        false,
+        'body',
+        null,
+        { ...NETSUITE_LOCATION_DATA_SOURCE },
+      ),
+      mapNetSuiteField(
+        'class',
+        'Class',
+        'select',
+        'Classification',
+        'Main',
+        false,
+        'body',
+        null,
+        { ...NETSUITE_CLASS_DATA_SOURCE },
+      ),
+      mapNetSuiteField('custbody_in_gst_pos', 'Place Of Supply', 'select', 'Classification', 'Main', false, 'body', null),
+      mapNetSuiteField(
+        'item',
+        'Item',
+        'select',
+        'Line Items',
+        'Items',
+        true,
+        'sublist',
+        'item',
+        { ...NETSUITE_ITEM_DATA_SOURCE },
+      ),
+      mapNetSuiteField('description', 'Description', 'text', 'Line Items', 'Items', false, 'sublist', 'item'),
+      mapNetSuiteField('quantity', 'Quantity', 'float', 'Line Items', 'Items', false, 'sublist', 'item'),
+      mapNetSuiteField('rate', 'Rate', 'currency', 'Line Items', 'Items', false, 'sublist', 'item'),
+      mapNetSuiteField('amount', 'Amount', 'currency', 'Line Items', 'Items', false, 'sublist', 'item'),
+      mapNetSuiteField(
+        'department',
+        'Department',
+        'select',
+        'Line Items',
+        'Items',
+        false,
+        'sublist',
+        'item',
+        { ...NETSUITE_DEPARTMENT_DATA_SOURCE },
+      ),
+      mapNetSuiteField(
+        'class',
+        'Class',
+        'select',
+        'Line Items',
+        'Items',
+        false,
+        'sublist',
+        'item',
+        { ...NETSUITE_CLASS_DATA_SOURCE },
+      ),
+      mapNetSuiteField(
+        'location',
+        'Location',
+        'select',
+        'Line Items',
+        'Items',
+        false,
+        'sublist',
+        'item',
+        { ...NETSUITE_LOCATION_DATA_SOURCE },
+      ),
+    ],
+  },
 };
 
 function normalizeFieldDataSource(ds: any): any {
@@ -845,9 +969,16 @@ const generateTemplateFromCatalogue = (id: string, name: string, description: st
         f => f.tab === tabName && f.section === 'sublist' && f.subSection === 'item',
       );
       tab.itemSublist =
-        type === 'item_receipt'
+        type === 'item_receipt' || type === 'vendor_bill'
           ? sortItemReceiptSublistFields(itemFields)
           : sortItemSublistFields(itemFields);
+      if (type !== 'vendor_bill') {
+        tab.expenseSublist = catalogue.fields.filter(
+          f => f.tab === tabName && f.section === 'sublist' && f.subSection === 'expense',
+        );
+      }
+    }
+    if (tabName === 'Expenses') {
       tab.expenseSublist = catalogue.fields.filter(
         f => f.tab === tabName && f.section === 'sublist' && f.subSection === 'expense',
       );
@@ -873,6 +1004,7 @@ const DEFAULT_TEMPLATES: any[] = [
   generateTemplateFromCatalogue('tpl_ap_full', 'Comprehensive Accounts Payable', 'A/P template with full accounting and approval structure.', 'accounts_payable'),
   generateTemplateFromCatalogue('tpl_ar_full', 'Comprehensive Accounts Receivable', 'A/R template including full items and journal controls.', 'accounts_receivable'),
   generateTemplateFromCatalogue('tpl_ir_full', 'Comprehensive Item Receipt', 'Item receipt template with created-from PO and receiving grid.', 'item_receipt'),
+  generateTemplateFromCatalogue('tpl_vb_full', 'Comprehensive Vendor Bill', 'Vendor bill with item and expense lines, classification, and approval flow.', 'vendor_bill'),
 ];
 
 export const useStore = create<AppState>((set, get) => ({
@@ -890,7 +1022,8 @@ export const useStore = create<AppState>((set, get) => ({
     sales_order: null,
     accounts_payable: null,
     accounts_receivable: null,
-    item_receipt: null
+    item_receipt: null,
+    vendor_bill: null,
   },
   currencies: [],
   loadingCurrencies: false,

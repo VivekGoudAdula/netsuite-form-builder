@@ -120,6 +120,7 @@ export default function BuilderTopBar() {
                 <option value="accounts_payable" className="text-ns-text">Accounts Payable</option>
                 <option value="accounts_receivable" className="text-ns-text">Accounts Receivable</option>
                 <option value="item_receipt" className="text-ns-text">Item Receipt</option>
+                <option value="vendor_bill" className="text-ns-text">Vendor Bill</option>
               </select>
             </div>
             <div className="h-3 w-[1px] bg-white/10 mx-1" />

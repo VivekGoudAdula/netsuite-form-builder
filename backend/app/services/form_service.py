@@ -7,14 +7,15 @@ from ..schemas.form import FormCreate, FormUpdate, CloneFormRequest, AssignUsers
 from .activity import log_activity
 from .mock_netsuite_service import send_to_netsuite_mock
 from .netsuite_service import send_to_netsuite
-from .workflow_engine import trigger_workflow_level
+from .workflow_engine import trigger_workflow_level, _send_submission_to_netsuite
 
 class FormService:
     @staticmethod
     def _split_submission_values(values: Dict[str, Any]) -> Dict[str, Any]:
         body = {k: v for k, v in values.items() if k not in {"lineItems", "expenseLines"}}
         line_items = values.get("lineItems") if isinstance(values.get("lineItems"), list) else []
-        return {"bodyFields": body, "lineItems": line_items}
+        expense_lines = values.get("expenseLines") if isinstance(values.get("expenseLines"), list) else []
+        return {"bodyFields": body, "lineItems": line_items, "expenseLines": expense_lines}
 
     @staticmethod
     async def create_form(form_data: FormCreate, creator_email: str, creator_id: str) -> Dict[str, Any]:
@@ -411,6 +412,7 @@ class FormService:
             "values": values or {},
             "bodyFields": split_values["bodyFields"],
             "lineItems": split_values["lineItems"],
+            "expenseLines": split_values["expenseLines"],
 
             "submittedAt": datetime.utcnow(),
             "updatedAt": datetime.utcnow(),
@@ -444,6 +446,23 @@ class FormService:
                     "currentLevel": 1,
                     "bodyFields": split_values["bodyFields"],
                     "lineItems": split_values["lineItems"],
+                    "createdAt": datetime.utcnow(),
+                    "updatedAt": datetime.utcnow(),
+                }
+            )
+
+        if form["transactionType"] == "vendor_bill":
+            await db.vendor_bill_submissions.insert_one(
+                {
+                    "_id": result.inserted_id,
+                    "companyId": form["companyId"],
+                    "templateId": form_id,
+                    "submittedBy": user["id"],
+                    "workflowStatus": "pending",
+                    "currentLevel": 1,
+                    "bodyFields": split_values["bodyFields"],
+                    "itemLines": split_values["lineItems"],
+                    "expenseLines": split_values["expenseLines"],
                     "createdAt": datetime.utcnow(),
                     "updatedAt": datetime.utcnow(),
                 }
@@ -486,11 +505,23 @@ class FormService:
         rejected = await db.submissions.count_documents({**query, "status": "rejected"})
         completed = await db.submissions.count_documents({**query, "status": "submitted"}) # "submitted" means sent to NetSuite/Completed
 
+        drafts = 0
+        if transaction_type:
+            assigned_forms = await db.forms.find(
+                {"assignedTo": user_id, "transactionType": transaction_type}
+            ).to_list(length=500)
+            for f in assigned_forms:
+                fid = str(f["_id"])
+                has_sub = await db.submissions.find_one({"formId": fid, "userId": user_id})
+                if not has_sub:
+                    drafts += 1
+
         return {
             "total": total,
             "approved": approved + completed, # Completed is also approved
             "pending": pending,
-            "rejected": rejected
+            "rejected": rejected,
+            "drafts": drafts,
         }
 
     @staticmethod
@@ -533,16 +564,7 @@ class FormService:
         if submission["status"] == "submitted":
             raise HTTPException(status_code=400, detail="Submission already successfully processed")
             
-        payload = {
-            "firstname": submission.get("values", {}).get("firstName", ""),
-            "lastname": submission.get("values", {}).get("lastName", ""),
-            "email": submission.get("values", {}).get("email", ""),
-            "subsidiary": 1,
-            "submissionId": submission_id,
-            "formName": submission.get("formName")
-        }
-        
-        ns_response = send_to_netsuite(payload)
+        ns_response = _send_submission_to_netsuite(submission, submission_id)
         
         # In our service, success is determined by status field
         is_success = ns_response.get("status") == "success"

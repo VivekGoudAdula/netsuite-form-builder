@@ -57,6 +57,8 @@ def _to_api_row(row: Dict[str, str]) -> Dict[str, Any]:
         "phone": str(row.get("phone") or ""),
         "subsidiary": str(row.get("subsidiary") or ""),
         "address": str(row.get("address") or ""),
+        "currency": str(row.get("currency") or ""),
+        "terms": str(row.get("terms") or ""),
         "isPerson": bool(row.get("isPerson") in (True, "true", "1", 1)),
         "companyName": str(row.get("companyName") or ""),
         "firstName": str(row.get("firstName") or ""),
