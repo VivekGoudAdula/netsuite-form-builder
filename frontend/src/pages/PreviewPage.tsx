@@ -7,6 +7,53 @@ import { ChevronLeft, Printer, Mail, Share2, MoreHorizontal } from 'lucide-react
 import { cn } from '../lib/utils';
 import { FieldControl } from '../components/ui/FieldControl';
 import { sortItemReceiptSublistFields, sortItemSublistFields } from '../lib/netsuiteMasterData';
+import type { Field } from '../types';
+
+function sublistColumnClass(field: Field): string {
+  const id = field.id.toLowerCase();
+  const dsType = field.dataSource?.type;
+  if (id === 'taxcode') {
+    return 'w-[148px] max-w-[148px] overflow-hidden px-2 py-2';
+  }
+  if (dsType === 'netsuite_item_live' || id === 'item') {
+    return 'min-w-[280px]';
+  }
+  if (dsType === 'netsuite_hsn') {
+    return 'min-w-[140px]';
+  }
+  if (id === 'customer_expense' || dsType === 'netsuite_customer_live') {
+    return 'min-w-[280px]';
+  }
+  if (dsType === 'netsuite_account_live' || id === 'account') {
+    return 'min-w-[200px]';
+  }
+  if (field.type?.toLowerCase() === 'checkbox') {
+    return 'min-w-[100px]';
+  }
+  return 'min-w-[140px]';
+}
+
+const sublistThClass =
+  'p-3 text-[10px] font-black uppercase tracking-widest border-r border-white/10 last:border-0 whitespace-nowrap align-top';
+const sublistTdClass =
+  'p-3 border-r border-ns-border last:border-0 align-top';
+
+function sublistHeaderClass(field: Field): string {
+  if (field.id.toLowerCase() === 'taxcode') {
+    return cn(
+      'py-3 text-[10px] font-black uppercase tracking-widest border-r border-white/10 last:border-0 whitespace-nowrap align-top px-2',
+      sublistColumnClass(field),
+    );
+  }
+  return cn(sublistThClass, sublistColumnClass(field));
+}
+
+function sublistCellClass(field: Field): string {
+  if (field.id.toLowerCase() === 'taxcode') {
+    return cn('border-r border-ns-border last:border-0 align-top', sublistColumnClass(field));
+  }
+  return cn(sublistTdClass, sublistColumnClass(field), 'whitespace-nowrap');
+}
 
 export default function PreviewPage() {
   const { currentForm, catalogues } = useStore();
@@ -164,7 +211,7 @@ export default function PreviewPage() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 max-w-5xl mx-auto w-full">
+      <main className="flex-1 p-8 max-w-7xl mx-auto w-full min-w-0">
         <div className="space-y-8">
           {/* Dynamic Tabs & Sections */}
           <div className="bg-white rounded-sm shadow-sm border border-ns-border overflow-hidden">
@@ -174,7 +221,7 @@ export default function PreviewPage() {
               onChange={setActiveTabId} 
             />
             
-            <div className="p-8">
+            <div className="p-8 min-w-0">
               {activeTab?.fieldGroups.map(group => (
                 <div key={group.id} className="mb-12 last:mb-0">
                   <div className="flex items-center gap-4 mb-6">
@@ -223,27 +270,30 @@ export default function PreviewPage() {
                     <div className="h-[1px] bg-ns-blue/10 w-full" />
                   </div>
                   
-                  <div className="border border-ns-border rounded-sm overflow-hidden bg-ns-gray-bg/50">
-                    <table className="w-full text-left border-collapse">
+                  <div className="overflow-x-auto border border-ns-border rounded-sm bg-ns-gray-bg/50">
+                    <table className="text-left border-collapse w-max min-w-full">
                       <thead>
                         <tr className="bg-ns-navy text-white">
                           {sortItemFields(activeTab.itemSublist).map(field => (
-                            <th key={field.id} className="p-3 text-[10px] font-black uppercase tracking-widest border-r border-white/10 last:border-0">
+                            <th key={field.id} className={sublistHeaderClass(field)}>
                               {field.label}
                             </th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {[1, 2].map((row) => (
+                        {[1].map((row) => (
                           <tr key={row} className="border-b border-ns-border bg-white last:border-0 group hover:bg-ns-light-blue/20 transition-colors">
                             {sortItemFields(activeTab.itemSublist!).map(field => (
-                              <td key={field.id} className="p-3 border-r border-ns-border last:border-0">
+                              <td key={field.id} className={sublistCellClass(field)}>
                                 <FieldControl
+                                  fieldId={field.id}
                                   fieldType={field.type}
                                   disabled={field.displayType === 'disabled'}
+                                  defaultValue={field.defaultValue}
+                                  checkBoxDefault={field.checkBoxDefault}
                                   label={field.label}
-                                  preview={true}
+                                  preview={false}
                                   showIntegrationHints={false}
                                   dataSource={field.dataSource}
                                 />
@@ -266,12 +316,12 @@ export default function PreviewPage() {
                     <div className="h-[1px] bg-ns-blue/10 w-full" />
                   </div>
                   
-                  <div className="border border-ns-border rounded-sm overflow-hidden bg-ns-gray-bg/50">
-                    <table className="w-full text-left border-collapse">
+                  <div className="overflow-x-auto border border-ns-border rounded-sm bg-ns-gray-bg/50">
+                    <table className="text-left border-collapse w-max min-w-full">
                       <thead>
                         <tr className="bg-ns-navy text-white">
                           {activeTab.expenseSublist.map(field => (
-                            <th key={field.id} className="p-3 text-[10px] font-black uppercase tracking-widest border-r border-white/10 last:border-0">
+                            <th key={field.id} className={cn(sublistThClass, sublistColumnClass(field))}>
                               {field.label}
                             </th>
                           ))}
@@ -281,12 +331,18 @@ export default function PreviewPage() {
                         {[1].map((row) => (
                           <tr key={row} className="border-b border-ns-border bg-white last:border-0 hover:bg-ns-light-blue/20 transition-colors">
                             {activeTab.expenseSublist!.map(field => (
-                              <td key={field.id} className="p-3 border-r border-ns-border last:border-0">
+                              <td
+                                key={field.id}
+                                className={cn(sublistTdClass, sublistColumnClass(field))}
+                              >
                                 <FieldControl
+                                  fieldId={field.id}
                                   fieldType={field.type}
                                   disabled={field.displayType === 'disabled'}
+                                  defaultValue={field.defaultValue}
+                                  checkBoxDefault={field.checkBoxDefault}
                                   label={field.label}
-                                  preview={true}
+                                  preview={false}
                                   showIntegrationHints={false}
                                   dataSource={field.dataSource}
                                 />

@@ -36,6 +36,7 @@ import {
   NETSUITE_HSN_DATA_SOURCE,
   NETSUITE_LOCATION_DATA_SOURCE,
   NETSUITE_TAX_NATURE_DATA_SOURCE,
+  PO_TAX_CODE_HSN_FIELD_ID,
 } from '../../lib/netsuiteMasterData';
 import { AccountAsyncSelect } from './AccountAsyncSelect';
 import { ItemAsyncSelect } from './ItemAsyncSelect';
@@ -469,16 +470,32 @@ export function FieldControl({
       ds?.type === 'netsuite_hsn' ||
       ds?.type === 'netsuite_tax_nature_live';
 
+    const compactTaxCodeSelect =
+      ds?.type === 'netsuite_hsn' && fieldId?.toLowerCase() === PO_TAX_CODE_HSN_FIELD_ID;
+
     return (
-      <div className={cn('relative min-w-0 w-full max-w-full', className)}>
-        <div className="relative min-w-0 w-full max-w-full">
+      <div
+        className={cn(
+          'relative',
+          compactTaxCodeSelect
+            ? 'w-full min-w-0 max-w-full overflow-hidden'
+            : cn('min-w-0 w-full max-w-full', className),
+        )}
+      >
+        <div
+          className={cn(
+            'relative overflow-hidden',
+            compactTaxCodeSelect ? 'w-full min-w-0 max-w-full' : 'min-w-0 w-full max-w-full',
+          )}
+        >
           <select
             className={cn(
-              'w-full max-w-full min-w-0 h-9 border border-ns-border rounded-sm pl-3 pr-8 text-[12px] text-ns-text bg-white appearance-none truncate',
+              'box-border w-full max-w-full min-w-0',
+              'h-9 border border-ns-border rounded-sm pl-3 pr-8 text-[12px] text-ns-text bg-white appearance-none truncate',
               'focus:outline-none focus:border-ns-blue focus:ring-2 focus:ring-ns-blue/10',
               'transition-all duration-150',
               (disabled || loading) && 'bg-gray-50 text-gray-400 cursor-not-allowed',
-              loadError && 'border-red-300'
+              loadError && 'border-red-300',
             )}
             value={value || ''}
             onChange={e => onChange?.(e.target.value)}
