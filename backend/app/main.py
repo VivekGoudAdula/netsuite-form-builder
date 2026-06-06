@@ -11,6 +11,7 @@ from .routes import (
     catalogue,
     companies,
     currency,
+    subsidiaries,
     forms,
     hsn,
     locations,
@@ -80,6 +81,7 @@ app.include_router(purchase_orders.router, prefix="/api")
 app.include_router(catalogue.router, prefix="/api")
 app.include_router(workflows.router, prefix="/api")
 app.include_router(currency.router, prefix="/api")
+app.include_router(subsidiaries.router, prefix="/api")
 app.include_router(hsn.router, prefix="/api")
 app.include_router(locations.router, prefix="/api")
 app.include_router(departments.router, prefix="/api")

@@ -69,6 +69,7 @@ export async function fetchMasterDataListPages(
 }
 
 export const SELECT_CACHE_KEYS = {
+  subsidiary: 'netsuite_subsidiary|subsidiaries/|name|internalId',
   currency: 'netsuite_currency|currencies/|name|internalId',
   employees: 'netsuite_employees|netsuite/employees|label|value',
   department: 'netsuite_department|departments/|dept|internalId',

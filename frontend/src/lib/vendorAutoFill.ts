@@ -14,7 +14,13 @@ export function buildVendorBodyAutoFill(
 ): Record<string, string> {
   const updates: Record<string, string> = {};
   const rules: { value: string; patterns: string[] }[] = [
-    { value: vendor.subsidiary, patterns: ['subsidiary'] },
+    {
+      value:
+        vendor.subsidiaryId?.trim() && /^\d+$/.test(vendor.subsidiaryId.trim())
+          ? vendor.subsidiaryId.trim()
+          : '',
+      patterns: ['subsidiary'],
+    },
     { value: vendor.currency ?? '', patterns: ['currency'] },
     { value: vendor.terms ?? '', patterns: ['terms'] },
     { value: vendor.email, patterns: ['email'] },

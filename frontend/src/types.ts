@@ -43,7 +43,8 @@ export interface DataSource {
     | 'netsuite_account_live'
     | 'netsuite_item_live'
     | 'netsuite_vendor_live'
-    | 'netsuite_customer_live';
+    | 'netsuite_customer_live'
+    | 'netsuite_subsidiary';
   options?: FieldOption[];
   /** Key into netsuite_datasources collection (type netsuite_dynamic). */
   datasourceKey?: string;
@@ -271,6 +272,7 @@ export interface VendorOption {
   email: string;
   phone: string;
   subsidiary: string;
+  subsidiaryId?: string;
   address: string;
   currency?: string;
   terms?: string;
@@ -288,6 +290,7 @@ export interface VendorRow {
   email?: string;
   phone?: string;
   subsidiary?: string;
+  subsidiaryId?: string;
   address?: string;
   isPerson?: boolean;
   companyName?: string;
@@ -403,12 +406,22 @@ export interface Submission {
   userName?: string;
   formName?: string;
   companyId: string;
-  status: 'pending' | 'approved' | 'rejected' | 'failed' | 'submitted';
+  status:
+    | 'pending'
+    | 'approved'
+    | 'rejected'
+    | 'failed'
+    | 'submitted'
+    | 'SYNCED_TO_NETSUITE'
+    | 'NETSUITE_SYNC_FAILED';
   currentLevel?: number;
   approvals?: WorkflowLevel[];
   submittedAt?: string;
   netsuiteAt?: string;
   netsuiteId?: string;
+  poId?: string;
+  documentNumber?: string;
+  netsuiteSyncError?: string;
   errorMessage?: string;
 }
 

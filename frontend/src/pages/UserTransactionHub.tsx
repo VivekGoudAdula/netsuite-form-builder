@@ -46,11 +46,12 @@ export default function UserTransactionHub() {
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case 'submitted':
+      case 'synced_to_netsuite':
       case 'completed':
       case 'approved':
         return (
           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider border border-green-200">
-            <CheckCircle2 size={10} /> {status === 'submitted' ? 'Completed' : 'Approved'}
+            <CheckCircle2 size={10} /> {status === 'submitted' || status === 'synced_to_netsuite' ? 'Completed' : 'Approved'}
           </div>
         );
       case 'pending':
@@ -61,9 +62,10 @@ export default function UserTransactionHub() {
         );
       case 'rejected':
       case 'failed':
+      case 'netsuite_sync_failed':
         return (
           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold uppercase tracking-wider border border-red-200">
-            <AlertCircle size={10} /> {status === 'rejected' ? 'Rejected' : 'Failed'}
+            <AlertCircle size={10} /> {status === 'rejected' ? 'Rejected' : status === 'netsuite_sync_failed' ? 'Sync Failed' : 'Failed'}
           </div>
         );
       default:

@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     NETSUITE_POST_SCRIPT: str = "customscript_rg_post_rest_pai"
     NETSUITE_DEPLOY: str = "1"
 
+    NETSUITE_PO_SCRIPT: str = "customscript_rg_rest_api_po_create"
+    NETSUITE_PO_DEPLOY: str = "1"
+
     NETSUITE_CONSUMER_KEY: str = ""
     NETSUITE_CONSUMER_SECRET: str = ""
     NETSUITE_ACCESS_TOKEN: str = ""

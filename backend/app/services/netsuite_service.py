@@ -73,6 +73,94 @@ def _stale_employee_cache() -> Optional[List[Dict[str, Any]]]:
     return list(cached)
 
 
+def _normalize_subsidiaries(data: Dict[str, Any]) -> List[Dict[str, str]]:
+    raw = data.get("subsidiaries")
+    if not isinstance(raw, list):
+        raw = data.get("data") if isinstance(data.get("data"), list) else []
+
+    out: List[Dict[str, str]] = []
+    seen: set[str] = set()
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        iid = item.get("internalId") or item.get("id")
+        name = item.get("name") or item.get("companyname") or item.get("companyName")
+        if iid is None or not name:
+            continue
+        iid_s = str(iid)
+        if iid_s in seen:
+            continue
+        seen.add(iid_s)
+        out.append({"internalId": iid_s, "name": str(name)})
+    return out
+
+
+_subsidiary_cache: Dict[str, Any] = {"rows": None, "at": 0.0}
+_SUBSIDIARY_CACHE_TTL_SEC = 300
+
+
+async def fetch_subsidiaries_from_netsuite() -> List[Dict[str, str]]:
+    """Fetch subsidiary rows from the NetSuite GET RESTlet."""
+    logger.info(
+        "NetSuite Subsidiary fetch: request start script=%s deploy=%s",
+        settings.NETSUITE_GET_SCRIPT,
+        settings.NETSUITE_DEPLOY,
+    )
+    try:
+        data = await restlet_get_with_retry(
+            settings.NETSUITE_GET_SCRIPT,
+            settings.NETSUITE_DEPLOY,
+            timeout=60,
+            max_retries=3,
+        )
+    except Exception as exc:
+        logger.error("NetSuite Subsidiary fetch: failure %s", exc)
+        return []
+
+    rows = _normalize_subsidiaries(data if isinstance(data, dict) else {})
+    logger.info("NetSuite Subsidiary fetch: normalized=%s", len(rows))
+    return rows
+
+
+def get_subsidiaries(*, force_refresh: bool = False) -> List[Dict[str, Any]]:
+    """Synchronous subsidiary list for dropdowns (cached)."""
+    now = time.time()
+    cached = _subsidiary_cache.get("rows")
+    if (
+        not force_refresh
+        and isinstance(cached, list)
+        and (now - float(_subsidiary_cache.get("at") or 0)) < _SUBSIDIARY_CACHE_TTL_SEC
+    ):
+        return list(cached)
+
+    url = f"{settings.NETSUITE_BASE_URL}/app/site/hosting/restlet.nl"
+    params = {
+        "script": settings.NETSUITE_GET_SCRIPT,
+        "deploy": settings.NETSUITE_DEPLOY,
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    try:
+        response = requests.get(
+            url, auth=get_oauth(), params=params, headers=headers, timeout=60
+        )
+        data = response.json() if response.content else {}
+        rows = _normalize_subsidiaries(data if isinstance(data, dict) else {})
+        mapped = [{"label": r["name"], "value": r["internalId"]} for r in rows]
+        _subsidiary_cache["rows"] = mapped
+        _subsidiary_cache["at"] = time.time()
+        logger.info("NetSuite GET subsidiaries: success count=%s", len(mapped))
+        return mapped
+    except Exception as exc:
+        logger.warning("NetSuite GET subsidiaries failed: %s", exc)
+        if isinstance(cached, list):
+            return list(cached)
+        return []
+
+
 def get_employees(*, force_refresh: bool = False) -> List[Dict[str, Any]]:
     """
     Fetch employees from NetSuite for dropdowns.
@@ -743,6 +831,13 @@ async def fetch_vendors_from_netsuite() -> List[Dict[str, str]]:
         seen.add(iid_s)
         raw_type = item.get("type")
         is_person = raw_type is True or str(raw_type).lower() in ("true", "1", "t")
+        sub_raw = item.get("subsidiary")
+        sub_id = item.get("subsidiaryId") or item.get("subsidiaryInternalId")
+        if sub_id is None and sub_raw is not None and str(sub_raw).strip().isdigit():
+            sub_id = sub_raw
+        sub_name = ""
+        if sub_raw is not None and not str(sub_raw).strip().isdigit():
+            sub_name = str(sub_raw)
         out.append(
             {
                 "internalId": iid_s,
@@ -750,7 +845,8 @@ async def fetch_vendors_from_netsuite() -> List[Dict[str, str]]:
                 "displayName": _vendor_display_name(item),
                 "email": str(item.get("email") or ""),
                 "phone": str(item.get("phone") or ""),
-                "subsidiary": str(item.get("subsidiary") or ""),
+                "subsidiary": sub_name,
+                "subsidiaryId": str(sub_id or ""),
                 "address": str(item.get("address") or ""),
                 "currency": str(item.get("currency") or item.get("currencyId") or ""),
                 "terms": str(item.get("terms") or item.get("termsId") or ""),

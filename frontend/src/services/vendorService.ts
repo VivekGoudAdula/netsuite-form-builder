@@ -50,6 +50,7 @@ export function rowToVendorOption(row: VendorRow): VendorOption {
     email: row.email ?? '',
     phone: row.phone ?? '',
     subsidiary: row.subsidiary ?? '',
+    subsidiaryId: row.subsidiaryId ?? '',
     address: row.address ?? '',
     isPerson: Boolean(row.isPerson),
     companyName: row.companyName ?? '',

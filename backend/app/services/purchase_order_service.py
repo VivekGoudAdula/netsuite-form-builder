@@ -45,7 +45,10 @@ class PurchaseOrderService:
         company_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         db = get_database()
-        mongo_query: Dict[str, Any] = {"transactionType": "purchase_order", "status": {"$in": ["approved", "submitted"]}}
+        mongo_query: Dict[str, Any] = {
+            "transactionType": "purchase_order",
+            "status": {"$in": ["approved", "submitted", "SYNCED_TO_NETSUITE"]},
+        }
         if company_id:
             mongo_query["companyId"] = company_id
 

@@ -27,6 +27,11 @@ import {
   findLineItemsMissingHsnWhenTaxSet,
   itemSublistRowKey,
 } from '../lib/sublistSubmission';
+import {
+  collectMissingRequiredFields,
+  formatMissingFieldLabel,
+  type MissingFieldRef,
+} from '../lib/formValidation';
 import { transactionTypeToSlug } from '../lib/transactionRegistry';
 import { exchangeRateForCurrency } from '../lib/currencyExchange';
 import api from '../api/client';
@@ -41,6 +46,8 @@ export default function FormFillPage() {
   const [activeTab, setActiveTab] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [missingFields, setMissingFields] = React.useState<MissingFieldRef[]>([]);
+  const [highlightedFieldId, setHighlightedFieldId] = React.useState<string | null>(null);
   const [submissionResult, setSubmissionResult] = React.useState<any | null>(null);
   const [itemRows, setItemRows] = React.useState<number[]>([0]);
 
@@ -89,6 +96,19 @@ export default function FormFillPage() {
     }
   }, [form?.transactionType, fetchCurrencies]);
 
+  const focusMissingField = React.useCallback((ref: MissingFieldRef) => {
+    setActiveTab(ref.tabId);
+    setHighlightedFieldId(ref.domId);
+    window.setTimeout(() => {
+      const el = document.getElementById(ref.domId);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const focusable = el?.querySelector<HTMLElement>(
+        'input, select, textarea, button[role="combobox"]',
+      );
+      focusable?.focus();
+    }, 120);
+  }, []);
+
   if (!form && isLoading) return (
     <CustomerLayout>
       <div className="flex items-center justify-center py-20">
@@ -103,25 +123,74 @@ export default function FormFillPage() {
     const status = submissionResult.status;
     const currentLevel = submissionResult.currentLevel || 1;
     const transType = transactionTypeToSlug(form.transactionType);
+    const isDirectSync = submissionResult.directSync === true;
+    const syncSucceeded = status === 'submitted' || status === 'SYNCED_TO_NETSUITE';
+    const syncFailed = status === 'failed' || status === 'NETSUITE_SYNC_FAILED';
 
     return (
       <CustomerLayout>
         <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in duration-500">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-8 border-4 border-white shadow-xl">
-            <ShieldCheck size={40} />
+          <div className={cn(
+            "w-20 h-20 rounded-full flex items-center justify-center mb-8 border-4 border-white shadow-xl",
+            syncFailed ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600",
+          )}>
+            {syncFailed ? <AlertCircle size={40} /> : <ShieldCheck size={40} />}
           </div>
-          <h2 className="text-3xl font-bold text-ns-navy tracking-tight">Submission Transmitted</h2>
+          <h2 className="text-3xl font-bold text-ns-navy tracking-tight">
+            {isDirectSync
+              ? syncFailed
+                ? 'Submission Saved — NetSuite Sync Failed'
+                : 'Submitted to NetSuite'
+              : 'Submission Transmitted'}
+          </h2>
           <div className="mt-6 p-8 bg-white border border-ns-border rounded-sm shadow-sm max-w-sm w-full">
             <div className="flex justify-between items-center mb-4 pb-4 border-b border-ns-border">
               <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">Protocol Status</span>
-              <span className="text-xs font-bold text-ns-blue uppercase tracking-wider bg-ns-blue/5 px-2 py-0.5 rounded-sm border border-ns-blue/10">{status} Approval</span>
+              <span className={cn(
+                "text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm border",
+                syncFailed
+                  ? "text-red-700 bg-red-50 border-red-200"
+                  : "text-ns-blue bg-ns-blue/5 border-ns-blue/10",
+              )}>
+                {isDirectSync
+                  ? syncSucceeded
+                    ? 'Synced to NetSuite'
+                    : 'Sync Failed'
+                  : `${status} Approval`}
+              </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">Workflow Stage</span>
-              <span className="text-xs font-bold text-ns-navy uppercase tracking-wider">Level {currentLevel}</span>
-            </div>
+            {isDirectSync ? (
+              <>
+                {submissionResult.poId && (
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">NetSuite ID</span>
+                    <span className="text-xs font-bold text-ns-navy uppercase tracking-wider">{submissionResult.poId}</span>
+                  </div>
+                )}
+                {submissionResult.documentNumber && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">Document #</span>
+                    <span className="text-xs font-bold text-ns-navy uppercase tracking-wider">{submissionResult.documentNumber}</span>
+                  </div>
+                )}
+                {submissionResult.netsuiteSyncError && (
+                  <p className="text-[11px] text-red-700 font-semibold mt-4 text-left">{submissionResult.netsuiteSyncError}</p>
+                )}
+              </>
+            ) : (
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">Workflow Stage</span>
+                <span className="text-xs font-bold text-ns-navy uppercase tracking-wider">Level {currentLevel}</span>
+              </div>
+            )}
           </div>
-          <p className="text-ns-text-muted mt-8 max-w-md text-sm font-medium">Your submission for <span className="text-ns-navy font-bold">'{form.name}'</span> has been successfully logged and queued for validation.</p>
+          <p className="text-ns-text-muted mt-8 max-w-md text-sm font-medium">
+            {isDirectSync
+              ? syncFailed
+                ? <>Your submission for <span className="text-ns-navy font-bold">'{form.name}'</span> was saved, but posting to NetSuite failed. Contact your administrator or retry from the submissions list.</>
+                : <>Your submission for <span className="text-ns-navy font-bold">'{form.name}'</span> was sent directly to NetSuite — no approval workflow is configured for this company.</>
+              : <>Your submission for <span className="text-ns-navy font-bold">'{form.name}'</span> has been successfully logged and queued for approval.</>}
+          </p>
           <div className="flex gap-4 mt-10">
             <Button onClick={() => navigate(`/user/${transType}`)} className="gap-2 h-11 px-8 font-bold text-xs uppercase tracking-widest">
               <ArrowLeft size={16} /> Return to {transType.toUpperCase()} Hub
@@ -208,6 +277,8 @@ export default function FormFillPage() {
       return;
     }
     setFormValues(prev => ({ ...prev, [fieldId]: value }));
+    setMissingFields(prev => prev.filter(f => f.domId !== `field-${fieldId}`));
+    if (highlightedFieldId === `field-${fieldId}`) setHighlightedFieldId(null);
   };
 
   const handleItemSublistChange = (
@@ -244,31 +315,25 @@ export default function FormFillPage() {
       return;
     }
     handleInputChange(key, value);
+    setMissingFields(prev => prev.filter(f => f.domId !== `field-${key}`));
+    if (highlightedFieldId === `field-${key}`) setHighlightedFieldId(null);
   };
 
   const handleSubmit = async () => {
-    // Basic required field validation
-    let missingFields = false;
-    form.tabs.forEach(tab => {
-      tab.fieldGroups.forEach(group => {
-        group.fields.forEach(field => {
-          if (field.mandatory && !formValues[field.id]) {
-            missingFields = true;
-          }
-        });
-      });
-      const itemFields = sortLineFields(tab.itemSublist || []);
-      itemFields.forEach(field => {
-        if (field.mandatory && !formValues[itemSublistRowKey(0, field.id)]) {
-          missingFields = true;
-        }
-      });
+    const missing = collectMissingRequiredFields(form, formValues, {
+      itemRowIndexes: itemRows,
+      sortLineFields,
     });
 
-    if (missingFields) {
-      alert('Required fields are missing. Please review all tabs.');
+    if (missing.length > 0) {
+      setMissingFields(missing);
+      setSubmitError(null);
+      focusMissingField(missing[0]);
       return;
     }
+
+    setMissingFields([]);
+    setHighlightedFieldId(null);
 
     const hsnWarnings = findLineItemsMissingHsnWhenTaxSet(form, formValues);
     if (hsnWarnings.length > 0) {
@@ -334,6 +399,30 @@ export default function FormFillPage() {
           </div>
         </div>
 
+        {missingFields.length > 0 && (
+          <div className="bg-red-50 p-4 rounded-sm border border-red-200 flex gap-4 items-start">
+            <AlertCircle className="text-red-600 shrink-0 mt-0.5" size={20} />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-red-900 font-bold">
+                Please complete {missingFields.length} required field{missingFields.length === 1 ? '' : 's'} before submitting:
+              </p>
+              <ul className="mt-2 space-y-1">
+                {missingFields.map(ref => (
+                  <li key={ref.domId}>
+                    <button
+                      type="button"
+                      onClick={() => focusMissingField(ref)}
+                      className="text-xs text-red-800 font-semibold underline underline-offset-2 hover:text-red-950 text-left"
+                    >
+                      {formatMissingFieldLabel(ref)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
         {submitError && (
           <div className="bg-red-50 p-4 rounded-sm border border-red-200 flex gap-4 items-center">
             <AlertCircle className="text-red-600 shrink-0" size={20} />
@@ -388,10 +477,15 @@ export default function FormFillPage() {
                         {group.fields.map(field => (
                           <div
                             key={field.id}
+                            id={`field-${field.id}`}
                             className={cn(
-                              "space-y-1.5",
+                              "space-y-1.5 rounded-sm transition-shadow",
                               (field.type === 'textarea' || field.type === 'address' || field.type === 'summary')
-                              && "md:col-span-2 lg:col-span-3"
+                              && "md:col-span-2 lg:col-span-3",
+                              missingFields.some(f => f.domId === `field-${field.id}`) &&
+                                "ring-2 ring-red-400 ring-offset-2 bg-red-50/40 p-2 -m-2",
+                              highlightedFieldId === `field-${field.id}` &&
+                                "ring-2 ring-red-500 ring-offset-2 bg-red-50/60 p-2 -m-2",
                             )}
                           >
                             <div className="flex justify-between items-center">
@@ -478,15 +572,20 @@ export default function FormFillPage() {
                                   />
                                 </td>
                               )}
-                              {sortLineFields(tab.itemSublist).map(field => (
+                              {sortLineFields(tab.itemSublist).map(field => {
+                                const lineDomId = `field-${itemSublistRowKey(0, field.id)}`;
+                                return (
                                 <td
                                   key={field.id}
+                                  id={lineDomId}
                                   className={cn(
-                                    'px-2 py-2 align-top',
+                                    'px-2 py-2 align-top transition-shadow',
                                     field.dataSource?.type === 'netsuite_hsn' ||
                                     field.dataSource?.type === 'netsuite_item_live'
                                       ? 'min-w-[280px]'
                                       : 'min-w-[120px]',
+                                    missingFields.some(f => f.domId === lineDomId) && 'bg-red-50 ring-2 ring-inset ring-red-300',
+                                    highlightedFieldId === lineDomId && 'bg-red-100 ring-2 ring-inset ring-red-500',
                                   )}
                                 >
                                   <FieldControl
@@ -518,7 +617,8 @@ export default function FormFillPage() {
                                     preview={false}
                                   />
                                 </td>
-                              ))}
+                              );
+                              })}
                             </tr>
                             {(form.transactionType === 'item_receipt' ||
                               form.transactionType === 'vendor_bill') &&
@@ -536,8 +636,18 @@ export default function FormFillPage() {
                                     preview={false}
                                   />
                                 </td>
-                                {sortLineFields(tab.itemSublist).map(field => (
-                                  <td key={`${rowIndex}_${field.id}`} className="px-2 py-2 align-top min-w-[120px]">
+                                {sortLineFields(tab.itemSublist).map(field => {
+                                  const lineDomId = `field-${itemSublistRowKey(rowIndex, field.id)}`;
+                                  return (
+                                  <td
+                                    key={`${rowIndex}_${field.id}`}
+                                    id={lineDomId}
+                                    className={cn(
+                                      'px-2 py-2 align-top min-w-[120px] transition-shadow',
+                                      missingFields.some(f => f.domId === lineDomId) && 'bg-red-50 ring-2 ring-inset ring-red-300',
+                                      highlightedFieldId === lineDomId && 'bg-red-100 ring-2 ring-inset ring-red-500',
+                                    )}
+                                  >
                                     <FieldControl
                                       fieldId={field.id}
                                       fieldType={field.type}
@@ -560,7 +670,8 @@ export default function FormFillPage() {
                                       preview={false}
                                     />
                                   </td>
-                                ))}
+                                );
+                                })}
                               </tr>
                             ))}
                           </tbody>
@@ -603,15 +714,20 @@ export default function FormFillPage() {
                           </thead>
                           <tbody>
                             <tr className="border-b border-ns-border">
-                              {tab.expenseSublist.map(field => (
+                              {tab.expenseSublist.map(field => {
+                                const expenseDomId = `field-exp_0_${field.id}`;
+                                return (
                                 <td
                                   key={field.id}
+                                  id={expenseDomId}
                                   className={cn(
-                                    'px-2 py-2 align-top',
+                                    'px-2 py-2 align-top transition-shadow',
                                     field.id.toLowerCase() === 'customer_expense' ||
                                     field.dataSource?.type === 'netsuite_customer_live'
                                       ? 'min-w-[280px]'
                                       : 'min-w-[120px]',
+                                    missingFields.some(f => f.domId === expenseDomId) && 'bg-red-50 ring-2 ring-inset ring-red-300',
+                                    highlightedFieldId === expenseDomId && 'bg-red-100 ring-2 ring-inset ring-red-500',
                                   )}
                                 >
                                   <FieldControl
@@ -635,7 +751,8 @@ export default function FormFillPage() {
                                     preview={false}
                                   />
                                 </td>
-                              ))}
+                              );
+                              })}
                             </tr>
                           </tbody>
                         </table>

@@ -76,6 +76,7 @@ export function VendorAsyncSelect({
           email: o.email,
           phone: o.phone,
           subsidiary: o.subsidiary,
+          subsidiaryId: o.subsidiaryId,
           address: o.address,
           isPerson: o.isPerson,
           companyName: o.companyName,

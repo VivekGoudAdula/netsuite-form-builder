@@ -61,6 +61,7 @@ function normalizeApiPath(raw: string): string {
 
 function remoteOptionsCacheKey(ds: any): string | null {
   if (!ds) return null;
+  if (ds.type === 'netsuite_subsidiary') return SELECT_CACHE_KEYS.subsidiary;
   if (ds.type === 'netsuite_currency') return SELECT_CACHE_KEYS.currency;
   if (ds.type === 'netsuite_employees') return SELECT_CACHE_KEYS.employees;
   if (ds.type === 'netsuite_department') return SELECT_CACHE_KEYS.department;
@@ -228,6 +229,7 @@ export function FieldControl({
       'api',
       'netsuite_dynamic',
       'netsuite_currency',
+      'netsuite_subsidiary',
       'netsuite_employees',
       'netsuite_department',
       'netsuite_class_live',
@@ -318,13 +320,21 @@ export function FieldControl({
         const path =
           ds.type === 'netsuite_currency'
             ? 'currencies/'
+            : ds.type === 'netsuite_subsidiary'
+              ? 'subsidiaries/'
             : ds.type === 'netsuite_employees'
               ? 'netsuite/employees'
               : normalizeApiPath(cfg!.url);
-        const labelKey = cfg?.labelKey || (ds.type === 'netsuite_currency' ? 'name' : 'label');
+        const labelKey =
+          cfg?.labelKey ||
+          (ds.type === 'netsuite_currency' || ds.type === 'netsuite_subsidiary' ? 'name' : 'label');
         const valueKey =
           cfg?.valueKey ||
-          (ds.type === 'netsuite_currency' ? 'internalId' : ds.type === 'netsuite_employees' ? 'value' : 'id');
+          (ds.type === 'netsuite_currency' || ds.type === 'netsuite_subsidiary'
+            ? 'internalId'
+            : ds.type === 'netsuite_employees'
+              ? 'value'
+              : 'id');
         const response = await api.get(path);
         const data = response.data;
         if (!Array.isArray(data)) {
@@ -375,6 +385,7 @@ export function FieldControl({
     if (
       ds?.type === 'api' ||
       ds?.type === 'netsuite_currency' ||
+      ds?.type === 'netsuite_subsidiary' ||
       ds?.type === 'netsuite_employees' ||
       ds?.type === 'netsuite_department' ||
       ds?.type === 'netsuite_class_live' ||
@@ -463,6 +474,7 @@ export function FieldControl({
     const isApiLike =
       ds?.type === 'api' ||
       ds?.type === 'netsuite_currency' ||
+      ds?.type === 'netsuite_subsidiary' ||
       ds?.type === 'netsuite_employees' ||
       ds?.type === 'netsuite_department' ||
       ds?.type === 'netsuite_class_live' ||

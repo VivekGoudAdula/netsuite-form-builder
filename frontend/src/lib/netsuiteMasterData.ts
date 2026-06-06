@@ -97,6 +97,39 @@ export function formatHsnOptionLabel(row: {
   return desc || 'Unknown';
 }
 
+/** NetSuite Subsidiary list — body Classification field (internalId value, name label). */
+export const NETSUITE_SUBSIDIARY_DATA_SOURCE: DataSource = {
+  type: 'netsuite_subsidiary',
+  endpoint: 'subsidiaries/',
+  apiConfig: {
+    url: 'subsidiaries/',
+    method: 'GET',
+    labelKey: 'name',
+    valueKey: 'internalId',
+    searchKey: 'name',
+  },
+};
+
+export function isSubsidiaryFieldId(fieldId: string): boolean {
+  return fieldId.toLowerCase() === 'subsidiary';
+}
+
+export function applySubsidiaryFieldDataSource(field: Field): Field {
+  if (!isSubsidiaryFieldId(field.id)) return field;
+  const ds = field.dataSource;
+  if (ds?.type === 'netsuite_employees') {
+    return { ...field, dataSource: { ...NETSUITE_SUBSIDIARY_DATA_SOURCE } };
+  }
+  if (ds?.type === 'netsuite_subsidiary') return field;
+  if (ds?.type === 'api' && ds.apiConfig?.url?.includes('employees')) {
+    return { ...field, dataSource: { ...NETSUITE_SUBSIDIARY_DATA_SOURCE } };
+  }
+  if (!ds || ds.type === 'static') {
+    return { ...field, dataSource: { ...NETSUITE_SUBSIDIARY_DATA_SOURCE } };
+  }
+  return field;
+}
+
 /** NetSuite Location REST search — PO body, expense lines, shipping/billing location fields. */
 export const NETSUITE_LOCATION_DATA_SOURCE: DataSource = {
   type: 'netsuite_location',
@@ -613,19 +646,21 @@ export function applyItemFieldDataSource(field: Field): Field {
 
 /** Apply all NetSuite live master-data presets for known field ids. */
 export function applyFormFieldDataSource(field: Field): Field {
-  return applyCustomerFieldDataSource(
-    applyVendorFieldDataSource(
-    applyItemFieldDataSource(
-      applyAccountFieldDataSource(
-        applyTaxNatureFieldDataSource(
-          applyClassFieldDataSource(
-            applyDepartmentFieldDataSource(
-              applyHsnFieldDataSource(applyLocationFieldDataSource(field)),
+  return applySubsidiaryFieldDataSource(
+    applyCustomerFieldDataSource(
+      applyVendorFieldDataSource(
+        applyItemFieldDataSource(
+          applyAccountFieldDataSource(
+            applyTaxNatureFieldDataSource(
+              applyClassFieldDataSource(
+                applyDepartmentFieldDataSource(
+                  applyHsnFieldDataSource(applyLocationFieldDataSource(field)),
+                ),
+              ),
             ),
           ),
         ),
       ),
-    ),
     ),
   );
 }

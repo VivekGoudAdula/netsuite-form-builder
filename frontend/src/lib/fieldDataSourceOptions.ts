@@ -11,6 +11,7 @@ import {
   isHsnFetchFieldId,
   isLocationFieldId,
   isTaxNatureFieldId,
+  isSubsidiaryFieldId,
 } from './netsuiteMasterData';
 
 export type DataSourceTypeOption =
@@ -27,7 +28,8 @@ export type DataSourceTypeOption =
   | 'netsuite_account_live'
   | 'netsuite_item_live'
   | 'netsuite_vendor_live'
-  | 'netsuite_customer_live';
+  | 'netsuite_customer_live'
+  | 'netsuite_subsidiary';
 
 export function isEmployeesApiUrl(url?: string): boolean {
   if (!url || typeof url !== 'string') return false;
@@ -61,6 +63,13 @@ export function getDataSourceOptionsForField(fieldId: string): {
     return [
       { label: 'Static', value: 'static' },
       { label: 'NetSuite Currency', value: 'netsuite_currency' },
+    ];
+  }
+
+  if (isSubsidiaryFieldId(id)) {
+    return [
+      { label: 'Static', value: 'static' },
+      { label: 'NetSuite Subsidiaries', value: 'netsuite_subsidiary' },
     ];
   }
 
@@ -156,12 +165,16 @@ export function resolveDataSourceSelectValue(ds: any): DataSourceTypeOption {
     t === 'netsuite_item_live' ||
     t === 'netsuite_vendor_live' ||
     t === 'netsuite_customer_live' ||
+    t === 'netsuite_subsidiary' ||
     t === 'static'
   ) {
     return t as DataSourceTypeOption;
   }
   if (t === 'api' && isEmployeesApiUrl(ds.apiConfig?.url)) {
     return 'netsuite_employees';
+  }
+  if (t === 'api' && ds.apiConfig?.url?.toLowerCase().includes('subsidiar')) {
+    return 'netsuite_subsidiary';
   }
   return 'api';
 }

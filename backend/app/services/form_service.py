@@ -7,7 +7,13 @@ from ..schemas.form import FormCreate, FormUpdate, CloneFormRequest, AssignUsers
 from .activity import log_activity
 from .mock_netsuite_service import send_to_netsuite_mock
 from .netsuite_service import send_to_netsuite
-from .workflow_engine import trigger_workflow_level, _send_submission_to_netsuite
+from .workflow_engine import (
+    trigger_workflow_level,
+    _send_submission_to_netsuite,
+    try_build_workflow_approvals,
+    complete_submission_netsuite_sync,
+)
+from .purchase_order_netsuite_service import build_purchase_order_sync_update, is_netsuite_po_success
 
 class FormService:
     @staticmethod
@@ -348,51 +354,14 @@ class FormService:
         # Use form's companyId as context for Super Admins or missing companyId
         effective_company_id = form.get("companyId") if user.get("role") == "super_admin" or not company_id else company_id
 
-        # STEP 2: Fetch workflow
-        workflow = await db.workflows.find_one({
-            "companyId": effective_company_id
-        })
-
-        if not workflow:
-            raise HTTPException(
-                status_code=400,
-                detail="Workflow not configured for this company. Please contact admin."
-            )
-
-        if not workflow.get("levels") or len(workflow["levels"]) == 0:
-            raise HTTPException(
-                status_code=400,
-                detail="Workflow must have at least 1 level defined."
-            )
-
-        # STEP 3: Build approvals structure
-        approvals = []
-        for level in workflow["levels"]:
-            if not level.get("approvers"):
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Workflow level {level.get('level')} has no approvers."
-                )
-                
-            approvals.append({
-                "level": level["level"],
-                "status": "pending",
-                "approvers": [
-                    {
-                        "userId": u["userId"],
-                        "name": u["name"],
-                        "email": u.get("email"),
-                        "role": u.get("role"),
-                        "status": "pending",
-                        "actionAt": None
-                    }
-                    for u in level["approvers"]
-                ]
-            })
+        # STEP 2: Fetch workflow (optional — skip approval when not configured)
+        workflow = await db.workflows.find_one({"companyId": effective_company_id})
+        approvals = try_build_workflow_approvals(workflow)
+        workflow_required = approvals is not None
 
         split_values = FormService._split_submission_values(values or {})
 
-        # STEP 4: Create submission
+        # STEP 3: Create submission
         submission = {
             "formId": form_id,
             "formName": form["name"],
@@ -404,11 +373,11 @@ class FormService:
             "transactionType": form["transactionType"],
 
             "status": "pending",
-            "currentLevel": 1,
+            "currentLevel": 1 if workflow_required else 0,
 
-            "workflowId": str(workflow["_id"]),
+            "workflowId": str(workflow["_id"]) if workflow_required and workflow else None,
 
-            "approvals": approvals,
+            "approvals": approvals or [],
             "values": values or {},
             "bodyFields": split_values["bodyFields"],
             "lineItems": split_values["lineItems"],
@@ -418,22 +387,10 @@ class FormService:
             "updatedAt": datetime.utcnow(),
         }
 
-        # STEP 5: Save
+        # STEP 4: Save
         result = await db.submissions.insert_one(submission)
+        submission_id = str(result.inserted_id)
         submission["_id"] = result.inserted_id
-
-        # STEP 6: Activity Log
-        await log_activity(
-            user["id"],
-            "SUBMIT_FORM_WORKFLOW",
-            entity_id=str(result.inserted_id),
-            entity_type="submission",
-            metadata={
-                "formName": form["name"],
-                "companyId": form["companyId"],
-                "transactionType": form["transactionType"],
-            }
-        )
 
         if form["transactionType"] == "item_receipt":
             await db.item_receipt_submissions.insert_one(
@@ -443,7 +400,7 @@ class FormService:
                     "templateId": form_id,
                     "submittedBy": user["id"],
                     "workflowStatus": "pending",
-                    "currentLevel": 1,
+                    "currentLevel": submission["currentLevel"],
                     "bodyFields": split_values["bodyFields"],
                     "lineItems": split_values["lineItems"],
                     "createdAt": datetime.utcnow(),
@@ -459,7 +416,7 @@ class FormService:
                     "templateId": form_id,
                     "submittedBy": user["id"],
                     "workflowStatus": "pending",
-                    "currentLevel": 1,
+                    "currentLevel": submission["currentLevel"],
                     "bodyFields": split_values["bodyFields"],
                     "itemLines": split_values["lineItems"],
                     "expenseLines": split_values["expenseLines"],
@@ -468,13 +425,57 @@ class FormService:
                 }
             )
 
-        # STEP 7: Trigger Level 1
-        await trigger_workflow_level(submission)
+        if workflow_required:
+            await log_activity(
+                user["id"],
+                "SUBMIT_FORM_WORKFLOW",
+                entity_id=submission_id,
+                entity_type="submission",
+                metadata={
+                    "formName": form["name"],
+                    "companyId": form["companyId"],
+                    "transactionType": form["transactionType"],
+                },
+            )
+            await trigger_workflow_level(submission)
+            return {
+                "message": "Submitted for approval",
+                "status": "pending",
+                "currentLevel": 1,
+                "workflowRequired": True,
+            }
 
+        await log_activity(
+            user["id"],
+            "SUBMIT_FORM_DIRECT",
+            entity_id=submission_id,
+            entity_type="submission",
+            metadata={
+                "formName": form["name"],
+                "companyId": form["companyId"],
+                "transactionType": form["transactionType"],
+            },
+        )
+        sync_result = await complete_submission_netsuite_sync(
+            submission,
+            submission_id,
+            user["id"],
+        )
+        final_status = sync_result["status"]
+        success_statuses = {"submitted", "SYNCED_TO_NETSUITE"}
         return {
-            "message": "Submitted for approval",
-            "status": "pending",
-            "currentLevel": 1
+            "message": (
+                "Submitted and sent to NetSuite"
+                if final_status in success_statuses
+                else "Submitted but NetSuite sync failed"
+            ),
+            "status": final_status,
+            "currentLevel": 0,
+            "workflowRequired": False,
+            "directSync": True,
+            "poId": sync_result.get("poId"),
+            "documentNumber": sync_result.get("documentNumber"),
+            "netsuiteSyncError": sync_result.get("netsuiteSyncError"),
         }
 
     @staticmethod
@@ -503,7 +504,10 @@ class FormService:
         approved = await db.submissions.count_documents({**query, "status": "approved"})
         pending = await db.submissions.count_documents({**query, "status": "pending"})
         rejected = await db.submissions.count_documents({**query, "status": "rejected"})
-        completed = await db.submissions.count_documents({**query, "status": "submitted"}) # "submitted" means sent to NetSuite/Completed
+        completed = await db.submissions.count_documents({
+            **query,
+            "status": {"$in": ["submitted", "SYNCED_TO_NETSUITE"]},
+        })
 
         drafts = 0
         if transaction_type:
@@ -561,28 +565,30 @@ class FormService:
         if not submission:
             raise HTTPException(status_code=404, detail="Submission not found")
             
-        if submission["status"] == "submitted":
+        if submission["status"] in ("submitted", "SYNCED_TO_NETSUITE"):
             raise HTTPException(status_code=400, detail="Submission already successfully processed")
-            
-        ns_response = _send_submission_to_netsuite(submission, submission_id)
-        
-        # In our service, success is determined by status field
-        is_success = ns_response.get("status") == "success"
-        
-        update_data = {
-            "status": "submitted" if is_success else "failed",
-            "updatedAt": datetime.utcnow()
-        }
-        
-        if is_success:
-            update_data["netsuiteId"] = ns_response.get("netsuiteId")
-            update_data["errorMessage"] = None
-            update_data["netsuiteResponse"] = ns_response
-            activity_action = "RETRY_SUBMISSION_SUCCESS"
+
+        ns_response = await _send_submission_to_netsuite(submission, submission_id)
+
+        if submission.get("transactionType") == "purchase_order":
+            update_data = build_purchase_order_sync_update(ns_response, submission_id)
+            is_success = is_netsuite_po_success(ns_response)
+            activity_action = "NETSUITE_PO_SYNCED" if is_success else "NETSUITE_PO_SYNC_FAILED"
         else:
-            update_data["errorMessage"] = ns_response.get("message", "Unknown NetSuite error")
-            update_data["netsuiteResponse"] = ns_response
-            activity_action = "RETRY_SUBMISSION_FAILED"
+            is_success = ns_response.get("status") == "success"
+            update_data = {
+                "status": "submitted" if is_success else "failed",
+                "updatedAt": datetime.utcnow(),
+            }
+            if is_success:
+                update_data["netsuiteId"] = ns_response.get("netsuiteId")
+                update_data["errorMessage"] = None
+                update_data["netsuiteResponse"] = ns_response
+                activity_action = "RETRY_SUBMISSION_SUCCESS"
+            else:
+                update_data["errorMessage"] = ns_response.get("message", "Unknown NetSuite error")
+                update_data["netsuiteResponse"] = ns_response
+                activity_action = "RETRY_SUBMISSION_FAILED"
             
         await db.submissions.update_one(
             {"_id": ObjectId(submission_id)},
@@ -599,7 +605,8 @@ class FormService:
         return {
             "message": "Retry processed",
             "status": update_data["status"],
-            "netsuiteId": update_data.get("netsuiteId")
+            "netsuiteId": update_data.get("netsuiteId") or update_data.get("poId"),
+            "documentNumber": update_data.get("documentNumber"),
         }
 
     @staticmethod

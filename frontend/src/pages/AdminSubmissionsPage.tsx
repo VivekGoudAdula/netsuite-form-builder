@@ -105,18 +105,21 @@ export default function AdminSubmissionsPage() {
                     <div className="flex flex-col gap-1">
                       <span className={cn(
                         "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider inline-block w-fit",
-                        sub.status === 'submitted' || sub.status === 'approved' ? "bg-green-100 text-green-700" : 
-                        sub.status === 'rejected' ? "bg-red-100 text-red-700" :
+                        sub.status === 'submitted' || sub.status === 'SYNCED_TO_NETSUITE' || sub.status === 'approved' ? "bg-green-100 text-green-700" : 
+                        sub.status === 'rejected' || sub.status === 'NETSUITE_SYNC_FAILED' ? "bg-red-100 text-red-700" :
                         sub.status === 'pending' ? "bg-amber-100 text-amber-700" :
                         "bg-gray-100 text-gray-700"
                       )}>
-                        {sub.status === 'submitted' ? 'Synchronized' : sub.status}
+                        {sub.status === 'submitted' || sub.status === 'SYNCED_TO_NETSUITE' ? 'Synchronized' : sub.status === 'NETSUITE_SYNC_FAILED' ? 'Sync Failed' : sub.status}
                       </span>
-                      {sub.netsuiteId && (
-                        <span className="text-[9px] font-mono text-ns-text-muted">NS ID: {sub.netsuiteId}</span>
+                      {(sub.netsuiteId || sub.poId) && (
+                        <span className="text-[9px] font-mono text-ns-text-muted">NS ID: {sub.poId || sub.netsuiteId}</span>
                       )}
-                      {sub.errorMessage && (
-                        <span className="text-[9px] text-red-500 italic truncate max-w-[150px]">{sub.errorMessage}</span>
+                      {sub.documentNumber && (
+                        <span className="text-[9px] font-mono text-ns-text-muted">PO #: {sub.documentNumber}</span>
+                      )}
+                      {(sub.errorMessage || sub.netsuiteSyncError) && (
+                        <span className="text-[9px] text-red-500 italic truncate max-w-[150px]">{sub.netsuiteSyncError || sub.errorMessage}</span>
                       )}
                     </div>
                  </TD>
@@ -148,7 +151,7 @@ export default function AdminSubmissionsPage() {
                  </TD>
                  <TD className="px-6 text-right">
                     <div className="flex justify-end gap-2">
-                      {sub.status === 'failed' && (
+                      {(sub.status === 'failed' || sub.status === 'NETSUITE_SYNC_FAILED') && (
                         <Button 
                           onClick={() => retrySubmission(sub.id)}
                           size="sm" 
@@ -213,7 +216,7 @@ export default function AdminSubmissionsPage() {
                         <div className="flex flex-col items-center">
                            <div className={cn(
                               "w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-sm ring-4 ring-white",
-                              level.level < (activeSub.currentLevel || 99) || activeSub.status === 'approved' || activeSub.status === 'submitted'
+                              level.level < (activeSub.currentLevel || 99) || activeSub.status === 'approved' || activeSub.status === 'submitted' || activeSub.status === 'SYNCED_TO_NETSUITE'
                                  ? "bg-green-100 text-green-700" 
                                  : level.level === activeSub.currentLevel && activeSub.status === 'pending'
                                     ? "bg-ns-blue text-white"
@@ -221,7 +224,7 @@ export default function AdminSubmissionsPage() {
                                        ? "bg-red-100 text-red-700"
                                        : "bg-gray-100 text-gray-400"
                            )}>
-                              {level.level < (activeSub.currentLevel || 99) || activeSub.status === 'approved' || activeSub.status === 'submitted' ? <CheckCircle2 size={16} /> : 
+                              {level.level < (activeSub.currentLevel || 99) || activeSub.status === 'approved' || activeSub.status === 'submitted' || activeSub.status === 'SYNCED_TO_NETSUITE' ? <CheckCircle2 size={16} /> : 
                                level.level === activeSub.currentLevel && activeSub.status === 'rejected' ? <XCircle size={16} /> :
                                level.level}
                            </div>

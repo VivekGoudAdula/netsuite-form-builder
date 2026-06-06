@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 from bson import ObjectId
 from ..database import get_database
@@ -6,6 +6,10 @@ from .activity import log_activity
 from .netsuite_service import send_to_netsuite
 from .item_receipt_service import send_item_receipt_to_netsuite
 from .vendor_bill_service import send_vendor_bill_to_netsuite
+from .purchase_order_netsuite_service import (
+    build_purchase_order_sync_update,
+    send_purchase_order_to_netsuite,
+)
 import os
 from dotenv import load_dotenv
 
@@ -13,12 +17,17 @@ load_dotenv()
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 
-def _send_submission_to_netsuite(submission: Dict[str, Any], submission_id: str) -> Dict[str, Any]:
+async def _send_submission_to_netsuite(
+    submission: Dict[str, Any],
+    submission_id: str,
+) -> Dict[str, Any]:
     tx = submission.get("transactionType")
     if tx == "item_receipt":
         return send_item_receipt_to_netsuite(submission)
     if tx == "vendor_bill":
         return send_vendor_bill_to_netsuite(submission)
+    if tx == "purchase_order":
+        return await send_purchase_order_to_netsuite(submission)
     payload = {
         "firstname": submission.get("values", {}).get("firstName", ""),
         "lastname": submission.get("values", {}).get("lastName", ""),
@@ -28,6 +37,185 @@ def _send_submission_to_netsuite(submission: Dict[str, Any], submission_id: str)
         "formName": submission.get("formName"),
     }
     return send_to_netsuite(payload)
+
+
+def try_build_workflow_approvals(workflow: Optional[Dict[str, Any]]) -> Optional[List[Dict[str, Any]]]:
+    """
+    Return approval levels when a company workflow is fully configured.
+    Returns None when no workflow exists or it has no usable approver levels.
+    """
+    if not workflow:
+        return None
+
+    levels = workflow.get("levels") or []
+    if not levels:
+        return None
+
+    approvals: List[Dict[str, Any]] = []
+    for level in levels:
+        approvers = level.get("approvers") or []
+        if not approvers:
+            return None
+        approvals.append(
+            {
+                "level": level["level"],
+                "status": "pending",
+                "approvers": [
+                    {
+                        "userId": u["userId"],
+                        "name": u["name"],
+                        "email": u.get("email"),
+                        "role": u.get("role"),
+                        "status": "pending",
+                        "actionAt": None,
+                    }
+                    for u in approvers
+                ],
+            }
+        )
+    return approvals
+
+
+def _netsuite_sync_update_fields(submission: Dict[str, Any]) -> Dict[str, Any]:
+    update_fields: Dict[str, Any] = {
+        "status": submission["status"],
+        "updatedAt": datetime.utcnow(),
+    }
+    for key in (
+        "netsuiteResponse",
+        "netsuiteError",
+        "netsuiteSyncError",
+        "poId",
+        "documentNumber",
+        "submissionId",
+    ):
+        if key in submission:
+            update_fields[key] = submission[key]
+    return update_fields
+
+
+async def _update_transaction_shadow_status(
+    submission_id: str,
+    submission: Dict[str, Any],
+) -> None:
+    db = get_database()
+    tx = submission.get("transactionType")
+    if tx == "item_receipt":
+        await db.item_receipt_submissions.update_one(
+            {"_id": ObjectId(submission_id)},
+            {
+                "$set": {
+                    "workflowStatus": submission["status"],
+                    "currentLevel": submission.get("currentLevel", 0),
+                    "updatedAt": datetime.utcnow(),
+                }
+            },
+        )
+    if tx == "vendor_bill":
+        await db.vendor_bill_submissions.update_one(
+            {"_id": ObjectId(submission_id)},
+            {
+                "$set": {
+                    "workflowStatus": submission["status"],
+                    "currentLevel": submission.get("currentLevel", 0),
+                    "updatedAt": datetime.utcnow(),
+                }
+            },
+        )
+
+
+async def _log_netsuite_sync_activity(
+    user_id: str,
+    submission_id: str,
+    submission: Dict[str, Any],
+) -> None:
+    tx = submission.get("transactionType")
+    status = submission.get("status")
+    if tx == "purchase_order":
+        if status == "SYNCED_TO_NETSUITE":
+            await log_activity(
+                user_id,
+                "NETSUITE_PO_SYNCED",
+                entity_id=submission_id,
+                entity_type="submission",
+                metadata={
+                    "poId": submission.get("poId"),
+                    "documentNumber": submission.get("documentNumber"),
+                },
+            )
+        elif status == "NETSUITE_SYNC_FAILED":
+            await log_activity(
+                user_id,
+                "NETSUITE_PO_SYNC_FAILED",
+                entity_id=submission_id,
+                entity_type="submission",
+                metadata={"error": submission.get("netsuiteSyncError")},
+            )
+        return
+
+    if status == "submitted":
+        await log_activity(
+            user_id,
+            "SENT_TO_NETSUITE",
+            entity_id=submission_id,
+            entity_type="submission",
+        )
+    elif status == "failed":
+        await log_activity(
+            user_id,
+            "NETSUITE_SYNC_FAILED",
+            entity_id=submission_id,
+            entity_type="submission",
+            metadata={"error": submission.get("netsuiteError")},
+        )
+
+
+async def complete_submission_netsuite_sync(
+    submission: Dict[str, Any],
+    submission_id: str,
+    user_id: str,
+) -> Dict[str, Any]:
+    """Send a submission directly to NetSuite and persist sync status."""
+    db = get_database()
+    ns_response = await _send_submission_to_netsuite(submission, submission_id)
+    _apply_netsuite_sync_to_submission(submission, submission_id, ns_response)
+
+    sync_fields = _netsuite_sync_update_fields(submission)
+    if submission.get("displayValues"):
+        sync_fields["displayValues"] = submission["displayValues"]
+
+    await db.submissions.update_one(
+        {"_id": ObjectId(submission_id)},
+        {"$set": sync_fields},
+    )
+    await _update_transaction_shadow_status(submission_id, submission)
+    await _log_netsuite_sync_activity(user_id, submission_id, submission)
+
+    return {
+        "status": submission["status"],
+        "poId": submission.get("poId"),
+        "documentNumber": submission.get("documentNumber"),
+        "netsuiteSyncError": submission.get("netsuiteSyncError") or submission.get("netsuiteError"),
+    }
+
+
+def _apply_netsuite_sync_to_submission(
+    submission: Dict[str, Any],
+    submission_id: str,
+    ns_response: Dict[str, Any],
+) -> None:
+    tx = submission.get("transactionType")
+    if tx == "purchase_order":
+        sync_update = build_purchase_order_sync_update(ns_response, submission_id)
+        submission.update(sync_update)
+        return
+
+    if ns_response.get("status") == "success":
+        submission["status"] = "submitted"
+        submission["netsuiteResponse"] = ns_response
+    else:
+        submission["status"] = "failed"
+        submission["netsuiteError"] = ns_response.get("message")
 
 async def trigger_workflow_level(submission: Dict[str, Any]):
     """
@@ -170,55 +358,27 @@ async def approve_submission(submission_id: str, user: Dict[str, Any]):
         await trigger_workflow_level(submission)
     else:
         submission["status"] = "approved"
-        # Trigger NetSuite (Phase 5)
-        ns_response = _send_submission_to_netsuite(submission, submission_id)
-        
-        if ns_response.get("status") == "success":
-            submission["status"] = "submitted"
-            submission["netsuiteResponse"] = ns_response
-        else:
-            submission["status"] = "failed"
-            submission["netsuiteError"] = ns_response.get("message")
-        
+        ns_response = await _send_submission_to_netsuite(submission, submission_id)
+        _apply_netsuite_sync_to_submission(submission, submission_id, ns_response)
+
+    update_fields: Dict[str, Any] = {
+        "approvals": submission["approvals"],
+        "currentLevel": submission["currentLevel"],
+        **_netsuite_sync_update_fields(submission),
+    }
+    if submission.get("displayValues"):
+        update_fields["displayValues"] = submission["displayValues"]
+
     await db.submissions.update_one(
         {"_id": ObjectId(submission_id)},
-        {
-            "$set": {
-                "approvals": submission["approvals"],
-                "currentLevel": submission["currentLevel"],
-                "status": submission["status"],
-                "netsuiteResponse": submission.get("netsuiteResponse"),
-                "netsuiteError": submission.get("netsuiteError")
-            }
-        }
+        {"$set": update_fields},
     )
 
-    if submission.get("transactionType") == "item_receipt":
-        await db.item_receipt_submissions.update_one(
-            {"_id": ObjectId(submission_id)},
-            {
-                "$set": {
-                    "workflowStatus": submission["status"],
-                    "currentLevel": submission.get("currentLevel", 1),
-                    "updatedAt": datetime.utcnow(),
-                }
-            },
-        )
-    if submission.get("transactionType") == "vendor_bill":
-        await db.vendor_bill_submissions.update_one(
-            {"_id": ObjectId(submission_id)},
-            {
-                "$set": {
-                    "workflowStatus": submission["status"],
-                    "currentLevel": submission.get("currentLevel", 1),
-                    "updatedAt": datetime.utcnow(),
-                }
-            },
-        )
+    await _update_transaction_shadow_status(submission_id, submission)
 
     await log_activity(user["id"], "APPROVE_FORM", entity_id=submission_id, entity_type="submission")
-    if submission["status"] == "submitted":
-        await log_activity(user["id"], "SENT_TO_NETSUITE", entity_id=submission_id, entity_type="submission")
+    if current_level >= total_levels:
+        await _log_netsuite_sync_activity(user["id"], submission_id, submission)
 
 async def reject_submission(submission_id: str, user: Dict[str, Any]):
     db = get_database()

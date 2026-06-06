@@ -84,6 +84,7 @@ import {
   NETSUITE_ITEM_DATA_SOURCE,
   NETSUITE_VENDOR_DATA_SOURCE,
   NETSUITE_CUSTOMER_DATA_SOURCE,
+  NETSUITE_SUBSIDIARY_DATA_SOURCE,
   applyFormFieldDataSource,
   sortItemReceiptSublistFields,
   sortItemSublistFields,
@@ -164,7 +165,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
       mapNetSuiteField('createdfrom', 'Created From', 'select', 'Primary Information', 'Main', false, 'body', null),
 
       // --- CLASSIFICATION ---
-      mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null),
+      mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null, { ...NETSUITE_SUBSIDIARY_DATA_SOURCE }),
       mapNetSuiteField(
         'department',
         'Department',
@@ -408,7 +409,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
       mapNetSuiteField('trandate', 'Date', 'date', 'Primary Information', 'Main', true),
       mapNetSuiteField('tranid', 'Order #', 'text', 'Primary Information', 'Main'),
       mapNetSuiteField('email', 'Email', 'emails', 'Primary Information', 'Main'),
-      mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null),
+      mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null, { ...NETSUITE_SUBSIDIARY_DATA_SOURCE }),
       mapNetSuiteField('shipaddress', 'Shipping Address', 'address', 'Shipping', 'Shipping'),
       mapNetSuiteField('billaddress', 'Billing Address', 'address', 'Billing', 'Billing'),
       mapNetSuiteField(
@@ -467,7 +468,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
       ),
       mapNetSuiteField('trandate', 'Date', 'date', 'Primary Information', 'Main', true),
       mapNetSuiteField('email', 'Email', 'emails', 'Primary Information', 'Main'),
-      mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null),
+      mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null, { ...NETSUITE_SUBSIDIARY_DATA_SOURCE }),
       mapNetSuiteField(
         'item',
         'Item',
@@ -492,7 +493,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
       mapNetSuiteField('custbody_rg_po_start_date', 'PO Start Date', 'date', 'Primary Information', 'Main'),
       mapNetSuiteField('custbody_rg_po_end_date', 'PO End Date', 'date', 'Primary Information', 'Main'),
       mapNetSuiteField('custbody_rg_po_number', 'PO Number', 'text', 'Primary Information', 'Main'),
-      mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Primary Information', 'Main', true),
+      mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Primary Information', 'Main', true, 'body', null, { ...NETSUITE_SUBSIDIARY_DATA_SOURCE }),
       mapNetSuiteField('location', 'To Location', 'select', 'Primary Information', 'Main', true, 'body', null, { ...NETSUITE_LOCATION_DATA_SOURCE }),
       mapNetSuiteField('currency', 'Currency', 'select', 'Primary Information', 'Main', true, 'body', null, {
         type: 'netsuite_currency',
@@ -566,7 +567,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
           { label: 'Rejected', value: '3' },
         ],
       }),
-      mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null),
+      mapNetSuiteField('subsidiary', 'Subsidiary', 'select', 'Classification', 'Main', true, 'body', null, { ...NETSUITE_SUBSIDIARY_DATA_SOURCE }),
       mapNetSuiteField(
         'location',
         'Location',
@@ -644,6 +645,20 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
 
 function normalizeFieldDataSource(ds: any): any {
   if (!ds) return undefined;
+  if (ds.type === 'netsuite_subsidiary') {
+    return {
+      type: 'netsuite_subsidiary',
+      endpoint: ds.endpoint || 'subsidiaries/',
+      apiConfig: {
+        method: 'GET',
+        labelKey: 'name',
+        valueKey: 'internalId',
+        searchKey: 'name',
+        ...ds.apiConfig,
+        url: ds.apiConfig?.url || 'subsidiaries/',
+      },
+    };
+  }
   if (ds.type === 'netsuite_currency') {
     return {
       type: 'netsuite_currency',
