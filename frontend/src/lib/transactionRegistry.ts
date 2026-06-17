@@ -1,3 +1,12 @@
+import type { LucideIcon } from 'lucide-react';
+import {
+  ShoppingBag,
+  TrendingUp,
+  CreditCard,
+  ArrowUpRight,
+  PackageCheck,
+  FileStack,
+} from 'lucide-react';
 import type { TransactionType } from '../types';
 
 export interface TransactionMeta {
@@ -6,6 +15,8 @@ export interface TransactionMeta {
   /** Uppercase ERP code for display and integrations. */
   apiCode: string;
   name: string;
+  /** Sidebar label for employee navigation. */
+  navLabel: string;
   slug: string;
   cataloguePath: string;
   statLabels?: {
@@ -17,11 +28,30 @@ export interface TransactionMeta {
   };
 }
 
+export const TRANSACTION_ORDER: TransactionType[] = [
+  'purchase_order',
+  'sales_order',
+  'accounts_payable',
+  'accounts_receivable',
+  'item_receipt',
+  'vendor_bill',
+];
+
+export const TRANSACTION_ICONS: Record<TransactionType, LucideIcon> = {
+  purchase_order: ShoppingBag,
+  sales_order: TrendingUp,
+  accounts_payable: CreditCard,
+  accounts_receivable: ArrowUpRight,
+  item_receipt: PackageCheck,
+  vendor_bill: FileStack,
+};
+
 export const TRANSACTION_REGISTRY: Record<TransactionType, TransactionMeta> = {
   purchase_order: {
     code: 'purchase_order',
     apiCode: 'PURCHASE_ORDER',
     name: 'Purchase Order',
+    navLabel: 'Purchase Orders',
     slug: 'po',
     cataloguePath: 'purchase-order',
   },
@@ -29,6 +59,7 @@ export const TRANSACTION_REGISTRY: Record<TransactionType, TransactionMeta> = {
     code: 'sales_order',
     apiCode: 'SALES_ORDER',
     name: 'Sales Order',
+    navLabel: 'Sales Orders',
     slug: 'so',
     cataloguePath: 'sales-order',
   },
@@ -36,6 +67,7 @@ export const TRANSACTION_REGISTRY: Record<TransactionType, TransactionMeta> = {
     code: 'accounts_payable',
     apiCode: 'ACCOUNTS_PAYABLE',
     name: 'Accounts Payable',
+    navLabel: 'Accounts Payable',
     slug: 'ap',
     cataloguePath: 'ap',
   },
@@ -43,6 +75,7 @@ export const TRANSACTION_REGISTRY: Record<TransactionType, TransactionMeta> = {
     code: 'accounts_receivable',
     apiCode: 'ACCOUNTS_RECEIVABLE',
     name: 'Accounts Receivable',
+    navLabel: 'Accounts Receivable',
     slug: 'ar',
     cataloguePath: 'ar',
   },
@@ -50,6 +83,7 @@ export const TRANSACTION_REGISTRY: Record<TransactionType, TransactionMeta> = {
     code: 'item_receipt',
     apiCode: 'ITEM_RECEIPT',
     name: 'Item Receipt',
+    navLabel: 'Item Receipt',
     slug: 'ir',
     cataloguePath: 'item-receipt',
   },
@@ -57,6 +91,7 @@ export const TRANSACTION_REGISTRY: Record<TransactionType, TransactionMeta> = {
     code: 'vendor_bill',
     apiCode: 'VENDOR_BILL',
     name: 'Vendor Bill',
+    navLabel: 'Vendor Bills',
     slug: 'vb',
     cataloguePath: 'vendor-bill',
     statLabels: {
@@ -81,4 +116,26 @@ export function transactionTypeToSlug(type: TransactionType): string {
 export function cataloguePathToTransactionType(path: string | undefined): TransactionType {
   const entry = Object.values(TRANSACTION_REGISTRY).find(m => m.cataloguePath === path);
   return entry?.code ?? 'purchase_order';
+}
+
+export interface TransactionNavItem {
+  name: string;
+  icon: LucideIcon;
+  path: string;
+}
+
+/** Build sidebar nav items from forms assigned to the current user. */
+export function getAssignedTransactionNavItems(
+  assignedForms: { transactionType: TransactionType }[],
+): TransactionNavItem[] {
+  const assignedTypes = new Set(assignedForms.map(f => f.transactionType));
+
+  return TRANSACTION_ORDER.filter(type => assignedTypes.has(type)).map(type => {
+    const meta = TRANSACTION_REGISTRY[type];
+    return {
+      name: meta.navLabel,
+      icon: TRANSACTION_ICONS[type],
+      path: `/user/${meta.slug}`,
+    };
+  });
 }

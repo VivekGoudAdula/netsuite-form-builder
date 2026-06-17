@@ -87,7 +87,7 @@ export default function CataloguePage() {
       fetchFields();
     } catch (error) {
       console.error('Failed to save field', error);
-      alert('Error saving field. Make sure Internal ID is unique.');
+      alert('Error saving field. Make sure the field ID is unique.');
     }
   };
 
@@ -107,9 +107,9 @@ export default function CataloguePage() {
         {isSuperAdmin ? (
           <>
             <PageHeader
-              eyebrow="Master data management"
+              eyebrow="Field library"
               title={displayName}
-              subtitle={`Field catalogue for ${type?.replace('-', ' ')} transactions.`}
+              subtitle={`Fields used on ${type?.replace('-', ' ')} forms.`}
               actions={
                 <Button
                   onClick={() => {
@@ -124,8 +124,8 @@ export default function CataloguePage() {
               }
             />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <KPICard label="Total fields" value={fields.length} subtext="Catalogue entries" subtextVariant="neutral" />
-              <KPICard label="Required fields" value={fields.filter(f => f.required).length} subtext="Mandatory mapping" subtextVariant="warning" />
+              <KPICard label="Total fields" value={fields.length} subtext="In library" subtextVariant="neutral" />
+              <KPICard label="Required fields" value={fields.filter(f => f.required).length} subtext="Required for mapping" subtextVariant="warning" />
               <KPICard label="Filtered results" value={filteredFields.length} subtext="Current view" subtextVariant="info" />
             </div>
           </>
@@ -133,7 +133,7 @@ export default function CataloguePage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 text-xs font-bold text-ns-text-muted uppercase tracking-widest mb-1">
-              <span>Field Catalogue</span>
+              <span>Fields</span>
               <ChevronRight size={12} />
               <span className="text-ns-blue">{type?.replace('-', ' ')}</span>
             </div>
@@ -142,7 +142,7 @@ export default function CataloguePage() {
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 px-4 py-2 bg-white text-ns-navy border border-ns-border rounded-ns-md text-sm font-bold cursor-pointer hover:bg-ns-gray-bg transition-all">
               <Plus size={16} className="rotate-45" />
-              Bulk Import
+              Import fields
               <input 
                 type="file" 
                 accept=".json" 
@@ -186,7 +186,7 @@ export default function CataloguePage() {
                 setEditingField(null);
                 setIsModalOpen(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-ns-blue text-white rounded-ns-md text-sm font-bold shadow-lg shadow-ns-blue/20 hover:bg-ns-navy transition-all transform hover:-translate-y-0.5"
+              className="flex items-center gap-2 px-4 py-2 bg-ns-blue text-white rounded-ns-md text-sm font-bold shadow-lg shadow-ns-blue/20 hover:bg-ns-blue-dark transition-all transform hover:-translate-y-0.5"
             >
               <Plus size={16} />
               Add New Field
@@ -197,7 +197,7 @@ export default function CataloguePage() {
 
         <Card padding="md">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+            <Search className="absolute left-3 top-2.5 text-ns-text-muted" size={16} />
             <input 
               type="text" 
               placeholder="Search by label or internal ID..." 
@@ -216,12 +216,12 @@ export default function CataloguePage() {
             <thead>
               <tr className="bg-ns-gray-bg border-b border-ns-border">
                 <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider w-10"></th>
-                <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider">Internal ID</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider">Field ID</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider">Label</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider text-center">Section</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider text-center">Tab</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider">Group</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider text-center">nlapi</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider text-center">Submits to NetSuite</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider text-center">Req.</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase tracking-wider text-right">Actions</th>
               </tr>
@@ -231,7 +231,7 @@ export default function CataloguePage() {
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center text-ns-text-muted">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-ns-blue" />
-                    <span>Loading catalogue...</span>
+                    <span>Loading fields…</span>
                   </td>
                 </tr>
               ) : filteredFields.length === 0 ? (
@@ -244,7 +244,7 @@ export default function CataloguePage() {
                 filteredFields.map((field) => (
                   <tr key={field._id} className="hover:bg-ns-gray-bg/50 transition-colors group">
                     <td className="px-6 py-4">
-                      <GripVertical className="text-gray-300 cursor-grab active:cursor-grabbing" size={16} />
+                      <GripVertical className="text-ns-text-muted/50 cursor-grab active:cursor-grabbing" size={16} />
                     </td>
                     <td className="px-6 py-4 text-sm font-mono text-ns-navy font-semibold">{field.internalId}</td>
                     <td className="px-6 py-4 text-sm font-medium text-ns-text">
@@ -273,14 +273,14 @@ export default function CataloguePage() {
                       {field.nlapiSubmitField ? (
                         <Check size={14} className="text-green-500 mx-auto" />
                       ) : (
-                        <X size={14} className="text-gray-300 mx-auto" />
+                        <X size={14} className="text-ns-text-muted/50 mx-auto" />
                       )}
                     </td>
                     <td className="px-6 py-4 text-center">
                        {field.required ? (
                         <span className="text-[10px] font-bold text-red-500 uppercase">Yes</span>
                       ) : (
-                        <span className="text-[10px] font-bold text-gray-300 uppercase">No</span>
+                        <span className="text-[10px] font-bold text-ns-text-muted/50 uppercase">No</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -290,13 +290,13 @@ export default function CataloguePage() {
                             setEditingField(field);
                             setIsModalOpen(true);
                           }}
-                          className="p-1.5 text-gray-400 hover:text-ns-blue hover:bg-ns-blue/5 rounded-ns-md transition-all"
+                          className="p-1.5 text-ns-text-muted hover:text-ns-blue hover:bg-ns-blue/5 rounded-ns-md transition-all"
                         >
                           <Edit2 size={14} />
                         </button>
                         <button 
                           onClick={() => setIsDeleting(field._id)}
-                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-status-rejected-bg rounded-ns-md transition-all"
+                          className="p-1.5 text-ns-text-muted hover:text-red-500 hover:bg-status-rejected-bg rounded-ns-md transition-all"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -382,7 +382,7 @@ function FieldModal({ field, onClose, onSave }: FieldModalProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.internalId || !formData.label) {
-      alert('Internal ID and Label are required');
+      alert('Field ID and label are required');
       return;
     }
     onSave(formData);
@@ -410,7 +410,7 @@ function FieldModal({ field, onClose, onSave }: FieldModalProps) {
           <div className="col-span-2 space-y-4">
             <div>
               <label className="block text-[10px] font-bold text-ns-text-muted uppercase tracking-widest mb-1.5">
-                Internal ID
+                Field ID
               </label>
               <input 
                 type="text" 
@@ -529,7 +529,7 @@ function FieldModal({ field, onClose, onSave }: FieldModalProps) {
                 onChange={e => setFormData({ ...formData, nlapiSubmitField: e.target.checked })}
                 className="w-4 h-4 rounded text-ns-blue focus:ring-ns-blue"
               />
-              <span className="text-xs font-bold text-ns-navy">nlapiSubmitField</span>
+              <span className="text-xs font-bold text-ns-navy">Submit to NetSuite</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input 
@@ -552,7 +552,7 @@ function FieldModal({ field, onClose, onSave }: FieldModalProps) {
           </button>
           <button 
             onClick={handleSubmit}
-            className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-ns-blue hover:bg-ns-navy rounded-ns-md shadow-lg shadow-ns-blue/20 transition-all"
+            className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-ns-blue hover:bg-ns-blue-dark rounded-ns-md shadow-lg shadow-ns-blue/20 transition-all"
           >
             {field ? 'Update Field' : 'Save Field'}
           </button>

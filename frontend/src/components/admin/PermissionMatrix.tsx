@@ -15,9 +15,9 @@ const PERMISSIONS: Permission[] = [
   { label: 'Create transactions', super_admin: true, client_admin: true, manager: true, user: true },
   { label: 'Approve transactions', super_admin: true, client_admin: true, manager: true, user: false },
   { label: 'Manage users', super_admin: true, client_admin: true, manager: false, user: false },
-  { label: 'Configure workflows', super_admin: true, client_admin: true, manager: false, user: false },
-  { label: 'NetSuite configuration', super_admin: true, client_admin: false, manager: false, user: false },
-  { label: 'Audit log access', super_admin: true, client_admin: true, manager: false, user: false },
+  { label: 'Set up approvals', super_admin: true, client_admin: true, manager: false, user: false },
+  { label: 'NetSuite settings', super_admin: true, client_admin: false, manager: false, user: false },
+  { label: 'View submission history', super_admin: true, client_admin: true, manager: false, user: false },
   { label: 'View own submissions', super_admin: true, client_admin: true, manager: true, user: 'own' },
   { label: 'Company management', super_admin: true, client_admin: false, manager: false, user: false },
 ];
@@ -33,7 +33,7 @@ function Cell({ value }: { value: boolean | 'own' }) {
   if (value === 'own') {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-status-approved">
-        <Check size={12} /> own
+        <Check size={12} /> Own records only
       </span>
     );
   }
@@ -47,7 +47,7 @@ export function PermissionMatrix({ className }: { className?: string }) {
   return (
     <Card padding="none" className={cn('overflow-hidden', className)}>
       <div className="p-5 border-b border-ns-border">
-        <CardHeader title="Role permission matrix" subtitle="Access levels by system role" />
+        <CardHeader title="Permissions by role" subtitle="Access levels by role" />
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

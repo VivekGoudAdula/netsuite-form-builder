@@ -463,6 +463,7 @@ export interface AppState {
   user: User | null;
   users: User[]; 
   forms: CustomForm[];
+  myAssignedForms: CustomForm[];
   companies: Company[];
   templates: FormTemplate[];
   submissions: Submission[];
@@ -525,6 +526,7 @@ export interface AppState {
   fetchForms: (companyId?: string) => Promise<void>;
   fetchFormById: (id: string) => Promise<void>;
   fetchMyForms: (transactionType?: string) => Promise<void>;
+  fetchMyAssignedForms: () => Promise<CustomForm[]>;
   fetchMyFormDetails: (formId: string) => Promise<CustomForm | null>;
   fetchSubmissions: () => Promise<void>;
   fetchMySubmissions: (transactionType?: string) => Promise<void>;

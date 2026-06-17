@@ -200,7 +200,7 @@ export function ItemAsyncSelect({
     return (
       <div
         className={cn(
-          'h-9 border border-ns-border rounded-ns-md px-3 flex items-center bg-white text-[12px] text-gray-400 min-w-[200px]',
+          'h-9 border border-ns-border rounded-ns-md px-3 flex items-center bg-white text-[12px] text-ns-text-muted min-w-[200px]',
           className,
         )}
       >
@@ -297,7 +297,7 @@ export function ItemAsyncSelect({
             'w-full max-w-full min-w-0 h-9 border border-ns-border rounded-ns-md pl-3 pr-9 text-[12px] text-ns-text bg-white truncate',
             'focus:outline-none focus:border-ns-blue focus:ring-2 focus:ring-ns-blue/10',
             open && 'border-ns-blue ring-2 ring-ns-blue/10',
-            disabled && 'bg-ns-page-bg text-gray-400 cursor-not-allowed',
+            disabled && 'bg-ns-page-bg text-ns-text-muted cursor-not-allowed',
             searchErr && 'border-amber-300',
           )}
           value={input}

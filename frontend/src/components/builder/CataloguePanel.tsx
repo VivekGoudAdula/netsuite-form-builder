@@ -26,7 +26,7 @@ const DraggableField = ({ field, isAdded, onToggle }: { field: any; isAdded: boo
         isAdded && "opacity-60 bg-ns-page-bg"
       )}
     >
-      <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-ns-blue transition-colors p-0.5">
+      <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing text-ns-text-muted/50 hover:text-ns-blue transition-colors p-0.5">
         <MoreHorizontal size={14} className="rotate-90" />
       </div>
       
@@ -78,7 +78,7 @@ const TabFolder = ({ tab, search, addedFieldIds, toggleField }: any) => {
       >
         <div className="text-ns-blue"><TabIcon /></div>
         <span className="text-[10px] font-bold uppercase tracking-wider text-ns-navy flex-1 text-left">{tab.name}</span>
-        {isOpen ? <ChevronDown size={14} className="text-gray-400" /> : <ChevronRight size={14} className="text-gray-400" />}
+        {isOpen ? <ChevronDown size={14} className="text-ns-text-muted" /> : <ChevronRight size={14} className="text-ns-text-muted" />}
       </button>
       
       {isOpen && (
@@ -150,7 +150,7 @@ export default function CataloguePanel() {
     <div className="flex flex-col h-full bg-white border-r border-ns-border">
       <div className="p-4 border-b border-ns-border bg-ns-page-bg/50">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-[11px] font-bold text-ns-text uppercase tracking-[0.15em]">Field Catalogue</h2>
+          <h2 className="text-[11px] font-bold text-ns-text uppercase tracking-[0.15em]">Available fields</h2>
           <button 
             onClick={() => addAllFields()}
             className="text-[10px] font-bold text-ns-blue hover:text-ns-navy transition-colors flex items-center gap-1"
@@ -160,7 +160,7 @@ export default function CataloguePanel() {
           </button>
         </div>
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 text-gray-400" size={13} />
+          <Search className="absolute left-2.5 top-2.5 text-ns-text-muted" size={13} />
           <Input 
             placeholder="Search within tabs..." 
             className="pl-8 h-9 text-xs bg-white border-ns-border focus:ring-ns-blue/10"
@@ -173,7 +173,7 @@ export default function CataloguePanel() {
       <div className="flex-1 overflow-auto grow custom-scrollbar">
         {!groupedCatalogue ? (
           <div className="p-10 text-center animate-pulse">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Loading Hierarchy...</span>
+            <span className="text-[10px] text-ns-text-muted font-bold uppercase tracking-widest">Loading fields…</span>
           </div>
         ) : (
           <div>

@@ -112,25 +112,25 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center gap-2 text-ns-blue mb-1">
               <Settings2 size={16} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Global Form Repository</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Forms</span>
             </div>
-            <h1 className="text-3xl font-bold text-ns-text">Transaction Layouts</h1>
-            <p className="text-sm text-ns-text-muted mt-1">Configure, template, and assign business forms to corporate clients.</p>
+            <h1 className="text-3xl font-bold text-ns-text">Forms</h1>
+            <p className="text-sm text-ns-text-muted mt-1">Create, customize, and assign forms to companies.</p>
           </div>
           <Button onClick={() => setIsCreateModalOpen(true)} className="h-10 px-6 gap-2">
             <Plus size={18} />
-            Initialize Form
+            Create form
           </Button>
         </div>
 
         {/* Filters */}
         <div className="bg-white p-6 rounded-ns-md border border-ns-border ns-panel-shadow flex gap-6 items-end">
           <div className="flex-1">
-            <Label className="flex items-center gap-2"><Search size={12} /> Repository Lookup</Label>
+            <Label className="flex items-center gap-2"><Search size={12} /> Search</Label>
             <div className="relative">
-              <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
+              <Search className="absolute left-3 top-2.5 text-ns-text-muted" size={14} />
               <Input
-                placeholder="Search by layout identifier or entity..."
+                placeholder="Search by form name or company…"
                 className="pl-9 h-10"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -138,7 +138,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="w-56">
-            <Label className="flex items-center gap-2"><Filter size={12} /> Transaction Class</Label>
+            <Label className="flex items-center gap-2"><Filter size={12} /> Form type</Label>
             <Select
               className="h-10"
               value={typeFilter}
@@ -159,7 +159,7 @@ export default function DashboardPage() {
               value={companyFilter}
               onChange={(e) => setCompanyFilter(e.target.value)}
               options={[
-                { label: 'All Client Entities', value: 'all' },
+                { label: 'All companies', value: 'all' },
                 ...companies.map(c => ({ label: c.name, value: c.id }))
               ]}
             />
@@ -171,12 +171,12 @@ export default function DashboardPage() {
           <Table>
             <THead>
               <TR>
-                <TH>Layout Name / UUID</TH>
+                <TH>Form name</TH>
                 <TH>Category</TH>
-                <TH className="text-center">Assignment</TH>
-                <TH>Client Company</TH>
-                <TH>Last Synchronization</TH>
-                <TH className="text-right px-6">Directives</TH>
+                <TH className="text-center">Assigned users</TH>
+                <TH>Company</TH>
+                <TH>Last updated</TH>
+                <TH className="text-right px-6">Actions</TH>
               </TR>
             </THead>
             <TBody>
@@ -228,10 +228,10 @@ export default function DashboardPage() {
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(form)} title="Open in Designer" className="h-8 w-8 hover:bg-ns-blue hover:text-white rounded-full transition-all">
                         <Edit2 size={13} />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openAssignModal(form)} title="Manage Entitlements" className="h-8 w-8 hover:bg-ns-navy hover:text-white rounded-full transition-all">
+                      <Button variant="ghost" size="icon" onClick={() => openAssignModal(form)} title="Assign users" className="h-8 w-8 hover:bg-ns-blue-dark hover:text-white rounded-full transition-all">
                         <Users size={13} />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => confirmDelete(form.id)} className="h-8 w-8 text-red-500 hover:bg-status-rejected-bg0 hover:text-white rounded-full transition-all" title="Purge Record">
+                      <Button variant="ghost" size="icon" onClick={() => confirmDelete(form.id)} className="h-8 w-8 text-red-500 hover:bg-status-rejected-bg0 hover:text-white rounded-full transition-all" title="Delete">
                         <Trash2 size={13} />
                       </Button>
                     </div>
@@ -247,11 +247,11 @@ export default function DashboardPage() {
       <Modal
         isOpen={assignModal.isOpen}
         onClose={() => setAssignModal({ ...assignModal, isOpen: false })}
-        title="Form Entitlement & User Mapping"
+        title="Assign users to form"
         footer={
           <>
             <Button variant="secondary" size="sm" onClick={() => setAssignModal({ ...assignModal, isOpen: false })}>Discard</Button>
-            <Button size="sm" onClick={handleSaveAssignment}>Commit Assignments</Button>
+            <Button size="sm" onClick={handleSaveAssignment}>Save assignments</Button>
           </>
         }
       >
@@ -262,7 +262,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-3">
-            <Label>Select Authorized Employees</Label>
+            <Label>Select employees</Label>
             <div className="bg-ns-gray-bg border border-ns-border rounded-ns-md max-h-60 overflow-auto custom-scrollbar p-2 space-y-1">
               {getEmployeesForCompany(assignModal.companyId).map(emp => (
                 <label
@@ -289,7 +289,7 @@ export default function DashboardPage() {
               ))}
               {getEmployeesForCompany(assignModal.companyId).length === 0 && (
                 <div className="py-8 text-center text-xs text-ns-text-muted italic">
-                  No personnel detected for this entity. Onboard staff in Settings.
+                  No employees found for this company. Add users in User Management.
                 </div>
               )}
             </div>
@@ -301,14 +301,14 @@ export default function DashboardPage() {
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => { setIsCreateModalOpen(false); setCreateStep(1); }}
-        title={`Initialize Transaction Form - Step ${createStep} of 3`}
+        title={`Create form — step ${createStep} of 3`}
         footer={
           <div className="flex justify-between w-full">
             {createStep > 1 && <Button variant="ghost" size="sm" onClick={() => setCreateStep(createStep - 1 as any)}><ArrowLeft size={14} className="mr-2" /> Back</Button>}
             <div className="flex gap-2 ml-auto">
-              <Button variant="secondary" size="sm" onClick={() => setIsCreateModalOpen(false)}>Abort</Button>
+              <Button variant="secondary" size="sm" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
               {createStep === 1 && <Button size="sm" onClick={() => setCreateStep(2)} disabled={!newFormDetails.name}>Proceed <ChevronRight size={14} className="ml-1" /></Button>}
-              {createStep === 2 && creationMethod === 'scratch' && <Button size="sm" onClick={() => handleCreateSubmit()}>Finalize Initial View</Button>}
+              {createStep === 2 && creationMethod === 'scratch' && <Button size="sm" onClick={() => handleCreateSubmit()}>Create form</Button>}
             </div>
           </div>
         }
@@ -318,7 +318,7 @@ export default function DashboardPage() {
           {createStep === 1 && (
             <div className="space-y-6">
               <div>
-                <Label mandatory>Target Client Entity</Label>
+                <Label mandatory>Company</Label>
                 <Select
                   value={newFormDetails.customerId}
                   onChange={(e) => setNewFormDetails({ ...newFormDetails, customerId: e.target.value })}
@@ -326,7 +326,7 @@ export default function DashboardPage() {
                 />
               </div>
               <div>
-                <Label mandatory>Transaction Schema</Label>
+                <Label mandatory>Form type</Label>
                 <Select
                   value={newFormDetails.transactionType}
                   onChange={(e) => setNewFormDetails({ ...newFormDetails, transactionType: e.target.value as TransactionType })}
@@ -337,7 +337,7 @@ export default function DashboardPage() {
                 />
               </div>
               <div>
-                <Label mandatory>Configuration Identifier</Label>
+                <Label mandatory>Form name</Label>
                 <Input
                   placeholder="e.g. Standard PO v2.0"
                   value={newFormDetails.name}
@@ -355,14 +355,14 @@ export default function DashboardPage() {
               >
                 <FileCode size={20} className="mb-2 text-ns-blue" />
                 <h4 className="font-bold text-sm">Blank Canvas</h4>
-                <p className="text-[10px] text-ns-text-muted mt-1 leading-relaxed">Initialize without predefined components.</p>
+                <p className="text-[10px] text-ns-text-muted mt-1 leading-relaxed">Start with a blank form.</p>
               </button>
               <button
                 onClick={() => { setCreationMethod('template'); setCreateStep(3); }}
                 className={cn("p-6 border-2 rounded-ns-md text-left transition-all", creationMethod === 'template' ? "border-ns-blue bg-ns-blue/5" : "border-ns-border")}
               >
                 <Layout size={20} className="mb-2 text-status-approved" />
-                <h4 className="font-bold text-sm">Use Blueprint</h4>
+                <h4 className="font-bold text-sm">Use template</h4>
                 <p className="text-[10px] text-ns-text-muted mt-1 leading-relaxed">Clone standard industry configurations.</p>
               </button>
             </div>
@@ -387,7 +387,7 @@ export default function DashboardPage() {
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
         onConfirm={handleConfirmDelete}
-        title="Delete Transaction Layout?"
+        title="Delete form?"
         message="This will permanently purge this layout from the repository. All associated assignment data will be lost."
       />
     </AdminLayout>

@@ -40,7 +40,7 @@ export default function CompaniesPage() {
         <PageHeader
           eyebrow="Organization management"
           title="Company management"
-          subtitle="Manage corporate entities and their authorized personnel."
+          subtitle="Manage companies and their users."
           actions={
             <Button onClick={() => setIsModalOpen(true)} className="gap-2">
               <Plus size={18} />
@@ -50,12 +50,12 @@ export default function CompaniesPage() {
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <KPICard label="Total companies" value={companies.length} subtext="Active partner entities" subtextVariant="info" />
-          <KPICard label="Total employees" value={totalEmployees} subtext="Across all entities" subtextVariant="neutral" />
+          <KPICard label="Total companies" value={companies.length} subtext="Active companies" subtextVariant="info" />
+          <KPICard label="Total employees" value={totalEmployees} subtext="Across all companies" subtextVariant="neutral" />
           <KPICard
             label="Avg. staff per company"
             value={companies.length ? Math.round(totalEmployees / companies.length) : 0}
-            subtext="Entity size metric"
+            subtext="Average team size"
             subtextVariant="neutral"
           />
         </div>
@@ -76,16 +76,16 @@ export default function CompaniesPage() {
           <THead>
             <TR>
               <TH className="w-16 text-center">ID</TH>
-              <TH>Company Entity</TH>
+              <TH>Company</TH>
               <TH className="text-center">Staff Count</TH>
               <TH>Establishment Date</TH>
-              <TH className="text-right px-6">Operations</TH>
+              <TH className="text-right px-6">Actions</TH>
             </TR>
           </THead>
           <TBody>
             {filteredCompanies.map((company, index) => (
               <TR key={company.id} className="group transition-all hover:bg-ns-light-blue/10">
-                <TD className="text-center text-gray-400 font-mono text-[11px]">{index + 1}</TD>
+                <TD className="text-center text-ns-text-muted font-mono text-[11px]">{index + 1}</TD>
                 <TD className="py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-ns-md bg-ns-gray-bg border border-ns-border flex items-center justify-center text-ns-navy/40 font-bold text-xs uppercase">
@@ -144,8 +144,8 @@ export default function CompaniesPage() {
                 <TD colSpan={5} className="py-20 text-center bg-white">
                   <div className="opacity-40 flex flex-col items-center">
                     <Building2 size={40} className="mb-4 text-ns-navy" />
-                    <p className="text-sm font-bold uppercase tracking-[0.2em]">Zero Entities Matched</p>
-                    <p className="text-xs mt-2">Adjust your search parameters or register a new company.</p>
+                    <p className="text-sm font-bold uppercase tracking-[0.2em]">No companies found</p>
+                    <p className="text-xs mt-2">Adjust your search or add a new company.</p>
                   </div>
                 </TD>
               </TR>
@@ -157,17 +157,17 @@ export default function CompaniesPage() {
         <Modal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          title="Register New Client Entity"
+          title="Add company"
           footer={
             <>
               <Button variant="secondary" size="sm" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button size="sm" onClick={handleAddCompany} disabled={!newCompanyName}>Authorize Registration</Button>
+              <Button size="sm" onClick={handleAddCompany} disabled={!newCompanyName}>Add company</Button>
             </>
           }
         >
           <div className="space-y-4">
             <p className="text-xs text-ns-text-muted leading-relaxed italic border-l-2 border-ns-blue pl-3 py-1 bg-ns-blue/5">
-              Warning: Creating a new company allows for separate data siloing and unique user role assignments.
+              Each company has separate data and its own user roles and form assignments.
             </p>
             <div>
               <Label mandatory>Official Company Name</Label>
@@ -185,7 +185,7 @@ export default function CompaniesPage() {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={() => { if(deleteId) deleteCompany(deleteId); }}
-        title="Purge Client Entity?"
+        title="Delete company?"
         message="This will permanently delete the company and all its associated employee accounts. This action is irreversible."
       />
     </AdminLayout>

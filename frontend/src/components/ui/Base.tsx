@@ -10,10 +10,10 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', ...props }, ref) => {
     const variants = {
-      primary: 'bg-ns-blue text-white hover:bg-ns-blue-dark border border-ns-blue-dark shadow-sm active:shadow-inner',
+      primary: 'bg-ns-blue text-white hover:bg-ns-blue-dark border border-ns-blue shadow-sm active:shadow-inner',
       secondary: 'bg-white text-ns-text hover:bg-ns-page-bg border border-ns-border shadow-sm active:bg-ns-page-bg',
       outline: 'bg-transparent text-ns-blue border border-ns-blue hover:bg-ns-blue-soft',
-      ghost: 'bg-transparent text-ns-text hover:bg-ns-page-bg',
+      ghost: 'bg-transparent text-ns-text hover:bg-black/[0.03]',
       danger: 'bg-status-rejected text-white hover:opacity-90 border border-status-rejected shadow-sm',
     };
 
@@ -48,7 +48,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <input
         ref={ref}
         className={cn(
-          'flex h-9 w-full rounded-ns-md border border-ns-border bg-white px-3 py-2 text-sm transition-all placeholder:text-ns-text-muted/60 focus:outline-none focus:border-ns-blue focus:ring-2 focus:ring-ns-blue/15 disabled:cursor-not-allowed disabled:bg-ns-page-bg disabled:text-ns-text-muted',
+          'flex h-9 w-full rounded-ns-md border border-ns-border bg-white px-3 py-1.5 text-sm transition-all placeholder:text-ns-text-muted/60 focus:outline-none focus:border-ns-blue focus:ring-1 focus:ring-ns-blue/20 disabled:cursor-not-allowed disabled:bg-ns-page-bg disabled:text-ns-text-muted',
           className
         )}
         {...props}
@@ -68,7 +68,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       <select
         ref={ref}
         className={cn(
-          'flex h-8 w-full rounded-ns-md border border-ns-border bg-ns-light-blue px-3 py-1 text-xs transition-all focus:outline-none focus:border-ns-blue focus:ring-1 focus:ring-ns-blue/20 focus:bg-white disabled:cursor-not-allowed disabled:bg-ns-blue-soft/50 appearance-none bg-[url("data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%20fill%3D%22none%22%20stroke%3D%22%23666%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E")] bg-[length:12px_12px] bg-[right_8px_center] bg-no-repeat pr-8',
+          'flex h-8 w-full rounded-ns-md border border-ns-border bg-white px-3 py-1 text-xs transition-all focus:outline-none focus:border-ns-blue focus:ring-1 focus:ring-ns-blue/20 disabled:cursor-not-allowed disabled:bg-ns-page-bg disabled:text-ns-text-muted appearance-none bg-[url("data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%20fill%3D%22none%22%20stroke%3D%22%23666%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E")] bg-[length:12px_12px] bg-[right_8px_center] bg-no-repeat pr-8',
           className
         )}
         {...props}
@@ -109,7 +109,7 @@ export const Label = ({ children, className, mandatory, helpText }: { children: 
     </label>
     {helpText && (
       <div className="group relative flex items-center">
-        <div className="text-gray-300 hover:text-ns-blue transition-colors cursor-help">
+        <div className="text-ns-text-muted/50 hover:text-ns-blue transition-colors cursor-help">
           <Info size={11} strokeWidth={3} />
         </div>
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-ns-blue text-white text-[10px] font-medium leading-relaxed rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center">

@@ -47,7 +47,7 @@ const SublistRenderer = ({ name, fields, onRemoveField, onSelectField, selectedF
                 <td className="px-4 py-3 text-right">
                   <button 
                     onClick={(e) => { e.stopPropagation(); onRemoveField(field.id); }}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-status-rejected-bg rounded-ns-md transition-all"
+                    className="p-1.5 text-ns-text-muted hover:text-red-500 hover:bg-status-rejected-bg rounded-ns-md transition-all"
                   >
                     <Trash2 size={12} />
                   </button>
@@ -57,7 +57,7 @@ const SublistRenderer = ({ name, fields, onRemoveField, onSelectField, selectedF
           </tbody>
         </table>
         {fields.length === 0 && (
-          <div className="p-10 text-center text-gray-300 italic text-[11px] uppercase tracking-widest">
+          <div className="p-10 text-center text-ns-text-muted/50 italic text-[11px] uppercase tracking-widest">
             Drop sublist fields here
           </div>
         )}
@@ -89,7 +89,7 @@ const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, 
     >
       <div className="px-5 py-3 border-b border-ns-border flex justify-between items-center ns-header-gradient">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="text-gray-400 cursor-grab shrink-0">
+          <div className="text-ns-text-muted cursor-grab shrink-0">
             <GripVertical size={14} />
           </div>
           {isEditingName ? (
@@ -172,7 +172,7 @@ const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, 
             </div>
             <button 
               onClick={(e) => { e.stopPropagation(); onRemoveField(field.id); }}
-              className="absolute -top-2 -right-2 bg-white border border-ns-border rounded-full p-1 text-gray-400 hover:text-red-500 shadow-sm transition-all z-10"
+              className="absolute -top-2 -right-2 bg-white border border-ns-border rounded-full p-1 text-ns-text-muted hover:text-red-500 shadow-sm transition-all z-10"
               title="Remove Field"
             >
               <Trash2 size={12} />
@@ -180,7 +180,7 @@ const DroppableGroup = ({ group, onRemoveField, onSelectField, selectedFieldId, 
           </div>
         ))}
         {group.fields.length === 0 && (
-          <div className="col-span-2 flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-ns-md py-10 text-gray-400 bg-ns-page-bg/30">
+          <div className="col-span-2 flex flex-col items-center justify-center border-2 border-dashed border-ns-border rounded-ns-md py-10 text-ns-text-muted bg-ns-page-bg/30">
             <Plus size={24} className="mb-2 opacity-20" />
             <span className="text-[11px] font-bold uppercase tracking-widest opacity-60">Drop fields here</span>
           </div>
@@ -215,7 +215,7 @@ export default function BuilderCanvas({ activeTabId, setActiveTabId, selectedFie
   };
 
   const handleRemoveField = (fieldId: string) => {
-    openConfirm('field', fieldId, 'Remove Field?', 'This will remove the field from this layout blueprint.');
+    openConfirm('field', fieldId, 'Remove field?', 'This will remove the field from this form.');
   };
 
   const processRemoveField = (fieldId: string) => {
@@ -398,7 +398,7 @@ export default function BuilderCanvas({ activeTabId, setActiveTabId, selectedFie
         )}
 
         {!activeTab && (
-          <div className="flex-1 flex flex-col items-center justify-center py-20 opacity-20 border-2 border-dashed border-gray-200 rounded-ns-md italic">
+          <div className="flex-1 flex flex-col items-center justify-center py-20 opacity-20 border-2 border-dashed border-ns-border rounded-ns-md italic">
             Select or Create a Tab to begin
           </div>
         )}

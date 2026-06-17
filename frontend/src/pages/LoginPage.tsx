@@ -50,12 +50,14 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-ns-page-bg flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-ns-card ns-panel-shadow-lg overflow-hidden border border-ns-border">
-        <div className="p-8 text-center border-b border-ns-border">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-ns-blue rounded-ns-md mb-4">
-            <ShieldCheck size={28} className="text-white" />
+        <div className="ns-header-bar px-8 py-6 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-white/20 border border-white/25 rounded-ns-md mb-3">
+            <ShieldCheck size={24} className="text-white" />
           </div>
-          <h1 className="text-xl font-bold text-ns-text">NS Portal</h1>
-          <p className="text-sm text-ns-text-muted mt-1">Sign in to your account</p>
+          <h1 className="text-xl font-bold text-white">NetSuite Forms</h1>
+          <p className="text-sm text-white/70 mt-1">
+            {isForgotMode ? 'Password recovery' : 'Sign in to your account'}
+          </p>
         </div>
 
         <div className="p-8">
@@ -88,7 +90,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setIsForgotMode(true)}
-                    className="text-xs font-medium text-ns-blue hover:underline"
+                    className="text-xs font-medium text-ns-blue hover:text-ns-blue-dark hover:underline"
                   >
                     Forgot password?
                   </button>
@@ -124,8 +126,8 @@ export default function LoginPage() {
                 Back to sign in
               </button>
 
-              <div className="text-center pb-2">
-                <h2 className="text-lg font-semibold text-ns-text">Reset password</h2>
+              <div className="pb-2">
+                <h2 className="text-base font-semibold text-ns-text">Reset password</h2>
                 <p className="text-sm text-ns-text-muted mt-1">Enter your email to receive a reset link.</p>
               </div>
 
@@ -168,10 +170,10 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-ns-page-bg px-8 py-3 border-t border-ns-border flex justify-between items-center text-xs text-ns-text-muted">
-          <span>Secure access</span>
+          <span>Protected sign-in</span>
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 bg-status-approved rounded-full" />
-            Operational
+            All systems available
           </span>
         </div>
       </div>

@@ -90,7 +90,7 @@ export default function StaffManagementPage() {
       setIsAddModalOpen(false);
       resetForm();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to authorize personnel.';
+      const message = err instanceof Error ? err.message : 'Could not create user.';
       setErrorMsg(message);
     } finally {
       setIsSubmitting(false);
@@ -264,9 +264,9 @@ export default function StaffManagementPage() {
       <AdminLayout>
         <div className="space-y-6">
           <PageHeader
-            eyebrow="Admin console"
+            eyebrow="Admin"
             title="User management"
-            subtitle="Manage entity access, roles, and operational status across all partner companies."
+            subtitle="Manage users, roles, and account status across all companies."
             actions={
               <>
                 <Button variant="secondary" className="gap-2">
@@ -288,7 +288,7 @@ export default function StaffManagementPage() {
               subtext={`${activeCount} active · ${inactiveCount} inactive`}
               subtextVariant="success"
             />
-            <KPICard label="Vendor users" value={vendorUsers} subtext="External — self-registered" subtextVariant="neutral" />
+            <KPICard label="Standard users" value={vendorUsers} subtext="External users" subtextVariant="neutral" />
             <KPICard
               label="Pending approvals"
               value={pendingCount}
@@ -427,85 +427,91 @@ export default function StaffManagementPage() {
 
   return (
     <AdminLayout>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-ns-navy flex items-center gap-2">
-            <Users className="text-ns-blue" />
-            Personnel Protocol
-          </h1>
-          <p className="text-ns-text-muted text-sm mt-1">Manage entity access, roles, and operational status.</p>
-        </div>
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="bg-ns-blue hover:bg-ns-blue-dark text-white font-bold py-2 px-6 rounded-ns-md shadow-lg transition-all flex items-center gap-2"
-        >
-          <UserPlus size={18} />
-          Authorize Personnel
-        </button>
-      </div>
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="Company admin"
+          title="User management"
+          subtitle="Manage users, roles, and account status for your organization."
+          actions={
+            <Button onClick={() => setIsAddModalOpen(true)} className="gap-2">
+              <UserPlus size={16} />
+              New user
+            </Button>
+          }
+        />
 
-      <div className="bg-white p-4 rounded-ns-md border border-ns-border shadow-sm mb-6 flex flex-wrap items-center gap-4">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-          <input
-            type="text"
-            placeholder="Search by name or email..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-ns-gray-bg border border-ns-border rounded-ns-md text-sm focus:outline-none focus:border-ns-blue"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <KPICard label="Total users" value={filteredUsers.length} subtext={`${activeCount} active`} subtextVariant="success" />
+          <KPICard label="Managers" value={filteredUsers.filter(u => u.role === 'manager').length} subtextVariant="info" />
+          <KPICard label="Inactive" value={inactiveCount} subtextVariant={inactiveCount > 0 ? 'warning' : 'neutral'} />
         </div>
-        <select
-          value={roleFilter}
-          onChange={e => setRoleFilter(e.target.value)}
-          className="bg-ns-gray-bg border border-ns-border rounded-ns-md text-xs font-bold py-2 px-3"
-        >
-          <option value="all">All Roles</option>
-          <option value="client_admin">Client Admin</option>
-          <option value="manager">Manager</option>
-          <option value="user">User</option>
-        </select>
-      </div>
 
-      <div className="bg-white rounded-ns-md border border-ns-border shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-ns-gray-bg border-b border-ns-border">
-              <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase">Personnel</th>
-              <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase">Role</th>
-              <th className="px-6 py-4 text-[10px] font-bold text-ns-text-muted uppercase">Status</th>
-              <th className="px-6 py-4 text-right" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-ns-border">
-            {filteredUsers.map(u => (
-              <tr key={u.id} className="hover:bg-ns-gray-bg/50">
-                <td className="px-6 py-4">
-                  <p className="text-sm font-bold text-ns-navy">{u.name}</p>
-                  <p className="text-xs text-ns-text-muted">{u.email}</p>
-                </td>
-                <td className="px-6 py-4">
-                  <RoleBadge role={u.role} />
-                </td>
-                <td className="px-6 py-4">
-                  <StatusBadge variant={u.isActive ? 'approved' : 'inactive'}>
-                    {u.isActive ? 'Active' : 'Inactive'}
-                  </StatusBadge>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  {u.id !== currentUser?.id && (
-                    <button
-                      onClick={() => updateUserStatus(u.id, !u.isActive)}
-                      className="text-xs text-ns-blue hover:underline"
-                    >
-                      Toggle status
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Card padding="none">
+          <div className="p-5 border-b border-ns-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardHeader title="Employees" className="mb-0" />
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative min-w-[200px]">
+                <Search className="absolute left-3 top-2.5 text-ns-text-muted" size={14} />
+                <input
+                  type="text"
+                  placeholder="Search users…"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-ns-border rounded-ns-md focus:outline-none focus:border-ns-blue focus:ring-1 focus:ring-ns-blue/20"
+                />
+              </div>
+              <select
+                value={roleFilter}
+                onChange={e => setRoleFilter(e.target.value)}
+                className="px-3 py-2 text-sm bg-white border border-ns-border rounded-ns-md focus:outline-none focus:border-ns-blue"
+              >
+                <option value="all">All roles</option>
+                <option value="client_admin">Client Admin</option>
+                <option value="manager">Manager</option>
+                <option value="user">User</option>
+              </select>
+            </div>
+          </div>
+
+          <Table className="border-0 shadow-none rounded-none">
+            <THead>
+              <TR>
+                <TH>Name</TH>
+                <TH>Role</TH>
+                <TH>Status</TH>
+                <TH className="text-right">Actions</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {filteredUsers.map(u => (
+                <TR key={u.id}>
+                  <TD>
+                    <p className="text-sm font-semibold text-ns-text">{u.name}</p>
+                    <p className="text-xs text-ns-text-muted">{u.email}</p>
+                  </TD>
+                  <TD>
+                    <RoleBadge role={u.role} />
+                  </TD>
+                  <TD>
+                    <StatusBadge variant={u.isActive ? 'approved' : 'inactive'}>
+                      {u.isActive ? 'Active' : 'Inactive'}
+                    </StatusBadge>
+                  </TD>
+                  <TD className="text-right">
+                    {u.id !== currentUser?.id && (
+                      <button
+                        onClick={() => updateUserStatus(u.id, !u.isActive)}
+                        className="text-xs font-medium text-ns-blue hover:underline"
+                      >
+                        Toggle status
+                      </button>
+                    )}
+                  </TD>
+                </TR>
+              ))}
+            </TBody>
+          </Table>
+        </Card>
       </div>
       {addUserModal}
     </AdminLayout>

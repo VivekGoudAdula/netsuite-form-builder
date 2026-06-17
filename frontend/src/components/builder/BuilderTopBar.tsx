@@ -23,7 +23,7 @@ export default function BuilderTopBar() {
     // Validation: At least one field group
     const hasFieldGroup = currentForm.tabs.some(t => t.fieldGroups.length > 0);
     if (!hasFieldGroup) {
-      alert('Validation Error: Form must contain at least one field group before synchronization.');
+      alert('Validation error: Add at least one field group before saving.');
       return;
     }
 
@@ -79,7 +79,7 @@ export default function BuilderTopBar() {
   const company = companies.find(c => c.id === currentForm.customerId);
 
   return (
-    <div className="bg-white border-b border-ns-border text-ns-text px-4 py-2.5 flex justify-between items-center z-20">
+    <div className="ns-header-bar px-4 py-2.5 flex justify-between items-center z-20">
       <div className="flex items-center gap-5">
         <button 
           onClick={() => {
@@ -89,25 +89,25 @@ export default function BuilderTopBar() {
               navigate('/dashboard');
             }
           }} 
-          className="text-ns-text-muted hover:text-ns-text transition-colors flex items-center gap-1.5 text-xs font-medium"
+          className="text-white/70 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-medium"
         >
           <ChevronLeft size={18} />
           Exit
         </button>
-        <div className="h-6 w-px bg-ns-border" />
+        <div className="h-6 w-px bg-white/20" />
         <div className="flex flex-col">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-[10px] text-ns-text-muted font-medium">Form builder</span>
+            <span className="text-[10px] text-white/60 font-medium">Form builder</span>
             {currentForm.source === 'template' && (
-              <span className="text-[8px] bg-green-600/80 text-white px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter">Template Source</span>
+              <span className="text-[8px] bg-status-approved text-white px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter">Template Source</span>
             )}
             {isModified && (
-              <span className="text-[8px] bg-status-pending-bg0 text-white px-1.5 py-0.5 rounded-full font-bold animate-pulse uppercase tracking-tighter ml-1">Unsaved Changes</span>
+              <span className="text-[8px] bg-status-pending text-white px-1.5 py-0.5 rounded-full font-bold animate-pulse uppercase tracking-tighter ml-1">Unsaved Changes</span>
             )}
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] bg-ns-blue/20 text-ns-blue px-2 py-0.5 rounded-ns-md font-bold uppercase tracking-wider border border-ns-blue/30">
+              <span className="text-[10px] bg-white/15 text-white px-2 py-0.5 rounded-ns-md font-bold uppercase tracking-wider border border-white/25">
                 {catalogues[currentForm.transactionType].name}
               </span>
               <select 
@@ -141,7 +141,7 @@ export default function BuilderTopBar() {
         <div className="flex flex-col">
           <span className="text-[9px] text-white/40 uppercase font-bold tracking-[0.2em] mb-0.5">Target Company</span>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-status-approved-bg0 shadow-sm shadow-green-500/50" />
+            <div className="w-2 h-2 rounded-full bg-status-approved shadow-sm" />
             <select 
               className="bg-transparent border-none focus:ring-0 text-xs p-0 cursor-pointer font-semibold text-white/90"
               value={currentForm.customerId}
@@ -158,13 +158,13 @@ export default function BuilderTopBar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="secondary" size="sm" className="gap-2 bg-white/10 border-white/20 text-white hover:bg-white/20" onClick={() => navigate('/preview')}>
+          <Button variant="secondary" size="sm" className="gap-2 bg-white/10 border-white/25 text-white hover:bg-white/20" onClick={() => navigate('/preview')}>
             <Eye size={14} />
             Preview
           </Button>
-          <Button size="sm" className="gap-2 bg-ns-blue border-none hover:bg-ns-blue/80 px-6 shadow-lg shadow-ns-blue/20" onClick={handleSave}>
+          <Button size="sm" className="gap-2 bg-white text-ns-blue border-none hover:bg-white/90 px-6" onClick={handleSave}>
             <Save size={14} />
-            Save Configuration
+            Save form
           </Button>
         </div>
       </div>
@@ -177,10 +177,10 @@ export default function BuilderTopBar() {
             exit={{ opacity: 0, y: 50 }}
             className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-ns-navy border border-white/10 text-white px-6 py-3 rounded shadow-2xl flex items-center gap-3 text-sm font-semibold z-50"
           >
-            <div className="w-6 h-6 bg-status-approved-bg0 rounded-full flex items-center justify-center">
+            <div className="w-6 h-6 bg-status-approved rounded-full flex items-center justify-center">
               <Check size={14} className="text-white" />
             </div>
-            Configuration successfully synchronized.
+            Form saved.
           </motion.div>
         )}
 

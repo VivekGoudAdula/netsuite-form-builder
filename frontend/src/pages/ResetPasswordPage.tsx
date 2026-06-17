@@ -19,7 +19,7 @@ export default function ResetPasswordPage() {
     setStatus(null);
 
     if (!token) {
-      setStatus({ type: 'error', message: 'Security token is missing or invalid.' });
+      setStatus({ type: 'error', message: 'Reset link is missing or invalid.' });
       return;
     }
 
@@ -45,12 +45,12 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen bg-ns-page-bg flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-ns-card ns-panel-shadow-lg overflow-hidden border border-ns-border">
-        <div className="p-8 text-center border-b border-ns-border">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-ns-blue rounded-ns-md mb-4">
-            <ShieldCheck size={28} className="text-white" />
+        <div className="ns-header-bar px-8 py-6 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-white/20 border border-white/25 rounded-ns-md mb-3">
+            <ShieldCheck size={24} className="text-white" />
           </div>
-          <h1 className="text-xl font-bold text-ns-text">Reset password</h1>
-          <p className="text-sm text-ns-text-muted mt-1">Choose a new password for your account</p>
+          <h1 className="text-xl font-bold text-white">Reset password</h1>
+          <p className="text-sm text-white/70 mt-1">Choose a new password for your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-5">
@@ -99,7 +99,23 @@ export default function ResetPasswordPage() {
               </>
             )}
           </Button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="w-full text-center text-xs font-medium text-ns-text-muted hover:text-ns-blue transition-colors"
+          >
+            Back to sign in
+          </button>
         </form>
+
+        <div className="bg-ns-page-bg px-8 py-3 border-t border-ns-border flex justify-between items-center text-xs text-ns-text-muted">
+          <span>Protected sign-in</span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 bg-status-approved rounded-full" />
+            All systems available
+          </span>
+        </div>
       </div>
     </div>
   );

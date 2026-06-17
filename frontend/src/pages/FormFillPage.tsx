@@ -33,7 +33,7 @@ import {
   formatMissingFieldLabel,
   type MissingFieldRef,
 } from '../lib/formValidation';
-import { transactionTypeToSlug } from '../lib/transactionRegistry';
+import { transactionTypeToSlug, TRANSACTION_REGISTRY } from '../lib/transactionRegistry';
 import { exchangeRateForCurrency } from '../lib/currencyExchange';
 import { resolveSubsidiaryInternalId } from '../lib/subsidiaryResolve';
 import api from '../api/client';
@@ -125,6 +125,7 @@ export default function FormFillPage() {
     const status = submissionResult.status;
     const currentLevel = submissionResult.currentLevel || 1;
     const transType = transactionTypeToSlug(form.transactionType);
+    const transactionLabel = TRANSACTION_REGISTRY[form.transactionType]?.name || transType;
     const isDirectSync = submissionResult.directSync === true;
     const syncSucceeded = status === 'submitted' || status === 'SYNCED_TO_NETSUITE';
     const syncFailed = status === 'failed' || status === 'NETSUITE_SYNC_FAILED';
@@ -143,11 +144,11 @@ export default function FormFillPage() {
               ? syncFailed
                 ? 'Submission Saved — NetSuite Sync Failed'
                 : 'Submitted to NetSuite'
-              : 'Submission Transmitted'}
+              : 'Submitted'}
           </h2>
           <div className="mt-6 p-8 bg-white border border-ns-border rounded-ns-md shadow-sm max-w-sm w-full">
             <div className="flex justify-between items-center mb-4 pb-4 border-b border-ns-border">
-              <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">Protocol Status</span>
+              <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">Submission status</span>
               <span className={cn(
                 "text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-ns-md border",
                 syncFailed
@@ -187,7 +188,7 @@ export default function FormFillPage() {
               </>
             ) : (
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">Workflow Stage</span>
+                <span className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">Approval step</span>
                 <span className="text-xs font-bold text-ns-navy uppercase tracking-wider">Level {currentLevel}</span>
               </div>
             )}
@@ -197,11 +198,11 @@ export default function FormFillPage() {
               ? syncFailed
                 ? <>Your submission for <span className="text-ns-navy font-bold">'{form.name}'</span> was saved, but posting to NetSuite failed. Contact your administrator or retry from the submissions list.</>
                 : <>Your submission for <span className="text-ns-navy font-bold">'{form.name}'</span> was sent directly to NetSuite — no approval workflow is configured for this company.</>
-              : <>Your submission for <span className="text-ns-navy font-bold">'{form.name}'</span> has been successfully logged and queued for approval.</>}
+              : <>Your submission for <span className="text-ns-navy font-bold">'{form.name}'</span> has been sent for approval.</>}
           </p>
           <div className="flex gap-4 mt-10">
             <Button onClick={() => navigate(`/user/${transType}`)} className="gap-2 h-11 px-8 font-bold text-xs uppercase tracking-widest">
-              <ArrowLeft size={16} /> Return to {transType.toUpperCase()} Hub
+              <ArrowLeft size={16} /> Back to {transactionLabel}
             </Button>
             <Button variant="secondary" onClick={() => {
               setSubmissionResult(null);
@@ -419,7 +420,7 @@ export default function FormFillPage() {
               }}
               className="flex items-center gap-2 text-[10px] font-bold text-ns-text-muted hover:text-ns-blue transition-colors uppercase tracking-widest mb-4"
             >
-              <ArrowLeft size={14} /> Back to Hub
+              <ArrowLeft size={14} /> Back to {TRANSACTION_REGISTRY[form.transactionType]?.name || 'transactions'}
             </button>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-ns-blue/10 rounded-ns-md flex items-center justify-center text-ns-blue">
@@ -428,7 +429,7 @@ export default function FormFillPage() {
               <div>
                 <h1 className="text-2xl font-bold text-ns-navy">{form.name}</h1>
                 <p className="text-xs text-ns-text-muted font-medium mt-0.5 uppercase tracking-wider">
-                  Transaction ID: {form.id.substring(0, 8)} • Source: {(form.source || 'scratch').toUpperCase()}
+                  Reference: {form.id.substring(0, 8)} • Created from: {form.source === 'template' ? 'template' : 'blank'}
                 </p>
               </div>
             </div>
@@ -440,10 +441,10 @@ export default function FormFillPage() {
             </Button>
             <Button
               onClick={handleSubmit}
-              className="gap-2 h-10 px-8 font-bold text-xs uppercase tracking-widest bg-ns-blue border-b-4 border-b-ns-navy hover:translate-y-0.5 active:border-b-0 transition-all shadow-lg shadow-ns-blue/20"
+              className="gap-2 h-10 px-8 font-bold text-xs uppercase tracking-widest bg-ns-blue border-b-4 border-b-ns-blue-dark hover:translate-y-0.5 active:border-b-0 transition-all shadow-lg shadow-ns-blue/20"
               disabled={isSubmitting}
             >
-              <Send size={16} /> {isSubmitting ? 'Submitting...' : 'Commit Submission'}
+              <Send size={16} /> {isSubmitting ? 'Submitting…' : 'Submit'}
             </Button>
           </div>
         </div>
@@ -484,8 +485,8 @@ export default function FormFillPage() {
           <div className="flex items-center gap-3">
             <ShieldCheck size={20} className="text-ns-blue" />
             <div>
-              <p className="text-xs font-semibold text-ns-text">Authenticated entry mode</p>
-              <p className="text-xs text-ns-text-muted mt-0.5">Your entry is tracked for compliance. Ensure all data matches official records.</p>
+              <p className="text-xs font-semibold text-ns-text">Form entry</p>
+              <p className="text-xs text-ns-text-muted mt-0.5">Your entries are recorded for compliance. Ensure all data matches official records.</p>
             </div>
           </div>
           <div className="px-3 py-1.5 bg-white border border-ns-border rounded-ns-md text-[10px] font-mono text-ns-text-muted">
@@ -574,7 +575,7 @@ export default function FormFillPage() {
                           </div>
                         ))}
                         {group.fields.length === 0 && (
-                          <div className="col-span-full py-8 text-center bg-ns-page-bg border border-dashed rounded-ns-md border-gray-200">
+                          <div className="col-span-full py-8 text-center bg-ns-page-bg border border-dashed rounded-ns-md border-ns-border">
                             <p className="text-xs text-ns-text-muted italic">No fields configured for this section.</p>
                           </div>
                         )}
@@ -819,7 +820,7 @@ export default function FormFillPage() {
         <div className="p-4 bg-status-pending-bg border border-amber-200 rounded-ns-md flex gap-4 items-center">
           <AlertCircle className="text-status-pending shrink-0" size={20} />
           <p className="text-[11px] text-amber-900 leading-relaxed font-semibold italic">
-            Important: Submission constitutes a legally binding acknowledgment. Once transmitted, further editing requires administrative override.
+            After you submit, changes may require approval from your administrator.
           </p>
         </div>
       </div>

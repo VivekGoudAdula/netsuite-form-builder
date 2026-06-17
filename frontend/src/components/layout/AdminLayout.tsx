@@ -42,11 +42,9 @@ function NavLink({
     <Link
       to={item.path}
       className={cn(
-        'flex items-center rounded-ns-md text-sm font-medium transition-all group/item whitespace-nowrap overflow-hidden',
-        isExpanded ? 'px-3 py-2.5 gap-3' : 'px-0 py-2.5 justify-center',
-        isActive
-          ? 'bg-ns-blue-soft text-ns-blue'
-          : 'text-ns-text-muted hover:text-ns-text hover:bg-ns-page-bg',
+        'flex items-center rounded-ns-sm text-sm font-medium transition-all group/item whitespace-nowrap overflow-hidden',
+        isExpanded ? 'py-2 gap-3 pl-[calc(0.75rem-3px)] pr-3' : 'px-0 py-2.5 justify-center',
+        isActive ? 'ns-sidebar-active' : 'ns-sidebar-inactive',
       )}
       title={!isExpanded ? item.name : ''}
     >
@@ -143,25 +141,25 @@ function SuperAdminSidebar({
     >
       <div
         className={cn(
-          'p-4 flex items-center border-b border-ns-sidebar-border transition-all',
+          'ns-sidebar-header transition-all',
           isExpanded ? 'justify-between gap-2' : 'justify-center',
         )}
       >
         {isExpanded && (
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 bg-ns-blue rounded-ns-md flex-shrink-0 flex items-center justify-center text-xs font-bold text-white">
+            <div className="w-8 h-8 bg-white/20 border border-white/25 rounded-ns-md flex-shrink-0 flex items-center justify-center text-xs font-bold text-white">
               NS
             </div>
             <div className="min-w-0">
-              <p className="font-semibold text-sm text-ns-text truncate">NS Portal</p>
-              <p className="text-[10px] text-ns-text-muted truncate">Admin console</p>
+              <p className="font-semibold text-sm text-white truncate">NetSuite Forms</p>
+              <p className="text-[10px] text-white/70 truncate">Admin</p>
             </div>
           </div>
         )}
         <button
           type="button"
           onClick={toggleSidebar}
-          className="flex-shrink-0 p-1.5 rounded-ns-md text-ns-text-muted hover:text-ns-text hover:bg-ns-page-bg transition-colors"
+          className="flex-shrink-0 p-1.5 rounded-ns-md text-white/80 hover:text-white hover:bg-white/10 transition-colors"
           title={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
           aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
         >
@@ -170,8 +168,8 @@ function SuperAdminSidebar({
       </div>
 
       <nav className="flex-1 px-3 py-3 overflow-y-auto custom-scrollbar overflow-x-hidden">
-        <NavSection label="Core" items={coreNav} isExpanded={isExpanded} pathname={pathname} />
-        <NavSection label="Master data" items={masterDataNav} isExpanded={isExpanded} pathname={pathname} />
+        <NavSection label="Main menu" items={coreNav} isExpanded={isExpanded} pathname={pathname} />
+        <NavSection label="Field library" items={masterDataNav} isExpanded={isExpanded} pathname={pathname} />
       </nav>
 
       <div className="p-3 border-t border-ns-sidebar-border">
@@ -238,25 +236,25 @@ function ClientAdminSidebar({
     >
       <div
         className={cn(
-          'p-4 flex items-center border-b border-ns-sidebar-border transition-all',
+          'ns-sidebar-header transition-all',
           isExpanded ? 'justify-between gap-2' : 'justify-center',
         )}
       >
         {isExpanded && (
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 bg-ns-blue rounded-ns-md flex-shrink-0 flex items-center justify-center text-xs font-bold text-white">
+            <div className="w-8 h-8 bg-white/20 border border-white/25 rounded-ns-md flex-shrink-0 flex items-center justify-center text-xs font-bold text-white">
               FB
             </div>
             <div className="min-w-0">
-              <p className="font-semibold text-sm text-ns-text truncate">FormBridge</p>
-              <p className="text-[10px] text-ns-text-muted truncate">Company admin</p>
+              <p className="font-semibold text-sm text-white truncate">FormBridge</p>
+              <p className="text-[10px] text-white/70 truncate">Company admin</p>
             </div>
           </div>
         )}
         <button
           type="button"
           onClick={toggleSidebar}
-          className="flex-shrink-0 p-1.5 rounded-ns-md text-ns-text-muted hover:text-ns-text hover:bg-ns-page-bg transition-colors"
+          className="flex-shrink-0 p-1.5 rounded-ns-md text-white/80 hover:text-white hover:bg-white/10 transition-colors"
           title={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
         >
           {isExpanded ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
@@ -334,30 +332,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )}
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-14 bg-white border-b border-ns-border flex items-center justify-between px-6 z-20 flex-shrink-0">
+        <header className="h-14 ns-header-bar flex items-center justify-between px-6 z-20 flex-shrink-0">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            {!isExpanded && (
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                className="p-2 rounded-ns-md text-ns-text-muted hover:text-ns-blue hover:bg-ns-blue-soft transition-colors"
-                aria-label="Expand sidebar"
-              >
-                <PanelLeft size={18} />
-              </button>
-            )}
             {isSuperAdmin ? (
-              <div className="hidden sm:flex items-center gap-2 text-ns-text-muted">
-                <Shield size={14} className="text-ns-blue" />
-                <span className="text-xs font-medium">NS Portal · Admin console</span>
+              <div className="hidden sm:flex items-center gap-2 text-white/80">
+                <Shield size={14} className="text-white" />
+                <span className="text-xs font-medium">NetSuite Forms · Admin</span>
               </div>
             ) : (
               <div className="relative max-w-md w-full">
                 <Search className="absolute left-3 top-2.5 text-ns-text-muted" size={14} />
                 <input
                   type="text"
-                  placeholder="Search resources, forms, or users..."
-                  className="w-full pl-9 pr-4 py-2 text-xs bg-ns-page-bg border border-ns-border rounded-ns-md focus:outline-none focus:border-ns-blue"
+                  placeholder="Search forms, companies, or users…"
+                  className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-ns-border rounded-ns-md focus:outline-none focus:border-ns-tab-selected text-ns-text"
                 />
               </div>
             )}
@@ -368,34 +356,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <>
                 <button
                   type="button"
-                  className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs text-ns-text-muted border border-ns-border rounded-ns-md hover:bg-ns-page-bg transition-colors"
+                  className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs text-white/90 border border-white/25 rounded-ns-md hover:bg-white/10 transition-colors"
                 >
                   <Calendar size={14} />
                   {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                 </button>
-                <button className="relative p-2 text-ns-text-muted hover:text-ns-text hover:bg-ns-page-bg rounded-ns-md transition-colors">
+                <button className="relative p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-ns-md transition-colors">
                   <Bell size={18} />
                   <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 bg-status-pending text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                     5
                   </span>
                 </button>
-                <StatusBadge variant="pending" dot className="hidden sm:inline-flex">
-                  NetSuite Live
+                <StatusBadge variant="pending" dot className="hidden sm:inline-flex bg-white/15 text-white border-white/25">
+                  Connected to NetSuite
                 </StatusBadge>
               </>
             )}
             {!isSuperAdmin && (
               <>
-                <button className="relative p-2 text-ns-text-muted hover:text-ns-text hover:bg-ns-page-bg rounded-ns-md transition-colors">
+                <button className="relative p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-ns-md transition-colors">
                   <Bell size={18} />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-ns-blue rounded-full border-2 border-white" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-status-pending rounded-full border-2 border-ns-blue" />
                 </button>
-                <span className="text-xs font-medium text-ns-text-muted hidden sm:inline">Client Admin</span>
+                <span className="text-xs font-medium text-white/80 hidden sm:inline">Client Admin</span>
               </>
             )}
             <Link
               to="/profile"
-              className="w-8 h-8 rounded-full bg-ns-blue text-white flex items-center justify-center text-xs font-semibold hover:opacity-90 transition-opacity"
+              className="w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-semibold hover:bg-white/30 transition-colors border border-white/25"
               title="Profile"
             >
               {initials}
@@ -403,7 +391,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {isSuperAdmin && (
               <Link
                 to="/profile"
-                className="p-2 text-ns-text-muted hover:text-ns-text hover:bg-ns-page-bg rounded-ns-md transition-colors"
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-ns-md transition-colors"
               >
                 <Settings size={18} />
               </Link>

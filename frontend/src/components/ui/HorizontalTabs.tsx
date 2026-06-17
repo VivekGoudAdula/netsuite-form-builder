@@ -39,8 +39,10 @@ export function TabsTrigger({ value, children, className }: { value: string; chi
     <button
       onClick={() => context.onValueChange(value)}
       className={cn(
-        "px-4 py-2 text-sm transition-all",
-        isActive ? "bg-white text-ns-blue border-ns-blue font-bold" : "text-ns-text-muted hover:text-ns-navy",
+        "px-4 py-2 text-sm transition-all border-b-2",
+        isActive
+          ? "bg-white text-ns-blue border-b-ns-blue font-bold"
+          : "bg-white text-ns-text-muted border-b-transparent hover:text-ns-text",
         className
       )}
       data-state={isActive ? 'active' : 'inactive'}

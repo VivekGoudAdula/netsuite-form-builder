@@ -54,9 +54,9 @@ export default function TemplatesPage() {
     <AdminLayout>
       <div className="space-y-6">
         <PageHeader
-          eyebrow="Blueprint library"
-          title="System templates"
-          subtitle="Pre-configured industry standard transaction schemas ready for deployment."
+          eyebrow="Templates"
+          title="Form templates"
+          subtitle="Ready-made forms you can customize for each company."
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -99,7 +99,7 @@ export default function TemplatesPage() {
                   ))}
                 </div>
                 <Button onClick={() => handleUseTemplate(template)} className="gap-2 h-9 px-4">
-                  Use Blueprint <ChevronRight size={14} />
+                  Use template <ChevronRight size={14} />
                 </Button>
               </div>
             </Card>
@@ -110,17 +110,17 @@ export default function TemplatesPage() {
       <Modal
         isOpen={isUseModalOpen}
         onClose={() => setIsUseModalOpen(false)}
-        title="Initialize From Blueprint"
+        title="Create form from template"
         footer={
           <>
             <Button variant="secondary" size="sm" onClick={() => setIsUseModalOpen(false)}>Cancel</Button>
-            <Button size="sm" onClick={handleCreateSubmit} disabled={!formDetails.name}>Provision Schema</Button>
+            <Button size="sm" onClick={handleCreateSubmit} disabled={!formDetails.name}>Create form</Button>
           </>
         }
       >
         <div className="space-y-6">
           <div className="p-4 bg-ns-blue/5 border border-ns-blue/10 rounded-ns-md mb-4">
-            <h4 className="text-[10px] font-bold text-ns-blue uppercase tracking-widest mb-1">Source Blueprint</h4>
+            <h4 className="text-[10px] font-bold text-ns-blue uppercase tracking-widest mb-1">Template</h4>
             <div className="flex items-center gap-2">
               <FileCode size={14} className="text-ns-navy" />
               <p className="text-xs text-ns-navy font-bold">{selectedTemplate?.name}</p>
@@ -128,17 +128,17 @@ export default function TemplatesPage() {
           </div>
 
           <div>
-            <Label mandatory>Target Client Entity</Label>
+            <Label mandatory>Company</Label>
             <Select
               value={formDetails.customerId}
               onChange={(e) => setFormDetails({ ...formDetails, customerId: e.target.value })}
               options={companies.map(c => ({ label: c.name, value: c.id }))}
             />
-            <p className="text-[10px] text-ns-text-muted mt-1 italic">The initialized form will be isolated to this entity.</p>
+            <p className="text-[10px] text-ns-text-muted mt-1 italic">The form will be available only for this company.</p>
           </div>
 
           <div>
-            <Label mandatory>Configuration Identifier</Label>
+            <Label mandatory>Form name</Label>
             <Input
               placeholder="e.g. Acme Corp Purchase Order"
               value={formDetails.name}

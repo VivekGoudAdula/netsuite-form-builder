@@ -89,7 +89,7 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
 
   if (!selectedField || !currentForm) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-12 text-center text-gray-400 bg-white">
+      <div className="flex flex-col items-center justify-center h-full p-12 text-center text-ns-text-muted bg-white">
         <div className="w-16 h-16 rounded-full bg-ns-page-bg flex items-center justify-center mb-6">
           <Settings2 size={32} className="opacity-20" />
         </div>
@@ -149,12 +149,12 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
       });
       setVaultMessage(
         test.success
-          ? `Vault saved · ${test.responseCount ?? 0} rows · deploy 1 · OAuth from server .env`
+          ? `Saved · ${test.responseCount ?? 0} records found`
           : `Script saved; test: ${test.message || 'check NetSuite'}`,
       );
       setConnectors(await listDatasources(true));
     } catch {
-      setVaultMessage('Could not save script to vault');
+      setVaultMessage('Could not save connector');
     } finally {
       setVaultSaving(false);
     }
@@ -290,7 +290,7 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
             <h3 className="text-[10px] font-bold text-ns-blue uppercase tracking-[0.2em] border-b border-ns-blue/10 pb-2">Data Source</h3>
             <div className="space-y-4">
               <div>
-                <Label>Datasource Type</Label>
+                <Label>Data source type</Label>
                 <Select 
                   value={dataSourceSelectValue}
                   onChange={(e) => {
@@ -532,9 +532,9 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
 
               {selectedField.dataSource?.type === 'netsuite_dynamic' && (
                 <div className="space-y-3 p-3 bg-ns-light-blue/30 rounded-ns-md border border-ns-blue/10">
-                  <Label>NetSuite RESTlet Script ID</Label>
+                  <Label>NetSuite script ID</Label>
                   <p className="text-[10px] text-ns-text-muted mb-2 font-medium bg-white/50 p-2 rounded">
-                    Paste script only. Deploy is always 1. OAuth from server .env (not in vault).
+                    Uses standard deployment. Credentials are managed by your administrator.
                   </p>
                   <Input
                     value={scriptDraft}
@@ -549,10 +549,10 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
                       disabled={vaultSaving || !scriptDraft.trim()}
                       onClick={() => void saveScriptToVault()}
                     >
-                      {vaultSaving ? 'Saving…' : 'Save to vault & fetch'}
+                      {vaultSaving ? 'Saving…' : 'Save connector'}
                     </Button>
                     <span className="text-[10px] text-ns-text-muted">
-                      Vault: <code>{fieldToDatasourceKey(selectedField.id)}</code>
+                      Connector key: <code>{fieldToDatasourceKey(selectedField.id)}</code>
                     </span>
                   </div>
                   {vaultMessage && (
@@ -589,7 +589,7 @@ export default function PropertiesPanel({ selectedField }: { selectedField: Fiel
                     />
                   </details>
                   <span className="text-[9px] font-bold text-ns-blue uppercase tracking-widest">
-                    ⚡ ERP Metadata Mode
+                    NetSuite field settings
                   </span>
                 </div>
               )}

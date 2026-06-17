@@ -1,0 +1,63 @@
+/**
+ * NetSuite-inspired design tokens
+ * Primary reference: NetSuite "Set Preferences" screen
+ */
+@theme {
+  /* Typography */
+  --font-sans: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Primary palette */
+  --color-ns-blue: #305c73;
+  --color-ns-blue-dark: #3d708a;
+  --color-ns-blue-soft: #e8f0f4;
+  --color-ns-light-blue: #f0f5f7;
+  --color-ns-navy: #305c73;
+  --color-ns-tab-selected: #4f8198;
+
+  /* Surfaces */
+  --color-ns-gray-bg: #ffffff;
+  --color-ns-page-bg: #f5f4f2;
+  --color-ns-sidebar-bg: #ffffff;
+  --color-ns-sidebar-border: #d9d9d9;
+  --color-ns-border: #d9d9d9;
+
+  /* Text */
+  --color-ns-text: #222222;
+  --color-ns-text-muted: #666666;
+
+  /* Status semantics */
+  --color-status-approved: #16a34a;
+  --color-status-approved-bg: #f0fdf4;
+  --color-status-pending: #d97706;
+  --color-status-pending-bg: #fffbeb;
+  --color-status-rejected: #dc2626;
+  --color-status-rejected-bg: #fef2f2;
+  --color-status-draft: #6b7280;
+  --color-status-draft-bg: #f3f4f6;
+  --color-status-synced: #305c73;
+  --color-status-synced-bg: #e8f0f4;
+
+  /* Role badge semantics */
+  --color-role-admin: #dc2626;
+  --color-role-admin-bg: #fef2f2;
+  --color-role-creator: #305c73;
+  --color-role-creator-bg: #e8f0f4;
+  --color-role-approver: #d97706;
+  --color-role-approver-bg: #fffbeb;
+  --color-role-vendor: #7c3aed;
+  --color-role-vendor-bg: #f5f3ff;
+  --color-role-reporting: #222222;
+  --color-role-reporting-bg: #f0eeeb;
+
+  /* Legacy aliases */
+  --color-brand-purple: #7c3aed;
+  --color-brand-emerald: #10b981;
+
+  /* Radius — compact ERP corners */
+  --radius-ns-sm: 2px;
+  --radius-ns-md: 3px;
+  --radius-ns-card: 4px;
+  --radius-ns-lg: 6px;
+}

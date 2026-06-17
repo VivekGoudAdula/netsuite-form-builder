@@ -6,12 +6,6 @@ import {
   LogOut,
   Bell,
   Building,
-  ShoppingBag,
-  TrendingUp,
-  CreditCard,
-  PackageCheck,
-  FileStack,
-  ArrowUpRight,
   Settings,
   UserCircle,
   PanelLeftClose,
@@ -20,6 +14,7 @@ import {
 import { cn } from '../../lib/utils';
 import { useSidebarExpanded } from '../../lib/useSidebarExpanded';
 import { StatusBadge } from '../admin';
+import { getAssignedTransactionNavItems } from '../../lib/transactionRegistry';
 
 type NavItem = { name: string; icon: React.ElementType; path: string };
 
@@ -36,11 +31,9 @@ function NavLink({
     <Link
       to={item.path}
       className={cn(
-        'flex items-center rounded-ns-md text-sm font-medium transition-all whitespace-nowrap overflow-hidden',
-        isExpanded ? 'px-3 py-2.5 gap-3' : 'px-0 py-2.5 justify-center',
-        isActive
-          ? 'bg-ns-blue-soft text-ns-blue'
-          : 'text-ns-text-muted hover:text-ns-text hover:bg-ns-page-bg',
+        'flex items-center rounded-ns-sm text-sm font-medium transition-all whitespace-nowrap overflow-hidden',
+        isExpanded ? 'py-2 gap-3 pl-[calc(0.75rem-3px)] pr-3' : 'px-0 py-2.5 justify-center',
+        isActive ? 'ns-sidebar-active' : 'ns-sidebar-inactive',
       )}
       title={!isExpanded ? item.name : ''}
     >
@@ -53,12 +46,20 @@ function NavLink({
 }
 
 export default function CustomerLayout({ children }: { children: React.ReactNode }) {
-  const { user, logout, companies = [] } = useStore();
+  const { user, logout, companies = [], myAssignedForms, fetchMyAssignedForms } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
   const { isExpanded, toggle: toggleSidebar } = useSidebarExpanded('customer-sidebar-expanded');
 
   const company = user?.companyId ? companies.find(c => c.id === user.companyId) : null;
+
+  const isEmployeeUser = user?.role === 'user' || user?.role === 'manager';
+
+  React.useEffect(() => {
+    if (isEmployeeUser) {
+      fetchMyAssignedForms();
+    }
+  }, [isEmployeeUser, user?.id, fetchMyAssignedForms, location.pathname]);
 
   const handleLogout = () => {
     logout();
@@ -66,14 +67,10 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   };
 
   const mainNav: NavItem[] = [{ name: 'Overview', icon: Home, path: '/customer-dashboard' }];
-  const transactionNav: NavItem[] = [
-    { name: 'Purchase Orders', icon: ShoppingBag, path: '/user/po' },
-    { name: 'Sales Orders', icon: TrendingUp, path: '/user/so' },
-    { name: 'Accounts Payable', icon: CreditCard, path: '/user/ap' },
-    { name: 'Accounts Receivable', icon: ArrowUpRight, path: '/user/ar' },
-    { name: 'Item Receipt', icon: PackageCheck, path: '/user/ir' },
-    { name: 'Vendor Bills', icon: FileStack, path: '/user/vb' },
-  ];
+  const transactionNav: NavItem[] = React.useMemo(
+    () => getAssignedTransactionNavItems(myAssignedForms),
+    [myAssignedForms],
+  );
   const accountNav: NavItem[] = [{ name: 'Profile', icon: UserCircle, path: '/profile' }];
 
   const initials =
@@ -117,25 +114,25 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
       >
         <div
           className={cn(
-            'p-4 flex items-center border-b border-ns-sidebar-border',
+            'ns-sidebar-header',
             isExpanded ? 'justify-between gap-2' : 'justify-center',
           )}
         >
           {isExpanded && (
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 bg-status-approved rounded-ns-md flex items-center justify-center text-xs font-bold text-white">
+              <div className="w-8 h-8 bg-white/20 border border-white/25 rounded-ns-md flex items-center justify-center text-xs font-bold text-white">
                 VP
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-sm text-ns-text truncate">Vendor Hub</p>
-                <p className="text-[10px] text-ns-text-muted truncate">Powered by NS Portal</p>
+                <p className="font-semibold text-sm text-white truncate">Supplier portal</p>
+                <p className="text-[10px] text-white/70 truncate">Powered by NetSuite Forms</p>
               </div>
             </div>
           )}
           <button
             type="button"
             onClick={toggleSidebar}
-            className="p-1.5 rounded-ns-md text-ns-text-muted hover:text-ns-text hover:bg-ns-page-bg transition-colors"
+            className="p-1.5 rounded-ns-md text-white/80 hover:text-white hover:bg-white/10 transition-colors"
             aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
           >
             {isExpanded ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
@@ -144,7 +141,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
 
         <nav className="flex-1 px-3 py-3 overflow-y-auto custom-scrollbar">
           {renderSection('My account', mainNav)}
-          {renderSection('Transactions', transactionNav)}
+          {transactionNav.length > 0 && renderSection('Transactions', transactionNav)}
           {renderSection('Help', accountNav)}
         </nav>
 
@@ -169,7 +166,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
               )}
             >
               <Settings size={14} />
-              {isExpanded && <span>Admin console</span>}
+              {isExpanded && <span>Switch to admin</span>}
             </button>
           )}
           <button
@@ -186,35 +183,25 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-14 bg-white border-b border-ns-border flex items-center justify-between px-6 z-20">
+        <header className="h-14 ns-header-bar flex items-center justify-between px-6 z-20">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            {!isExpanded && (
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                className="p-2 rounded-ns-md text-ns-text-muted hover:text-ns-blue hover:bg-ns-blue-soft transition-colors"
-                aria-label="Expand sidebar"
-              >
-                <PanelLeft size={18} />
-              </button>
-            )}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-ns-page-bg rounded-ns-md border border-ns-border">
-              <Building size={14} className="text-ns-blue" />
-              <span className="text-xs font-medium text-ns-text">{company?.name || user?.companyName || 'My company'}</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/15 rounded-ns-md border border-white/25">
+              <Building size={14} className="text-white" />
+              <span className="text-xs font-medium text-white">{company?.name || user?.companyName || 'My company'}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="relative p-2 text-ns-text-muted hover:text-ns-text hover:bg-ns-page-bg rounded-ns-md transition-colors">
+            <button className="relative p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-ns-md transition-colors">
               <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-status-pending rounded-full border-2 border-white" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-status-pending rounded-full border-2 border-ns-blue" />
             </button>
-            <StatusBadge variant="synced" dot className="hidden sm:inline-flex">
-              NetSuite Live
+            <StatusBadge variant="synced" dot className="hidden sm:inline-flex bg-white/15 text-white border-white/25">
+              Connected to NetSuite
             </StatusBadge>
             <Link
               to="/profile"
-              className="w-8 h-8 rounded-full bg-status-approved text-white flex items-center justify-center text-xs font-semibold"
+              className="w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-semibold hover:bg-white/30 transition-colors border border-white/25"
             >
               {initials}
             </Link>

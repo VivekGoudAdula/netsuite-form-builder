@@ -134,8 +134,8 @@ export function getDataSourceOptionsForField(fieldId: string): {
       { label: 'Static', value: 'static' },
       { label: 'NetSuite Customers', value: 'netsuite_customer_live' },
       { label: 'NetSuite Vendors', value: 'netsuite_vendor_live' },
-      { label: 'NetSuite Connector (dynamic)', value: 'netsuite_dynamic' },
-      { label: 'API (legacy)', value: 'api' },
+      { label: 'NetSuite custom list', value: 'netsuite_dynamic' },
+      { label: 'Custom API', value: 'api' },
     ];
   }
 

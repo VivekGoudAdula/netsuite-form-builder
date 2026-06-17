@@ -140,7 +140,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
         'body',
         null,
         { ...NETSUITE_VENDOR_DATA_SOURCE },
-        'NetSuite vendor (live lookup)',
+        'NetSuite vendor (from NetSuite)',
       ),
       mapNetSuiteField('otherrefnum', 'Vendor #', 'text', 'Primary Information', 'Main'),
       mapNetSuiteField('employee', 'Employee', 'select', 'Primary Information', 'Main', false, 'body', null, {
@@ -298,7 +298,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
         'sublist',
         'item',
         { ...NETSUITE_ITEM_DATA_SOURCE },
-        'NetSuite item (live lookup)',
+        'NetSuite item (from NetSuite)',
       ),
       mapNetSuiteField('quantity', 'Quantity', 'float', 'Line Items', 'Items', true, 'sublist', 'item'),
       mapNetSuiteField('rate', 'Rate', 'currency', 'Line Items', 'Items', true, 'sublist', 'item'),
@@ -312,7 +312,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
         'sublist',
         'item',
         { ...NETSUITE_HSN_DATA_SOURCE },
-        'HSN / tax classification from NetSuite (live lookup)',
+        'HSN / tax classification from NetSuite (from NetSuite)',
       ),
       mapNetSuiteField('amount', 'Amount', 'currency', 'Line Items', 'Items', true, 'sublist', 'item'),
       mapNetSuiteField('units', 'Units', 'select', 'Line Items', 'Items', false, 'sublist', 'item'),
@@ -384,7 +384,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
         'sublist',
         'expense',
         { ...NETSUITE_CUSTOMER_DATA_SOURCE },
-        'NetSuite customer (live lookup)',
+        'NetSuite customer (from NetSuite)',
       ),
       mapNetSuiteField('isbillable', 'Billable', 'checkbox', 'Expenses', 'Items', false, 'sublist', 'expense'),
     ] 
@@ -404,7 +404,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
         'body',
         null,
         { ...NETSUITE_CUSTOMER_DATA_SOURCE },
-        'NetSuite customer (live lookup)',
+        'NetSuite customer (from NetSuite)',
       ),
       mapNetSuiteField('trandate', 'Date', 'date', 'Primary Information', 'Main', true),
       mapNetSuiteField('tranid', 'Order #', 'text', 'Primary Information', 'Main'),
@@ -422,7 +422,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
         'sublist',
         'item',
         { ...NETSUITE_ITEM_DATA_SOURCE },
-        'NetSuite item (live lookup)',
+        'NetSuite item (from NetSuite)',
       ),
       mapNetSuiteField('quantity', 'Quantity', 'float', 'Line Items', 'Items', true, 'sublist', 'item'),
     ] 
@@ -442,7 +442,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
         'body',
         null,
         { ...NETSUITE_VENDOR_DATA_SOURCE },
-        'NetSuite vendor (live lookup)',
+        'NetSuite vendor (from NetSuite)',
       ),
       mapNetSuiteField('trandate', 'Date', 'date', 'Primary Information', 'Main', true),
       mapNetSuiteField('account', 'Account', 'select', 'Expenses', 'Expenses', true, 'sublist', 'expense'),
@@ -464,7 +464,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
         'body',
         null,
         { ...NETSUITE_CUSTOMER_DATA_SOURCE },
-        'NetSuite customer (live lookup)',
+        'NetSuite customer (from NetSuite)',
       ),
       mapNetSuiteField('trandate', 'Date', 'date', 'Primary Information', 'Main', true),
       mapNetSuiteField('email', 'Email', 'emails', 'Primary Information', 'Main'),
@@ -479,7 +479,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
         'sublist',
         'item',
         { ...NETSUITE_ITEM_DATA_SOURCE },
-        'NetSuite item (live lookup)',
+        'NetSuite item (from NetSuite)',
       ),
     ] 
   },
@@ -533,7 +533,7 @@ const CATALOGUES: Record<TransactionType, CatalogueData> = {
         'body',
         null,
         { ...NETSUITE_VENDOR_DATA_SOURCE },
-        'NetSuite vendor (live lookup)',
+        'NetSuite vendor (from NetSuite)',
       ),
       mapNetSuiteField('tranid', 'Invoice Number', 'text', 'Primary Information', 'Main'),
       mapNetSuiteField(
@@ -1008,24 +1008,25 @@ const generateTemplateFromCatalogue = (id: string, name: string, description: st
     description,
     transactionType: type,
     source: 'template',
-    tags: ['Comprehensive', type.replace('_', ' ')],
+    tags: ['Standard', type.replace('_', ' ')],
     tabs
   };
 };
 
 const DEFAULT_TEMPLATES: any[] = [
-  generateTemplateFromCatalogue('tpl_po_full', 'Comprehensive Purchase Order', 'Standard PO with all fields mapped for general procurement.', 'purchase_order'),
-  generateTemplateFromCatalogue('tpl_so_full', 'Comprehensive Sales Order', 'Sales order with complete classification, billing, and shipping details.', 'sales_order'),
-  generateTemplateFromCatalogue('tpl_ap_full', 'Comprehensive Accounts Payable', 'A/P template with full accounting and approval structure.', 'accounts_payable'),
-  generateTemplateFromCatalogue('tpl_ar_full', 'Comprehensive Accounts Receivable', 'A/R template including full items and journal controls.', 'accounts_receivable'),
-  generateTemplateFromCatalogue('tpl_ir_full', 'Comprehensive Item Receipt', 'Item receipt template with created-from PO and receiving grid.', 'item_receipt'),
-  generateTemplateFromCatalogue('tpl_vb_full', 'Comprehensive Vendor Bill', 'Vendor bill with item and expense lines, classification, and approval flow.', 'vendor_bill'),
+  generateTemplateFromCatalogue('tpl_po_full', 'Standard Purchase Order', 'Standard purchase order with fields mapped for general procurement.', 'purchase_order'),
+  generateTemplateFromCatalogue('tpl_so_full', 'Standard Sales Order', 'Sales order with billing, shipping, and classification details.', 'sales_order'),
+  generateTemplateFromCatalogue('tpl_ap_full', 'Standard Accounts Payable', 'Accounts payable form with accounting and approval structure.', 'accounts_payable'),
+  generateTemplateFromCatalogue('tpl_ar_full', 'Standard Accounts Receivable', 'Accounts receivable form with items and journal controls.', 'accounts_receivable'),
+  generateTemplateFromCatalogue('tpl_ir_full', 'Standard Item Receipt', 'Item receipt form with purchase order reference and receiving lines.', 'item_receipt'),
+  generateTemplateFromCatalogue('tpl_vb_full', 'Standard Vendor Bill', 'Vendor bill with item and expense lines, classification, and approval flow.', 'vendor_bill'),
 ];
 
 export const useStore = create<AppState>((set, get) => ({
   user: JSON.parse(localStorage.getItem('user') || 'null'),
   users: [],
   forms: [],
+  myAssignedForms: [],
   companies: [],
   templates: DEFAULT_TEMPLATES,
   submissions: [],
@@ -1115,6 +1116,7 @@ export const useStore = create<AppState>((set, get) => ({
     set({
       user: null,
       forms: [],
+      myAssignedForms: [],
       companies: [],
       users: [],
       submissions: [],
@@ -1278,6 +1280,19 @@ export const useStore = create<AppState>((set, get) => ({
     } catch (err: any) {
       console.error('Fetch My Forms Error:', err);
       set({ error: err.message, isLoading: false });
+    }
+  },
+
+  fetchMyAssignedForms: async () => {
+    try {
+      const response = await api.get('forms/my');
+      const assignedForms = response.data as CustomForm[];
+      set({ myAssignedForms: assignedForms });
+      return assignedForms;
+    } catch (err: any) {
+      console.error('Fetch My Assigned Forms Error:', err);
+      set({ error: err.message });
+      return [];
     }
   },
 

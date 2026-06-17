@@ -8,6 +8,7 @@ import {
   KPICard,
   StatusBadge,
   submissionStatusVariant,
+  Card,
 } from '../components/admin';
 import { Button, Input } from '../components/ui/Base';
 import { cn } from '../lib/utils';
@@ -24,7 +25,7 @@ export default function AdminSubmissionsPage() {
   }, [fetchSubmissions, fetchCompanies, fetchUsers]);
 
   const getFormName = (sub: any) => sub.formName || 'Deleted Form';
-  const getCompanyName = (sub: any) => sub.companyName || 'Unknown Entity';
+  const getCompanyName = (sub: any) => sub.companyName || 'Unknown company';
   const getUserName = (sub: any) => sub.userName || 'Unknown User';
 
   const filteredSubmissions = submissions.filter(s => {
@@ -47,32 +48,25 @@ export default function AdminSubmissionsPage() {
       <div className="space-y-6">
         {isSuperAdmin ? (
           <PageHeader
-            eyebrow="Audit logs"
-            title="Transaction audit log"
-            subtitle="Review finalized submissions from customer environments across all entities."
+            eyebrow="Submissions"
+            title="Submission history"
+            subtitle="Review completed submissions from all companies."
           />
         ) : (
-          <div>
-            <div className="flex items-center gap-2 text-ns-blue mb-1">
-              <Database size={16} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Transaction Audit log</span>
-            </div>
-            <h1 className="text-3xl font-bold text-ns-text">Incoming Data Entries</h1>
-            <p className="text-sm text-ns-text-muted mt-1">
-              Review finalized submissions from customer environments within your organizational scope.
-            </p>
-          </div>
+          <PageHeader
+            eyebrow="Submissions"
+            title="Submission history"
+            subtitle="Review completed submissions from your organization."
+          />
         )}
 
-        {isSuperAdmin && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <KPICard label="Total submissions" value={submissions.length} subtext="All time" subtextVariant="neutral" />
-            <KPICard label="Pending approval" value={pendingCount} subtext="Awaiting action" subtextVariant="warning" />
-            <KPICard label="Synced to NetSuite" value={syncedCount} subtext={`${failedCount} failures`} subtextVariant={failedCount > 0 ? 'danger' : 'success'} />
-          </div>
-        )}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <KPICard label="Total submissions" value={submissions.length} subtext="All time" subtextVariant="neutral" />
+          <KPICard label="Pending approval" value={pendingCount} subtext="Awaiting action" subtextVariant="warning" />
+          <KPICard label="Synced to NetSuite" value={syncedCount} subtext={`${failedCount} failures`} subtextVariant={failedCount > 0 ? 'danger' : 'success'} />
+        </div>
 
-        <div className="bg-white p-4 rounded-ns-card border border-ns-border ns-panel-shadow">
+        <Card padding="md">
           <div className="relative max-w-lg">
             <Search className="absolute left-3 top-2.5 text-ns-text-muted" size={14} />
             <Input
@@ -82,17 +76,17 @@ export default function AdminSubmissionsPage() {
               onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
-        </div>
+        </Card>
         <Table>
           <THead>
             <TR>
-              <TH>Submission Protocol</TH>
-               <TH>Source Entity</TH>
-               <TH>Submitted By</TH>
-               <TH>Workflow Status</TH>
-               <TH>Approval Level</TH>
-               <TH>Timestamp</TH>
-               <TH className="text-right px-6">Administrative Actions</TH>
+              <TH>Form</TH>
+               <TH>Company</TH>
+               <TH>Submitted by</TH>
+               <TH>Status</TH>
+               <TH>Approval step</TH>
+               <TH>Submitted at</TH>
+               <TH className="text-right px-6">Actions</TH>
             </TR>
           </THead>
           <TBody>
@@ -100,7 +94,7 @@ export default function AdminSubmissionsPage() {
               <TR key={sub.id} className="group hover:bg-ns-light-blue/5 transition-all">
                 <TD className="py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-ns-gray-bg border border-ns-border rounded-ns-md flex items-center justify-center text-ns-blue shadow-inner group-hover:bg-ns-navy group-hover:text-white transition-all">
+                    <div className="w-10 h-10 bg-ns-gray-bg border border-ns-border rounded-ns-md flex items-center justify-center text-ns-blue shadow-inner group-hover:bg-ns-blue-dark group-hover:text-white transition-all">
                       <FileJson size={18} />
                     </div>
                     <div>
@@ -166,7 +160,7 @@ export default function AdminSubmissionsPage() {
                           </div>
                        </div>
                     ) : (
-                       <span className="text-[10px] font-bold text-ns-text-muted uppercase opacity-40">Workflow Terminal</span>
+                       <span className="text-[10px] font-bold text-ns-text-muted uppercase opacity-40">Complete</span>
                     )}
                  </TD>
                  <TD>
@@ -198,8 +192,8 @@ export default function AdminSubmissionsPage() {
                  <TD colSpan={6} className="py-24 text-center">
                     <div className="opacity-40 flex flex-col items-center">
                        <Database size={48} className="text-ns-navy mb-4" />
-                       <h3 className="text-lg font-bold uppercase tracking-[0.2em]">Zero Submissions Detected</h3>
-                       <p className="text-xs mt-2">Check the filters or ensure customers have finalized their forms.</p>
+                       <h3 className="text-lg font-bold uppercase tracking-[0.2em]">No submissions yet</h3>
+                       <p className="text-xs mt-2">Adjust your search or wait for users to submit forms.</p>
                     </div>
                  </TD>
               </TR>
@@ -211,7 +205,7 @@ export default function AdminSubmissionsPage() {
         <Modal
           isOpen={!!selectedSubmissionId}
           onClose={() => setSelectedSubmissionId(null)}
-          title="Submission Workflow Details"
+          title="Submission details"
           className="max-w-xl"
           footer={
              <Button variant="secondary" size="sm" onClick={() => setSelectedSubmissionId(null)}>Close</Button>
@@ -225,7 +219,7 @@ export default function AdminSubmissionsPage() {
               <div className="space-y-6">
                 <div className="bg-ns-gray-bg p-4 rounded-ns-md border border-ns-border flex justify-between items-center">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-ns-text-muted">Target Blueprint</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-ns-text-muted">Form</p>
                     <p className="font-bold text-ns-navy">{activeSub.formName || 'Unknown'}</p>
                   </div>
                   <div className="text-right">
@@ -235,7 +229,7 @@ export default function AdminSubmissionsPage() {
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-bold text-ns-navy mb-4 border-b border-ns-border pb-2">Approval Hierarchy</h4>
+                  <h4 className="text-sm font-bold text-ns-navy mb-4 border-b border-ns-border pb-2">Approval steps</h4>
                   <div className="space-y-4">
                     {activeSub.approvals?.map((level: any) => (
                       <div key={level.level} className="flex gap-4">
@@ -248,7 +242,7 @@ export default function AdminSubmissionsPage() {
                                     ? "bg-ns-blue text-white"
                                     : level.level === activeSub.currentLevel && activeSub.status === 'rejected'
                                        ? "bg-status-rejected-bg text-status-rejected"
-                                       : "bg-ns-page-bg text-gray-400"
+                                       : "bg-ns-page-bg text-ns-text-muted"
                            )}>
                               {level.level < (activeSub.currentLevel || 99) || activeSub.status === 'approved' || activeSub.status === 'submitted' || activeSub.status === 'SYNCED_TO_NETSUITE' ? <CheckCircle2 size={16} /> : 
                                level.level === activeSub.currentLevel && activeSub.status === 'rejected' ? <XCircle size={16} /> :

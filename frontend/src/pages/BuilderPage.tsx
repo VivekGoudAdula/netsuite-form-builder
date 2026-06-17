@@ -95,7 +95,7 @@ export default function BuilderPage() {
     .find(f => f.id === selectedFieldId);
 
   return (
-    <div className="h-screen flex flex-col bg-[#f0f0f0] overflow-hidden">
+    <div className="h-screen flex flex-col bg-ns-page-bg overflow-hidden">
       <BuilderTopBar />
       
       <DndContext 
@@ -106,12 +106,12 @@ export default function BuilderPage() {
       >
         <div className="flex-1 flex overflow-hidden">
           {/* Left Panel */}
-          <div className="w-64 border-r border-[#cccccc] bg-white flex flex-col">
+          <div className="w-64 border-r border-ns-border bg-white flex flex-col">
             <CataloguePanel />
           </div>
 
           {/* Center Panel */}
-          <div className="flex-1 flex flex-col overflow-auto p-6 bg-[#f5f5f5]">
+          <div className="flex-1 flex flex-col overflow-auto p-6 bg-ns-page-bg">
             <BuilderCanvas 
               activeTabId={activeTabId} 
               setActiveTabId={setActiveTabId}
@@ -121,7 +121,7 @@ export default function BuilderPage() {
           </div>
 
           {/* Right Panel */}
-          <div className="w-80 border-l border-[#cccccc] bg-white flex flex-col">
+          <div className="w-80 border-l border-ns-border bg-white flex flex-col">
             <PropertiesPanel selectedField={selectedField} />
           </div>
         </div>

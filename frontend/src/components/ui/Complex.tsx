@@ -17,31 +17,29 @@ export const TBody = ({ children }: { children: React.ReactNode }) => (
 );
 
 export const TR = ({ children, className, onClick, ...props }: { children: React.ReactNode; className?: string; onClick?: () => void; [key: string]: any }) => (
-  <tr className={cn('hover:bg-ns-light-blue/30 transition-colors', onClick && 'cursor-pointer', className)} onClick={onClick} {...props}>
+  <tr className={cn('hover:bg-ns-blue-soft/40 transition-colors', onClick && 'cursor-pointer', className)} onClick={onClick} {...props}>
     {children}
   </tr>
 );
 
 export const TH = ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: any }) => (
-  <th className={cn('px-5 py-3 font-semibold text-ns-text-muted uppercase text-[11px] tracking-wider', className)} {...props}>{children}</th>
+  <th className={cn('px-4 py-2.5 font-semibold text-ns-text-muted uppercase text-[11px] tracking-wide', className)} {...props}>{children}</th>
 );
 
 export const TD = ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: any }) => (
-  <td className={cn('px-5 py-3.5 text-sm', className)} {...props}>{children}</td>
+  <td className={cn('px-4 py-2.5 text-sm text-ns-text', className)} {...props}>{children}</td>
 );
 
 // Tabs
 export const Tabs = ({ tabs, activeTab, onChange }: { tabs: { id: string; label: string }[]; activeTab: string; onChange: (id: string) => void }) => (
-  <div className="flex border-b border-ns-border bg-ns-light-blue/50">
+  <div className="flex border-b border-ns-border bg-white">
     {tabs.map((tab) => (
       <button
         key={tab.id}
         onClick={() => onChange(tab.id)}
         className={cn(
-          'px-5 py-2.5 text-[11px] font-bold uppercase tracking-widest transition-all border-r border-ns-border last:border-r-0',
-          activeTab === tab.id
-            ? 'ns-active-tab -mb-[1px]'
-            : 'ns-inactive-tab'
+          'px-5 py-2.5 text-sm transition-all',
+          activeTab === tab.id ? 'ns-active-tab' : 'ns-inactive-tab'
         )}
       >
         {tab.label}

@@ -61,7 +61,7 @@ export default function WorkflowManagementPage() {
           if (existingWorkflow) {
             setWorkflowName(existingWorkflow.name);
             setLevels(existingWorkflow.levels);
-            showNotification('Existing approval strategy loaded', 'success');
+            showNotification('Existing workflow loaded', 'success');
           } else {
             showNotification('No active workflow found. Starting fresh configuration.', 'info');
           }
@@ -86,15 +86,15 @@ export default function WorkflowManagementPage() {
             <AlertCircle size={32} />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-ns-navy">Entity Context Not Resolved</h2>
-            <p className="text-ns-text-muted mt-1 max-w-xs mx-auto">We could not identify the organizational entity for this workflow configuration.</p>
+            <h2 className="text-xl font-bold text-ns-navy">Company not found</h2>
+            <p className="text-ns-text-muted mt-1 max-w-xs mx-auto">We could not find the company for this workflow.</p>
           </div>
           <Button 
             variant="secondary" 
             onClick={() => navigate(isSuperAdmin ? '/companies' : '/dashboard')} 
             className="mt-2"
           >
-            Return to {isSuperAdmin ? 'Directory' : 'Dashboard'}
+            Return to {isSuperAdmin ? 'companies' : 'dashboard'}
           </Button>
         </div>
       </AdminLayout>
@@ -209,7 +209,7 @@ export default function WorkflowManagementPage() {
           <PageHeader
             eyebrow="Workflow configuration"
             title="Approval routing"
-            subtitle={`Define multi-level hierarchy for transaction authorization for ${company?.name}.`}
+            subtitle={`Set who approves each step for ${company?.name}.`}
             actions={
               <Button onClick={handleSaveWorkflow} disabled={isSaving} className="gap-2">
                 {isSaving ? (
@@ -217,7 +217,7 @@ export default function WorkflowManagementPage() {
                 ) : (
                   <CheckCircle2 size={18} />
                 )}
-                {isSaving ? 'Saving…' : 'Save configuration'}
+                {isSaving ? 'Saving…' : 'Save workflow'}
               </Button>
             }
           />
@@ -228,17 +228,17 @@ export default function WorkflowManagementPage() {
             <Card className="space-y-4">
               <div className="flex items-center gap-2 border-b border-ns-border pb-3">
                 <StatusBadge variant="synced">Step 1</StatusBadge>
-                <h2 className="text-sm font-semibold text-ns-text">Workflow metadata</h2>
+                <h2 className="text-sm font-semibold text-ns-text">Workflow details</h2>
               </div>
               <div>
-                <Label mandatory>Workflow Strategy Name</Label>
+                <Label mandatory>Workflow name</Label>
                 <Input 
                   placeholder="e.g. Purchase Order Approval Workflow" 
                   value={workflowName}
                   onChange={(e) => setWorkflowName(e.target.value)}
                   className="h-10 text-lg font-semibold"
                 />
-                <p className="text-[10px] text-ns-text-muted mt-1.5 italic">This name will identify the approval process in system logs and notifications.</p>
+                <p className="text-[10px] text-ns-text-muted mt-1.5 italic">This name appears in submission history and email notifications.</p>
               </div>
             </Card>
 
@@ -246,7 +246,7 @@ export default function WorkflowManagementPage() {
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <StatusBadge variant="pending">Step 2</StatusBadge>
-                  <h2 className="text-sm font-semibold text-ns-text">Approval hierarchy</h2>
+                  <h2 className="text-sm font-semibold text-ns-text">Approval steps</h2>
                 </div>
                 <Button 
                   variant="secondary" 
@@ -267,7 +267,7 @@ export default function WorkflowManagementPage() {
                         <span className="text-xs font-semibold text-ns-blue">Level {level.level}</span>
                         {idx === 0 && <StatusBadge variant="approved">Initial review</StatusBadge>}
                         {idx === levels.length - 1 && idx > 0 && (
-                          <StatusBadge variant="synced">Final authorization</StatusBadge>
+                          <StatusBadge variant="synced">Final approval</StatusBadge>
                         )}
                       </div>
                       <div className="flex items-center gap-1">
@@ -331,11 +331,11 @@ export default function WorkflowManagementPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">Designated Authorized Personnel:</p>
+                        <p className="text-[10px] font-bold text-ns-text-muted uppercase tracking-widest">Approvers:</p>
                         {level.approvers.length === 0 ? (
                           <div className="flex items-center gap-2 p-3 bg-status-rejected-bg border border-red-100 rounded-ns-md text-status-rejected">
                             <AlertCircle size={14} />
-                            <span className="text-[11px] font-medium italic">Requirement Warning: At least one approver must be assigned to validate this level.</span>
+                            <span className="text-[11px] font-medium italic">Add at least one approver for this step.</span>
                           </div>
                         ) : (
                           <div className="grid grid-cols-2 gap-3">
@@ -380,7 +380,7 @@ export default function WorkflowManagementPage() {
                   <div className="flex justify-between items-center border-b border-white/10 pb-2">
                     <span className="text-[10px] text-white/60">Total Approvers</span>
                     <span className="text-xl font-bold">
-                      {levels.reduce((acc, l) => acc + l.approvers.length, 0)} Personnel
+                      {levels.reduce((acc, l) => acc + l.approvers.length, 0)} approvers
                     </span>
                   </div>
                 </div>
@@ -389,7 +389,7 @@ export default function WorkflowManagementPage() {
               <div className="p-4 bg-white/5 rounded-ns-md border border-white/10">
                 <h4 className="text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
                   <GitBranch size={12} className="text-ns-blue" />
-                  Logic Overview
+                  Summary
                 </h4>
                 <div className="space-y-3">
                   {levels.map((l, i) => (
@@ -401,7 +401,7 @@ export default function WorkflowManagementPage() {
                       <div className="flex flex-col -mt-1">
                         <span className="text-[10px] font-bold">Level {l.level}</span>
                         <span className="text-[9px] text-white/40 italic">
-                          {l.approvers.length === 0 ? 'Unconfigured' : `${l.approvers.length} Signatories`}
+                          {l.approvers.length === 0 ? 'Not set up' : `${l.approvers.length} approver${l.approvers.length === 1 ? '' : 's'}`}
                         </span>
                       </div>
                     </div>
@@ -413,7 +413,7 @@ export default function WorkflowManagementPage() {
                 <div className="p-3 bg-status-pending-bg0/10 border border-amber-500/20 rounded-ns-md flex items-start gap-2">
                   <AlertCircle size={14} className="text-amber-500 mt-0.5 shrink-0" />
                   <p className="text-[9px] leading-relaxed text-amber-200/80">
-                    Configuration changes take effect immediately for all new transaction submissions. Existing pending transactions will follow the legacy workflow.
+                    Changes apply to new submissions immediately. Pending submissions keep the previous workflow.
                   </p>
                 </div>
               </div>

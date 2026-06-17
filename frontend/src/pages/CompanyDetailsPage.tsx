@@ -37,8 +37,8 @@ export default function CompanyDetailsPage() {
     return (
       <AdminLayout>
         <div className="text-center py-20">
-          <p className="text-ns-text-muted">Entity not found.</p>
-          <Button variant="secondary" onClick={() => navigate('/companies')} className="mt-4">Return to Directory</Button>
+          <p className="text-ns-text-muted">Company not found.</p>
+          <Button variant="secondary" onClick={() => navigate('/companies')} className="mt-4">Back to companies</Button>
         </div>
       </AdminLayout>
     );
@@ -98,7 +98,7 @@ export default function CompanyDetailsPage() {
         <PageHeader
           eyebrow="Company management"
           title={company.name}
-          subtitle="Personnel ledger and access management"
+          subtitle="Employees and access"
           actions={
             <Button onClick={() => setIsModalOpen(true)} className="gap-2">
               <Plus size={18} />
@@ -110,7 +110,7 @@ export default function CompanyDetailsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <KPICard label="Total employees" value={companyEmployees.length} subtext="Active roster" subtextVariant="info" />
           <KPICard label="Established" value={company.createdAt?.split('T')[0] || '—'} subtext="Registration date" subtextVariant="neutral" />
-          <KPICard label="Entity ID" value={company.id.substring(0, 8)} subtext="Internal reference" subtextVariant="neutral" />
+          <KPICard label="Company reference" value={company.id.substring(0, 8)} subtext="Internal reference" subtextVariant="neutral" />
         </div>
 
         <Table>
@@ -118,9 +118,9 @@ export default function CompanyDetailsPage() {
               <TR>
                 <TH>Name / Employee ID</TH>
                 <TH>Email Address</TH>
-                <TH>Functional Role</TH>
-                <TH>Access Level</TH>
-                <TH className="text-right px-6">Administrative Controls</TH>
+                <TH>Job title</TH>
+                <TH>Role</TH>
+                <TH className="text-right px-6">Actions</TH>
               </TR>
             </THead>
             <TBody>
@@ -161,7 +161,7 @@ export default function CompanyDetailsPage() {
               {companyEmployees.length === 0 && (
                 <TR>
                   <TD colSpan={4} className="py-20 text-center bg-white italic text-ns-text-muted text-sm tracking-wide">
-                    Zero synchronized personnel records found.
+                    No employees yet.
                   </TD>
                 </TR>
               )}
@@ -171,12 +171,12 @@ export default function CompanyDetailsPage() {
         <Modal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          title="Personnel Onboarding"
+          title="Add employee"
           footer={
             <>
               <Button variant="secondary" size="sm" onClick={() => { setIsModalOpen(false); setErrorMsg(null); }}>Cancel</Button>
               <Button size="sm" onClick={handleAddEmployee} disabled={!newEmployee.name || !newEmployee.email || isAdding}>
-                {isAdding ? 'Synchronizing...' : 'Synchronize User Identity'}
+                {isAdding ? 'Saving…' : 'Add employee'}
               </Button>
             </>
           }
@@ -189,13 +189,13 @@ export default function CompanyDetailsPage() {
               </div>
             ) : (
               <div className="p-3 bg-status-pending-bg border border-amber-200 text-[11px] text-amber-800 rounded-ns-md italic">
-                Generating new user identity automatically activates Corporate Dashboard access for this entity.
+                New users can sign in and access forms assigned to this company.
               </div>
             )}
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label mandatory>Full Legal Name</Label>
+                <Label mandatory>Full name</Label>
                 <Input 
                   placeholder="e.g. Rahul Sharma" 
                   value={newEmployee.name}
@@ -203,7 +203,7 @@ export default function CompanyDetailsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label mandatory>Corporate Email</Label>
+                <Label mandatory>Work email</Label>
                 <Input 
                   type="email"
                   placeholder="name@company.com" 
@@ -215,7 +215,7 @@ export default function CompanyDetailsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Employee Serial ID</Label>
+                <Label>Employee ID</Label>
                 <Input 
                   placeholder="e.g. EMP-2024-001" 
                   value={newEmployee.employeeId}
@@ -223,7 +223,7 @@ export default function CompanyDetailsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Functional Job Title</Label>
+                <Label>Job title</Label>
                 <Input 
                   placeholder="e.g. Senior Buyer" 
                   value={newEmployee.jobTitle}
@@ -233,7 +233,7 @@ export default function CompanyDetailsPage() {
             </div>
             
             <div className="space-y-2">
-              <Label mandatory>Administrative Role</Label>
+              <Label mandatory>Role</Label>
               <Select 
                 value={newEmployee.role}
                 onChange={(e) => setNewEmployee({...newEmployee, role: e.target.value as any})}
@@ -243,19 +243,19 @@ export default function CompanyDetailsPage() {
                 <option value="client_admin">Client Administrator</option>
               </Select>
               <p className="text-[10px] text-ns-text-muted italic">
-                {newEmployee.role === 'client_admin' && "Client Admins have full control over this entity's workflows and forms."}
-                {newEmployee.role === 'manager' && "Managers can approve transactions within their designated hierarchy."}
-                {newEmployee.role === 'user' && "Standard users can submit forms and track their own transactions."}
+                {newEmployee.role === 'client_admin' && "Company admins can manage forms, users, and approval workflows for this company."}
+                {newEmployee.role === 'manager' && "Managers can approve submissions within their assigned approval steps."}
+                {newEmployee.role === 'user' && "Standard users can submit forms and track their own submissions."}
               </p>
             </div>
             
             <div className="space-y-2">
-              <Label>System Password (Mock)</Label>
+              <Label>Temporary password</Label>
               <Input 
                 value={newEmployee.password}
                 onChange={(e) => setNewEmployee({...newEmployee, password: e.target.value})}
               />
-              <p className="text-[10px] text-ns-text-muted italic">Used for simulated user authentication.</p>
+              <p className="text-[10px] text-ns-text-muted italic">For testing only.</p>
             </div>
           </form>
         </Modal>
@@ -264,8 +264,8 @@ export default function CompanyDetailsPage() {
         isOpen={!!deleteUserId}
         onClose={() => setDeleteUserId(null)}
         onConfirm={() => { if(deleteUserId) deleteUser(deleteUserId); }}
-        title="Revoke User Access?"
-        message="This will permanently delete this user account. The employee will lose all access to their corporate dashboard."
+        title="Remove user?"
+        message="This will permanently delete this user account. The employee will lose access to the company portal."
       />
     </AdminLayout>
   );

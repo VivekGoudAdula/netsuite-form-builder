@@ -1,65 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Outfit:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
 @import "tailwindcss";
-
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Outfit", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-
-  /* Brand */
-  --color-ns-navy: #0f172a;
-  --color-ns-blue: #2563eb;
-  --color-ns-blue-dark: #1d4ed8;
-  --color-ns-blue-soft: #eff6ff;
-  --color-ns-light-blue: #f4f6fb;
-  --color-ns-gray-bg: #ffffff;
-  --color-ns-border: #e5e7eb;
-  --color-ns-text: #0f172a;
-  --color-ns-text-muted: #64748b;
-  --color-ns-page-bg: #f8fafc;
-  --color-ns-sidebar-bg: #ffffff;
-  --color-ns-sidebar-border: #e5e7eb;
-
-  /* Status semantics */
-  --color-status-approved: #16a34a;
-  --color-status-approved-bg: #f0fdf4;
-  --color-status-pending: #d97706;
-  --color-status-pending-bg: #fffbeb;
-  --color-status-rejected: #dc2626;
-  --color-status-rejected-bg: #fef2f2;
-  --color-status-draft: #6b7280;
-  --color-status-draft-bg: #f3f4f6;
-  --color-status-synced: #2563eb;
-  --color-status-synced-bg: #eff6ff;
-
-  /* Role badge semantics */
-  --color-role-admin: #dc2626;
-  --color-role-admin-bg: #fef2f2;
-  --color-role-creator: #2563eb;
-  --color-role-creator-bg: #eff6ff;
-  --color-role-approver: #d97706;
-  --color-role-approver-bg: #fffbeb;
-  --color-role-vendor: #7c3aed;
-  --color-role-vendor-bg: #f5f3ff;
-  --color-role-reporting: #0f172a;
-  --color-role-reporting-bg: #f1f5f9;
-
-  /* Legacy aliases */
-  --color-brand-purple: #7C3AED;
-  --color-brand-emerald: #10B981;
-
-  /* Radius */
-  --radius-ns-sm: 6px;
-  --radius-ns-md: 8px;
-  --radius-ns-card: 10px;
-  --radius-ns-lg: 12px;
-}
+@import "./styles/theme.css";
 
 @layer base {
   body {
-    @apply font-sans text-ns-text bg-ns-gray-bg antialiased selection:bg-ns-blue/20;
+    @apply font-sans text-ns-text bg-ns-page-bg antialiased selection:bg-ns-blue/20;
     font-size: 13px;
-    line-height: 1.6;
+    line-height: 1.5;
   }
 
   ::-webkit-scrollbar {
@@ -72,7 +19,7 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #a8b5d6;
+    background: #b8c5ce;
     border-radius: 20px;
     border: 1px solid transparent;
     background-clip: padding-box;
@@ -83,7 +30,7 @@
   }
 
   h1, h2, h3, h4 {
-    @apply font-display font-semibold tracking-tight;
+    @apply font-display font-semibold tracking-tight text-ns-text;
   }
 }
 
@@ -94,31 +41,41 @@
   .rounded-ns-lg { border-radius: var(--radius-ns-lg); }
 
   .ns-panel-shadow {
-    box-shadow: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.06);
+    box-shadow: 0 1px 2px 0 rgb(34 34 34 / 0.04);
   }
 
   .ns-panel-shadow-lg {
-    box-shadow: 0 4px 6px -1px rgb(15 23 42 / 0.07), 0 2px 4px -2px rgb(15 23 42 / 0.05);
+    box-shadow: 0 1px 3px 0 rgb(34 34 34 / 0.06), 0 1px 2px -1px rgb(34 34 34 / 0.04);
   }
 
-  .glass-card {
-    @apply bg-white/70 backdrop-blur-md border border-white/20;
+  .ns-header-bar {
+    @apply bg-ns-blue text-white border-b border-ns-blue-dark;
   }
 
-  .glass-dark {
-    @apply bg-ns-navy/80 backdrop-blur-lg border border-white/10;
+  .ns-sidebar-header {
+    @apply h-14 flex-shrink-0 bg-ns-blue text-white border-b border-ns-blue-dark px-4 flex items-center;
   }
 
   .ns-header-gradient {
-    background: linear-gradient(180deg, #FFFFFF 0%, rgba(255, 255, 255, 0.8) 100%);
+    @apply bg-white border-b border-ns-border;
   }
 
+  /* NetSuite-style tabs: white background, blue underline when active */
   .ns-active-tab {
-    @apply bg-white border-t-2 border-t-ns-blue text-ns-blue font-bold shadow-[0_-4px_12px_rgba(17,46,129,0.1)];
+    @apply bg-white text-ns-blue font-bold border-b-2 border-b-ns-blue -mb-px;
   }
 
   .ns-inactive-tab {
-    @apply bg-ns-light-blue text-ns-text-muted hover:bg-ns-blue-soft transition-colors border-r border-ns-border;
+    @apply bg-white text-ns-text-muted hover:text-ns-text transition-colors border-b-2 border-b-transparent;
+  }
+
+  /* Sidebar active navigation item */
+  .ns-sidebar-active {
+    @apply bg-ns-blue-soft text-ns-blue border-l-[3px] border-l-ns-blue;
+  }
+
+  .ns-sidebar-inactive {
+    @apply text-ns-text-muted hover:text-ns-text hover:bg-black/[0.03] border-l-[3px] border-l-transparent;
   }
 
   .animate-float {

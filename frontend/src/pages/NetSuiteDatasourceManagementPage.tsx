@@ -178,9 +178,8 @@ export default function NetSuiteDatasourceManagementPage() {
     <AdminLayout>
       <div className="space-y-6">
         <PageHeader
-          eyebrow="NetSuite integration"
-          title="NetSuite configuration"
-          subtitle="Configure RESTlet script IDs and field mappings without code changes."
+          title="NetSuite integration"
+          subtitle="Connect NetSuite lists to form fields without code changes."
           actions={
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => void load()} className="gap-2">
@@ -189,7 +188,7 @@ export default function NetSuiteDatasourceManagementPage() {
               </Button>
               <Button onClick={openCreate} className="gap-2">
                 <Plus size={18} />
-                Add connector
+                Add connection
               </Button>
             </div>
           }
@@ -197,8 +196,8 @@ export default function NetSuiteDatasourceManagementPage() {
 
         {isSuperAdmin && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <KPICard label="Total connectors" value={items.length} subtext={`${activeConnectors} active`} subtextVariant="info" />
-            <KPICard label="Synced endpoints" value={syncedCount} subtext="Healthy connections" subtextVariant="success" />
+            <KPICard label="Total connections" value={items.length} subtext={`${activeConnectors} active`} subtextVariant="info" />
+            <KPICard label="Connected lists" value={syncedCount} subtext="Healthy connections" subtextVariant="success" />
             <KPICard label="Sync errors" value={errorCount} subtext={errorCount > 0 ? 'Requires attention' : 'All clear'} subtextVariant={errorCount > 0 ? 'danger' : 'success'} />
           </div>
         )}
@@ -209,7 +208,7 @@ export default function NetSuiteDatasourceManagementPage() {
             <TR>
               <TH>Name</TH>
               <TH>Key</TH>
-              <TH>Script / Deploy</TH>
+              <TH>Script ID</TH>
               <TH>Mapping</TH>
               <TH>Sync Status</TH>
               <TH className="text-right">Actions</TH>
@@ -219,7 +218,7 @@ export default function NetSuiteDatasourceManagementPage() {
             {loading && (
               <TR>
                 <TD colSpan={6} className="text-center py-8 text-ns-text-muted">
-                  Loading connectors…
+                  Loading connections…
                 </TD>
               </TR>
             )}
@@ -265,11 +264,11 @@ export default function NetSuiteDatasourceManagementPage() {
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editing ? 'Edit NetSuite Connector' : 'New NetSuite Connector'}
+        title={editing ? 'Edit NetSuite connection' : 'New NetSuite connection'}
       >
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
           <motionPlaceholder>
-            <Label>Datasource Name</Label>
+            <Label>Connection name</Label>
             <Input
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
@@ -277,7 +276,7 @@ export default function NetSuiteDatasourceManagementPage() {
             />
           </motionPlaceholder>
           <motionPlaceholder>
-            <Label>Datasource Key</Label>
+            <Label>Connection key</Label>
             <Input
               value={form.key}
               disabled={!!editing}
@@ -287,7 +286,7 @@ export default function NetSuiteDatasourceManagementPage() {
               placeholder="vendors"
             />
             <p className="text-[10px] text-ns-text-muted mt-1">
-              Used in forms as <code>netsuite_dynamic</code> → <code>{form.key || 'key'}</code>
+              Used in forms as custom list → <code>{form.key || 'key'}</code>
             </p>
           </motionPlaceholder>
           <div className="grid grid-cols-2 gap-3">
@@ -300,20 +299,20 @@ export default function NetSuiteDatasourceManagementPage() {
             </motionPlaceholder>
             <motionPlaceholder>
               <Label>Deploy ID</Label>
-              <Input value="1" disabled className="bg-ns-page-bg text-gray-500" />
+              <Input value="1" disabled className="bg-ns-page-bg text-ns-text-muted" />
               <p className="text-[9px] text-ns-text-muted mt-1">Fixed · OAuth from .env</p>
             </motionPlaceholder>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <motionPlaceholder>
-              <Label>Label Key</Label>
+              <Label>Display field</Label>
               <Input
                 value={form.labelKey}
                 onChange={e => setForm(f => ({ ...f, labelKey: e.target.value }))}
               />
             </motionPlaceholder>
             <motionPlaceholder>
-              <Label>Value Key</Label>
+              <Label>ID field</Label>
               <Input
                 value={form.valueKey}
                 onChange={e => setForm(f => ({ ...f, valueKey: e.target.value }))}
@@ -321,7 +320,7 @@ export default function NetSuiteDatasourceManagementPage() {
             </motionPlaceholder>
           </div>
           <motionPlaceholder>
-            <Label>Response Data Path</Label>
+            <Label>Data location in response</Label>
             <Input
               value={form.responseDataPath}
               onChange={e => setForm(f => ({ ...f, responseDataPath: e.target.value }))}
@@ -361,7 +360,7 @@ export default function NetSuiteDatasourceManagementPage() {
               {testResult && (
                 <div className="text-[11px] space-y-1">
                   <p className={testResult.success ? 'text-status-approved' : 'text-status-rejected'}>
-                    {testResult.success ? 'Connection OK' : testResult.message}
+                    {testResult.success ? 'Connected' : testResult.message}
                     {testResult.latencyMs != null && ` · ${testResult.latencyMs}ms`}
                     {testResult.responseCount != null && ` · ${testResult.responseCount} records`}
                   </p>
@@ -384,7 +383,7 @@ export default function NetSuiteDatasourceManagementPage() {
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => void handleSave()}>Save Connector</Button>
+            <Button onClick={() => void handleSave()}>Save connection</Button>
           </motionPlaceholder>
         </div>
       </Modal>
@@ -399,7 +398,7 @@ export default function NetSuiteDatasourceManagementPage() {
             await load();
           }
         }}
-        title="Delete Connector"
+        title="Delete connection?"
         message={`Remove "${deleteTarget?.name}"? Fields using key "${deleteTarget?.key}" will stop loading.`}
       />
     </AdminLayout>

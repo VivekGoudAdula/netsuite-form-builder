@@ -88,12 +88,12 @@ export default function FormsPage() {
     <AdminLayout>
       <div className="space-y-6">
         <PageHeader
-          eyebrow={isSuperAdmin ? 'Global forms' : 'Entity form assignments'}
-          title={isSuperAdmin ? 'Manage forms' : 'Personnel assignments'}
+          eyebrow={isSuperAdmin ? 'Global forms' : 'Form assignments'}
+          title={isSuperAdmin ? 'Manage forms' : 'Form assignments'}
           subtitle={
             isSuperAdmin
-              ? 'Configure and provision transaction schemas for client entities.'
-              : 'Assign active form protocols to your authorized personnel.'
+              ? 'Create and assign forms to companies.'
+              : 'Assign forms to your team.'
           }
           actions={
             isSuperAdmin ? (
@@ -107,9 +107,9 @@ export default function FormsPage() {
 
         <Card padding="md" className="flex items-center justify-between gap-6 flex-wrap">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
+            <Search className="absolute left-3 top-2.5 text-ns-text-muted" size={14} />
             <Input
-              placeholder={isSuperAdmin ? "Filter by blueprint name or type..." : "Filter by assignment name..."}
+              placeholder={isSuperAdmin ? "Search by form name or type…" : "Search by form name…"}
               className="pl-9 h-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -126,11 +126,11 @@ export default function FormsPage() {
         <Table>
           <THead>
             <TR>
-              <TH>{isSuperAdmin ? 'Blueprint Name' : 'Protocol Name'}</TH>
-              {isSuperAdmin && <TH>Company Entity</TH>}
-              <TH>Configuration Type</TH>
-              <TH>Access List</TH>
-              <TH className="text-right px-6">Controls</TH>
+              <TH>Form name</TH>
+              {isSuperAdmin && <TH>Company</TH>}
+              <TH>Form type</TH>
+              <TH>Assigned users</TH>
+              <TH className="text-right px-6">Actions</TH>
             </TR>
           </THead>
           <TBody>
@@ -164,7 +164,7 @@ export default function FormsPage() {
                       className="flex items-center gap-1.5 px-2 py-1 rounded-ns-md bg-ns-blue/5 hover:bg-ns-blue/10 border border-ns-blue/20 text-[10px] font-bold text-ns-blue transition-colors"
                     >
                       <Users size={12} />
-                      {form.assignedTo?.length || 0} STAFF
+                      {form.assignedTo?.length || 0} users
                     </button>
                   </TD>
                   <TD className="px-6">
@@ -195,7 +195,7 @@ export default function FormsPage() {
                           onClick={() => openAssignment(form)}
                           className="h-8 px-3 gap-1.5 text-[10px] font-bold uppercase tracking-widest"
                         >
-                          <Users size={12} /> Assign Staff
+                          <Users size={12} /> Assign users
                         </Button>
                       )}
                     </div>
@@ -208,8 +208,8 @@ export default function FormsPage() {
                 <TD colSpan={isSuperAdmin ? 5 : 4} className="py-24 text-center bg-white space-y-4">
                   <div className="opacity-40 flex flex-col items-center">
                     <Library size={48} className="mb-4 text-ns-navy" />
-                    <p className="text-xs font-bold uppercase tracking-[0.2em]">Repository Empty</p>
-                    <p className="text-[10px] mt-2">Zero matching protocols found in your directory.</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em]">No forms found</p>
+                    <p className="text-[10px] mt-2">No forms match your search.</p>
                   </div>
                   <Button variant="secondary" size="sm" onClick={() => setSearchTerm('')}>Clear Filtering</Button>
                 </TD>
@@ -223,19 +223,19 @@ export default function FormsPage() {
           <Modal
             isOpen={isModalOpen && !!assignmentFormId}
             onClose={() => setIsModalOpen(false)}
-            title="Authorized Personnel Assignment"
+            title="Assign users"
             footer={
               <>
                 <Button variant="secondary" size="sm" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button size="sm" onClick={handleAssign}>Synchronize Access List</Button>
+                <Button size="sm" onClick={handleAssign}>Save assignments</Button>
               </>
             }
           >
             <div className="space-y-6">
               <div className="p-4 bg-ns-navy rounded-ns-md text-white">
-                <p className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">Target Protocol</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">Form</p>
                 <h3 className="text-lg font-bold">{activeForm.name}</h3>
-                <p className="text-xs opacity-80 mt-1 italic">Assign authorized personnel from {companies.find(c => c.id === (activeForm.customerId || user?.companyId))?.name || 'your entity'}.</p>
+                <p className="text-xs opacity-80 mt-1 italic">Assign team members from {companies.find(c => c.id === (activeForm.customerId || user?.companyId))?.name || 'your company'}.</p>
               </div>
 
               <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
@@ -259,7 +259,7 @@ export default function FormsPage() {
                       </div>
                       <div>
                         <p className="text-sm font-bold text-ns-text">{user.name}</p>
-                        <p className="text-[10px] text-ns-text-muted font-medium uppercase tracking-tight">{user.jobTitle || 'Authorized Staff'}</p>
+                        <p className="text-[10px] text-ns-text-muted font-medium uppercase tracking-tight">{user.jobTitle || 'Employee'}</p>
                       </div>
                     </div>
                     {selectedUserIds.includes(user.id) && (
@@ -271,7 +271,7 @@ export default function FormsPage() {
                 ))}
                 {relevantUsers.length === 0 && (
                   <div className="p-12 text-center text-ns-text-muted bg-ns-gray-bg rounded-ns-md border border-dashed border-ns-border">
-                    <p className="text-xs font-bold uppercase tracking-widest">No matching personnel recorded for this entity.</p>
+                    <p className="text-xs font-bold uppercase tracking-widest">No employees found for this company.</p>
                   </div>
                 )}
               </div>
@@ -289,8 +289,8 @@ export default function FormsPage() {
               setDeleteConfirmId(null);
             }
           }}
-          title="Delete Transaction Layout?"
-          message="This will permanently delete this blueprint configuration. This action cannot be undone."
+          title="Delete form?"
+          message="This will permanently delete this form. This action cannot be undone."
         />
       </div>
     </AdminLayout>

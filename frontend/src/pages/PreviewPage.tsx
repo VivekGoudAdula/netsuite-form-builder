@@ -89,7 +89,7 @@ export default function PreviewPage() {
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
     
-    setNotification({ message: 'Configuration exported successfully', type: 'success' });
+    setNotification({ message: 'Form exported successfully', type: 'success' });
     setTimeout(() => setNotification(null), 3000);
   };
 
@@ -114,7 +114,7 @@ export default function PreviewPage() {
       <Modal 
         isOpen={isEmailModalOpen} 
         onClose={() => setIsEmailModalOpen(false)} 
-        title="Email Form Configuration"
+        title="Email form"
         footer={
           <>
             <Button variant="secondary" size="sm" onClick={() => setIsEmailModalOpen(false)}>Cancel</Button>
@@ -129,7 +129,7 @@ export default function PreviewPage() {
           </div>
           <div>
             <Label>Subject</Label>
-            <Input defaultValue={`Form Configuration: ${currentForm.name}`} />
+            <Input defaultValue={`Form: ${currentForm.name}`} />
           </div>
           <div>
             <Label>Message</Label>
@@ -151,9 +151,9 @@ export default function PreviewPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-ns-text leading-tight">{catalogue.name}</h1>
-              <span className="px-2 py-0.5 bg-ns-light-blue text-ns-blue text-[10px] font-bold rounded-ns-md uppercase tracking-wider">Preview Mode</span>
+              <span className="px-2 py-0.5 bg-ns-light-blue text-ns-blue text-[10px] font-bold rounded-ns-md uppercase tracking-wider">Preview</span>
             </div>
-            <p className="text-[11px] text-ns-text-muted font-medium uppercase tracking-widest mt-0.5">Configuration: {currentForm.name}</p>
+            <p className="text-[11px] text-ns-text-muted font-medium uppercase tracking-widest mt-0.5">Form: {currentForm.name}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -180,12 +180,12 @@ export default function PreviewPage() {
                   onClick={() => setShowMoreMenu(false)} 
                 />
                 <div className="absolute right-0 mt-2 w-56 bg-white border border-ns-border rounded-ns-md shadow-xl z-40 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                  <div className="px-3 py-2 text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.15em] border-b border-gray-50 mb-1">More Actions</div>
+                  <div className="px-3 py-2 text-[10px] font-bold text-ns-text-muted uppercase tracking-[0.15em] border-b border-ns-border mb-1">More Actions</div>
                   {[
-                    { label: 'View Audit Trail', icon: MoreHorizontal },
-                    { label: 'System Information', icon: MoreHorizontal },
-                    { label: 'Permissions Setup', icon: MoreHorizontal },
-                    { label: 'Clone Configuration', icon: MoreHorizontal }
+                    { label: 'View history', icon: MoreHorizontal },
+                    { label: 'Additional details', icon: MoreHorizontal },
+                    { label: 'Permissions', icon: MoreHorizontal },
+                    { label: 'Duplicate form', icon: MoreHorizontal }
                   ].map((item, idx) => (
                     <button 
                       key={idx}
@@ -239,7 +239,7 @@ export default function PreviewPage() {
                             {field.label}
                           </Label>
                           {field.displayType === 'disabled' && (
-                            <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest pl-2">Read Only</span>
+                            <span className="text-[9px] font-bold text-ns-text-muted/50 uppercase tracking-widest pl-2">Read Only</span>
                           )}
                         </div>
                         <FieldControl
@@ -311,7 +311,7 @@ export default function PreviewPage() {
                 <div className="mt-12">
                   <div className="flex items-center gap-4 mb-6">
                     <h3 className="text-[11px] font-black text-ns-text uppercase tracking-[0.2em] whitespace-nowrap">
-                      Corporate Expense Ledger
+                      Expense lines
                     </h3>
                     <div className="h-[1px] bg-ns-blue/10 w-full" />
                   </div>
@@ -357,7 +357,7 @@ export default function PreviewPage() {
               )}
 
               {(!activeTab || (activeTab.fieldGroups.length === 0 && (!activeTab.itemSublist || activeTab.itemSublist.length === 0) && (!activeTab.expenseSublist || activeTab.expenseSublist.length === 0))) && (
-                <div className="py-20 flex flex-col items-center justify-center text-gray-300">
+                <div className="py-20 flex flex-col items-center justify-center text-ns-text-muted/50">
                   <Share2 size={48} className="mb-4 opacity-20" />
                   <p className="text-xs font-bold uppercase tracking-[0.2em]">No fields configured for this view</p>
                 </div>
